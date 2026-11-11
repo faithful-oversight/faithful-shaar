@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Faithful Oversight, LLC
+# SPDX-License-Identifier: Apache-2.0
+#
+# Reviewed licenses for runtime dependencies whose metadata does not establish
+# one license (see scripts/check_licenses.py). Each entry applies only to the
+# exact version reviewed; a new version fails the check until someone reads its
+# license again and updates the entry.
+
