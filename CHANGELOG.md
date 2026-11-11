@@ -9,3 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 
 - Project foundation: license, documentation, contribution and security policies, continuous integration, and release pipeline.
+
+### Changed
+
+- The license check reads optional extras and platform-specific dependencies correctly, matching merilo and toledot.
