@@ -47,7 +47,11 @@ stage_deps() {
     > "${TMPDIR:-/tmp}/requirements-audit.txt"
   run pip-audit --strict --requirement "${TMPDIR:-/tmp}/requirements-audit.txt" --disable-pip
 }
-stage_licenses()  { run python scripts/check_licenses.py; }
+stage_licenses() {
+  # Optional extras are dependencies too; install them so their licenses can be read.
+  uv sync --quiet --locked --all-extras
+  run python scripts/check_licenses.py
+}
 stage_reuse()     { run reuse lint; }
 stage_build() {
   rm -rf dist
@@ -55,6 +59,14 @@ stage_build() {
   uv build --build-constraint requirements-build.txt --require-hashes
   run twine check --strict dist/*
   scripts/smoke_test.sh dist
+  # The source archive ships the tests, so it must ship what they read. Collect
+  # them from an extracted copy, outside the repository.
+  local unpacked=build/sdist
+  rm -rf "$unpacked"
+  mkdir -p "$unpacked"
+  tar -xzf dist/*.tar.gz -C "$unpacked" --strip-components=1
+  (cd "$unpacked" && uv run --project "$OLDPWD" --no-sync python -m pytest \
+    --collect-only -q --no-cov -p no:cacheprovider tests >/dev/null)
   scripts/release_evidence.sh dist
   # A rerun of the release workflow rebuilds everything, and can resume a staged
   # draft only if every byte comes out the same. Prove that on every change.

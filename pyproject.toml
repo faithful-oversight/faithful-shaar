@@ -65,7 +65,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "tests", "docs", "examples", "LICENSE", "NOTICE", "README.md", "CHANGELOG.md"]
+include = ["src", "tests", "scripts", "docs", "examples", "LICENSE", "NOTICE", "README.md", "CHANGELOG.md"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/faithful_shaar"]

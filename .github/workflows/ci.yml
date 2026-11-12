@@ -201,7 +201,7 @@ jobs:
           # Keep in sync with ALLOWED in scripts/check_licenses.py.
           allow-licenses: >-
             0BSD, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MIT,
-            PSF-2.0, Python-2.0, Unlicense, Zlib
+            MIT-0, MPL-2.0, PSF-2.0, Python-2.0, Unlicense, Zlib
 
   all-checks-passed:
     name: All checks passed
