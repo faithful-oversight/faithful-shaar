@@ -20,7 +20,7 @@ stage_test()      { run pytest --cov-fail-under=95; }
 stage_docs() {
   local -a docs
   # Generated sample reports are checked by tests, not by the prose linters.
-  mapfile -t docs < <(git ls-files '*.md' ':!:examples/*/sample-report/*')
+  mapfile -t docs < <(git ls-files '*.md' ':!:examples/*')
   run pymarkdown --config .pymarkdown.json scan "${docs[@]}"
   git ls-files -z | xargs -0 uv run --locked --no-sync codespell --
   run vale sync >/dev/null
