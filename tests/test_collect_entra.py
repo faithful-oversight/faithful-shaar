@@ -1565,3 +1565,41 @@ def test_owners_and_managers_without_an_id_are_ignored(
     assert kinds(export, "resource")[0]["owner_ids"] == []
     assert [p["id"] for p in kinds(export, "principal")] == [oid(11)]
     assert kinds(export, "principal")[0]["manager_id"] == ""
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/groups/../users",
+        "/groups/a?b",
+        "/groups/a#b",
+        "/groups/a%2F..",
+        "/groups/",
+        "groups",
+        "/groups/a b",
+        "/groups/.",
+    ],
+)
+def test_a_path_that_is_not_plain_identifiers_is_never_requested(
+    client: GraphClient, fake: FakeGraph, path: str
+) -> None:
+    with pytest.raises(GraphGap, match="not a plain identifier"):
+        client.get(path)
+    listing = client.pages(path)
+    assert (listing.items, listing.error) == (
+        [],
+        "an id from Graph is not a plain identifier, so it was not requested",
+    )
+    assert fake.paths() == []
+
+
+def test_a_url_the_library_rejects_becomes_a_gap(
+    client: GraphClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def refuse(*_a: object, **_k: object) -> None:
+        msg = "bad url"
+        raise ValueError(msg)
+
+    monkeypatch.setattr(client._opener, "open", refuse)  # noqa: SLF001
+    with pytest.raises(GraphGap, match=r"the request failed \(ValueError\)"):
+        client.get("/groups/abc")
