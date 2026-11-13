@@ -180,7 +180,7 @@ def entra_export(*, after: bool) -> bytes:
         *_people("entra"),
         _group(payroll, "Payroll App Users", [_oid(5)], complete=not after),
         _group(admin, "Global Administrator", [], kind="role"),
-        _grant(_oid(2), admin, "Global Administrator"),
+        _grant(_oid(2), admin, "whole directory"),
         _grant(_oid(3), payroll),
     ]
     if not after:

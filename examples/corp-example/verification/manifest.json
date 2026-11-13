@@ -2,27 +2,27 @@
   "files": [
     {
       "name": "verify-report.json",
-      "sha256": "3ca0089a74f3330682baf7666f9d48dbafb3a56576ff2c1026311c7d776d8989",
+      "sha256": "fac3b34f9f154002382eedeb735190de53f4e801bea9db9b5fcbb9469f8b7e39",
       "size": 3945
     },
     {
       "name": "verify-report.md",
-      "sha256": "48eba5189336cfeff0166b9d4a81864deabbe09db094942c6dc2e7263418ca4c",
+      "sha256": "d022dc288b8583c51cd571a65bb9702c9c5c712adee10c08f750a004f6d8d1c2",
       "size": 2948
     },
     {
       "name": "verify-report.html",
-      "sha256": "0fa06a2fbeb782aa09a0f04cc1c0ceaa19b2a1bf738ebecdbd4c40e33e613872",
+      "sha256": "ba65e8e62517626e803b1aca62617ce411e0d5f342639bb91a2d810fed892539",
       "size": 7181
     },
     {
       "name": "removals.csv",
-      "sha256": "92544df204e54bcffa2ccff6c6c08064f5178accce4d3d65bb75b929d9d44bfd",
+      "sha256": "4760ea8a751a28fd5958ec8c7fb3b06b576069efc4944a9e16972f4f606d90b8",
       "size": 1000
     },
     {
       "name": "kept_but_gone.csv",
-      "sha256": "26d4dbe301b42ff3d1ebc751f9a84ab0953de0adcf61f0fbe19bb11b00734c2b",
+      "sha256": "3ae34124638a4759cdfa57aadd22ddf9cfbc111f29e56628ffe6ea9eae5deebb",
       "size": 137
     },
     {
@@ -42,8 +42,8 @@
     {
       "kind": "shaar-export",
       "name": "entra.jsonl",
-      "sha256": "292b8296fdd558592cdcf7129fa69083fb12e3a199e0212a4e536be74d2db188",
-      "size": 3147
+      "sha256": "9eb13b7c3d6a5b2f2a7954ed43b105391b436a4764d62c3fd6d5363bb1dd8924",
+      "size": 3142
     },
     {
       "kind": "csv",

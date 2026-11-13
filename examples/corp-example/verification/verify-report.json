@@ -9,12 +9,12 @@
   },
   "data": {
     "as_of": "2026-11-20T22:00:00Z",
-    "campaign_digest": "c551ffff5ed70e50f08ce940bc2eb99489386b367a81ab609bc587e871d94637",
-    "campaign_id": "C61b04c11174dbf64"
+    "campaign_digest": "5136ac6e2e72c2bcb029507089619d94f2c587179d13ff8d2449b5cdde41d873",
+    "campaign_id": "C1966ccf07210e91a"
   },
   "facts": {
     "Campaign": "Q4 2026 access review",
-    "Campaign ID": "C61b04c11174dbf64",
+    "Campaign ID": "C1966ccf07210e91a",
     "Due": "2026-11-16",
     "Later access read at": "2026-11-20T22:00:00Z"
   },
@@ -30,8 +30,8 @@
     {
       "kind": "shaar-export",
       "name": "entra.jsonl",
-      "sha256": "292b8296fdd558592cdcf7129fa69083fb12e3a199e0212a4e536be74d2db188",
-      "size": 3147
+      "sha256": "9eb13b7c3d6a5b2f2a7954ed43b105391b436a4764d62c3fd6d5363bb1dd8924",
+      "size": 3142
     },
     {
       "kind": "csv",
@@ -55,7 +55,7 @@
         "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 6",
         "principal": "Drew Analyst",
         "resource": "Ledger",
-        "row_id": "R3c96926303ef"
+        "row_id": "R94a7683b4b39"
       }
     ],
     "new_since_review": [
@@ -69,21 +69,12 @@
     "removals": [
       {
         "access": "member",
-        "citation": "returned-01-Casey-Owner-da089e.xlsx, Review row 3",
-        "principal": "Emery Contractor",
-        "reason": "still present on 2026-11-20, on or after the due date 2026-11-16",
-        "resource": "Server Operators",
-        "result": "failed",
-        "row_id": "R11cecb2e3123"
-      },
-      {
-        "access": "Viewer",
-        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5",
-        "principal": "Blake Sample",
-        "reason": "not in the later export, which read the whole membership; the principal's key is not in the later export",
-        "resource": "Ledger",
-        "result": "removed",
-        "row_id": "R7c9006452035"
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9",
+        "principal": "Drew Analyst",
+        "reason": "the later export did not read this resource's whole membership",
+        "resource": "Payroll App Users",
+        "result": "unknown",
+        "row_id": "R240ac286f67a"
       },
       {
         "access": "member",
@@ -92,7 +83,7 @@
         "reason": "the later export did not read this resource's whole membership",
         "resource": "Payroll App Users",
         "result": "unknown",
-        "row_id": "R7e2286fe57e8"
+        "row_id": "R2a8397b44f53"
       },
       {
         "access": "member",
@@ -101,16 +92,25 @@
         "reason": "not in the later export, which read the whole membership; the principal is disabled",
         "resource": "Finance Admins",
         "result": "removed",
-        "row_id": "Rcf3e823507b7"
+        "row_id": "R42c734801af7"
+      },
+      {
+        "access": "Viewer",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5",
+        "principal": "Blake Sample",
+        "reason": "not in the later export, which read the whole membership; the principal's key is not in the later export",
+        "resource": "Ledger",
+        "result": "removed",
+        "row_id": "R824c58e8c34c"
       },
       {
         "access": "member",
-        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9",
-        "principal": "Drew Analyst",
-        "reason": "the later export did not read this resource's whole membership",
-        "resource": "Payroll App Users",
-        "result": "unknown",
-        "row_id": "Re38173dfa1b5"
+        "citation": "returned-01-Casey-Owner-da089e.xlsx, Review row 3",
+        "principal": "Emery Contractor",
+        "reason": "still present on 2026-11-20, on or after the due date 2026-11-16",
+        "resource": "Server Operators",
+        "result": "failed",
+        "row_id": "Rae38d4d67f84"
       }
     ]
   },

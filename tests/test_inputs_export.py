@@ -87,7 +87,7 @@ def test_reads_an_entra_export_with_roles() -> None:
         resource(guid(2), "Security Reader", kind="role"),
         resource(role, "Global Admins", kind="role"),
         resource(guid(3), "Finance", kind="group"),
-        grant(guid(1), role, "Global Administrator"),
+        grant(guid(1), role, "whole directory"),
         grant(guid(1), guid(3)),
     ]
     snap = read(export_bytes(records, system="entra"))
@@ -96,7 +96,7 @@ def test_reads_an_entra_export_with_roles() -> None:
     assert f"entra:{TENANT}:role:{role}" in snap.resources
     assert f"entra:{TENANT}:id:{guid(3)}" in snap.resources
     role_key, avery_key = f"entra:{TENANT}:role:{role}", f"entra:{TENANT}:id:{guid(1)}"
-    assert f"{role_key}|{avery_key}|global administrator" in snap.grants
+    assert f"{role_key}|{avery_key}|whole directory" in snap.grants
     assert snap.systems == {"entra"}
     assert snap.context["tenant[ad.jsonl]"] == guid(0)
 

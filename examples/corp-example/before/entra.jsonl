@@ -8,8 +8,8 @@
 {"principal": {"email": "emery.contractor@corp.example", "enabled": true, "extra": {}, "id": "00000000-0000-4000-8000-000000000007", "kind": "user", "last_sign_in": "2026-10-30T08:15:00Z", "manager_id": "00000000-0000-4000-8000-000000000005", "name": "Emery Contractor", "upn": "emery.contractor@corp.example"}}
 {"resource": {"complete": true, "extra": {}, "id": "00000000-0000-4000-8000-000000003001", "kind": "group", "name": "Payroll App Users", "owner_ids": ["00000000-0000-4000-8000-000000000005"]}}
 {"resource": {"complete": true, "extra": {}, "id": "62e90394-69f5-4237-9190-012177145e10", "kind": "role", "name": "Global Administrator", "owner_ids": []}}
-{"grant": {"entitlement": "Global Administrator", "extra": {}, "principal_id": "00000000-0000-4000-8000-000000000002", "resource_id": "62e90394-69f5-4237-9190-012177145e10", "via": []}}
+{"grant": {"entitlement": "whole directory", "extra": {}, "principal_id": "00000000-0000-4000-8000-000000000002", "resource_id": "62e90394-69f5-4237-9190-012177145e10", "via": []}}
 {"grant": {"entitlement": "member", "extra": {}, "principal_id": "00000000-0000-4000-8000-000000000003", "resource_id": "00000000-0000-4000-8000-000000003001", "via": []}}
 {"grant": {"entitlement": "member", "extra": {}, "principal_id": "00000000-0000-4000-8000-000000000006", "resource_id": "00000000-0000-4000-8000-000000003001", "via": []}}
 {"grant": {"entitlement": "member", "extra": {}, "principal_id": "00000000-0000-4000-8000-000000000007", "resource_id": "00000000-0000-4000-8000-000000003001", "via": []}}
-{"end": true, "records": 13, "sha256": "0eba3a3c5ab0eeabc99f373fd0baf807e5456a239d1c7b6df33fd9a6237c8d08"}
+{"end": true, "records": 13, "sha256": "e38d93d18a248bc6803d012c20f812709b2be83794a7c7b19862f4d10e22ef56"}

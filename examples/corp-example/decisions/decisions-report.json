@@ -10,9 +10,9 @@
     "Undecided": 1
   },
   "data": {
-    "campaign_digest": "c551ffff5ed70e50f08ce940bc2eb99489386b367a81ab609bc587e871d94637",
-    "campaign_id": "C61b04c11174dbf64",
-    "decisions_digest": "8b4f0e9c29fed8ca17740f18b4cf6cc9b6bd802649df67681773afa4038cf185",
+    "campaign_digest": "5136ac6e2e72c2bcb029507089619d94f2c587179d13ff8d2449b5cdde41d873",
+    "campaign_id": "C1966ccf07210e91a",
+    "decisions_digest": "2e33ed80379542247fb076e7dfc5ab823670c43e7a01cf463fe6840327fdf2cd",
     "packets": [
       {
         "file": "returned-01-Casey-Owner-da089e.xlsx",
@@ -20,7 +20,7 @@
         "reported_by": "shaar",
         "reported_modified": "2026-11-02T09:00:00Z",
         "reviewer": "Casey Owner",
-        "sha256": "7c66749bbb87adb768caaeda2745288b22c1a28899c17fd5eb815f53e3cd0f58",
+        "sha256": "d3d6749123a96b1b634afd3f62aa252b3469c106f5eadf939d0225c486af5c42",
         "status": "read"
       },
       {
@@ -29,7 +29,7 @@
         "reported_by": "shaar",
         "reported_modified": "2026-11-02T09:00:00Z",
         "reviewer": "Jordan Director",
-        "sha256": "6e375f75edcfbe0a32e2eba16a6cf89296c76f279908e6fd7fe1a1450bd34990",
+        "sha256": "6841dce7961a990e1e5b502b08ad394524d53a49fa7df0d81e78d3d30c0fae7a",
         "status": "read"
       },
       {
@@ -38,14 +38,14 @@
         "reported_by": "shaar",
         "reported_modified": "2026-11-02T09:00:00Z",
         "reviewer": "Morgan Lead",
-        "sha256": "597ba8c3d0f6ce7a207837e085bff3e9ca2e4bbf8b6dcd65a7fc4b16b5727677",
+        "sha256": "c484afb6525c11d7d908a662dd667bd94634c37e2d8594f2e0f2cf2810f77048",
         "status": "read"
       }
     ]
   },
   "facts": {
     "Campaign": "Q4 2026 access review",
-    "Campaign ID": "C61b04c11174dbf64",
+    "Campaign ID": "C1966ccf07210e91a",
     "Comment required for": "no decision",
     "Packets read": "3 of 3 returned files"
   },
@@ -61,8 +61,8 @@
     {
       "kind": "shaar-export",
       "name": "entra.jsonl",
-      "sha256": "750dd952e2622fc921a3c8f33b754e699ab480557923fd46e0b1e7a0be0707b3",
-      "size": 3490
+      "sha256": "dfe2df70b884bcd6e3c5633ddf34601f073d2dd89cdec19691455798b547b0ff",
+      "size": 3485
     },
     {
       "kind": "csv",
@@ -87,7 +87,7 @@
         "reason": "no decision",
         "resource": "Ops Helpers",
         "reviewer": "Morgan Lead",
-        "row_id": "Raa06884d69bd",
+        "row_id": "Reba9a6a36510",
         "state": "undecided"
       },
       {
@@ -96,7 +96,7 @@
         "reason": "the reviewer was unsure; follow up for Keep or Remove",
         "resource": "Server Operators",
         "reviewer": "Morgan Lead",
-        "row_id": "R47487ba919fb",
+        "row_id": "R9a395c188238",
         "state": "unsure"
       },
       {
@@ -128,7 +128,7 @@
         "principal": "Emery Contractor",
         "resource": "Payroll App Users",
         "reviewer": "Casey Owner",
-        "row_id": "R7e2286fe57e8",
+        "row_id": "R2a8397b44f53",
         "state": "accepted"
       },
       {
@@ -140,11 +140,11 @@
         "principal": "Emery Contractor",
         "resource": "Server Operators",
         "reviewer": "Casey Owner",
-        "row_id": "R11cecb2e3123",
+        "row_id": "Rae38d4d67f84",
         "state": "accepted"
       },
       {
-        "access": "Global Administrator",
+        "access": "whole directory",
         "citation": "returned-02-Jordan-Director-24304a.xlsx, Review row 2",
         "comment": "Break-glass holder",
         "decision": "Keep",
@@ -152,7 +152,7 @@
         "principal": "Morgan Lead",
         "resource": "Global Administrator",
         "reviewer": "Jordan Director",
-        "row_id": "Rd57718e25b3c",
+        "row_id": "R8745b3514235",
         "state": "accepted"
       },
       {
@@ -164,7 +164,7 @@
         "principal": "Morgan Lead",
         "resource": "Ledger",
         "reviewer": "Jordan Director",
-        "row_id": "R5b26d19ff14c",
+        "row_id": "Ra3203c9fb2b2",
         "state": "accepted"
       },
       {
@@ -176,7 +176,7 @@
         "principal": "Avery Example",
         "resource": "Finance Admins",
         "reviewer": "Morgan Lead",
-        "row_id": "R2e1377f5a86c",
+        "row_id": "R0a59068317b1",
         "state": "accepted"
       },
       {
@@ -188,7 +188,7 @@
         "principal": "Blake Sample",
         "resource": "Finance Admins",
         "reviewer": "Morgan Lead",
-        "row_id": "Rcf3e823507b7",
+        "row_id": "R42c734801af7",
         "state": "accepted"
       },
       {
@@ -200,7 +200,7 @@
         "principal": "Avery Example",
         "resource": "Ledger",
         "reviewer": "Morgan Lead",
-        "row_id": "Rba3add9d40c3",
+        "row_id": "R89aecc206b71",
         "state": "accepted"
       },
       {
@@ -212,7 +212,7 @@
         "principal": "Blake Sample",
         "resource": "Ledger",
         "reviewer": "Morgan Lead",
-        "row_id": "R7c9006452035",
+        "row_id": "R824c58e8c34c",
         "state": "accepted"
       },
       {
@@ -224,7 +224,7 @@
         "principal": "Drew Analyst",
         "resource": "Ledger",
         "reviewer": "Morgan Lead",
-        "row_id": "R3c96926303ef",
+        "row_id": "R94a7683b4b39",
         "state": "accepted"
       },
       {
@@ -236,7 +236,7 @@
         "principal": "Drew Analyst",
         "resource": "Ops Helpers",
         "reviewer": "Morgan Lead",
-        "row_id": "Raa06884d69bd",
+        "row_id": "Reba9a6a36510",
         "state": "undecided"
       },
       {
@@ -248,7 +248,7 @@
         "principal": "Avery Example",
         "resource": "Payroll App Users",
         "reviewer": "Morgan Lead",
-        "row_id": "R69e878188490",
+        "row_id": "Rdafff73f0394",
         "state": "accepted"
       },
       {
@@ -260,7 +260,7 @@
         "principal": "Drew Analyst",
         "resource": "Payroll App Users",
         "reviewer": "Morgan Lead",
-        "row_id": "Re38173dfa1b5",
+        "row_id": "R240ac286f67a",
         "state": "accepted"
       },
       {
@@ -272,7 +272,7 @@
         "principal": "Drew Analyst",
         "resource": "Server Operators",
         "reviewer": "Morgan Lead",
-        "row_id": "R47487ba919fb",
+        "row_id": "R9a395c188238",
         "state": "accepted"
       },
       {
@@ -308,7 +308,7 @@
         "principal": "Emery Contractor",
         "resource": "Payroll App Users",
         "reviewer": "Casey Owner",
-        "row_id": "R7e2286fe57e8"
+        "row_id": "R2a8397b44f53"
       },
       {
         "access": "member",
@@ -317,7 +317,7 @@
         "principal": "Emery Contractor",
         "resource": "Server Operators",
         "reviewer": "Casey Owner",
-        "row_id": "R11cecb2e3123"
+        "row_id": "Rae38d4d67f84"
       },
       {
         "access": "member",
@@ -326,7 +326,7 @@
         "principal": "Blake Sample",
         "resource": "Finance Admins",
         "reviewer": "Morgan Lead",
-        "row_id": "Rcf3e823507b7"
+        "row_id": "R42c734801af7"
       },
       {
         "access": "Viewer",
@@ -335,7 +335,7 @@
         "principal": "Blake Sample",
         "resource": "Ledger",
         "reviewer": "Morgan Lead",
-        "row_id": "R7c9006452035"
+        "row_id": "R824c58e8c34c"
       },
       {
         "access": "member",
@@ -344,7 +344,7 @@
         "principal": "Drew Analyst",
         "resource": "Payroll App Users",
         "reviewer": "Morgan Lead",
-        "row_id": "Re38173dfa1b5"
+        "row_id": "R240ac286f67a"
       }
     ]
   },

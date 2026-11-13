@@ -6,13 +6,13 @@
     "Reviewers": 3
   },
   "data": {
-    "campaign_digest": "c551ffff5ed70e50f08ce940bc2eb99489386b367a81ab609bc587e871d94637",
-    "campaign_id": "C61b04c11174dbf64"
+    "campaign_digest": "5136ac6e2e72c2bcb029507089619d94f2c587179d13ff8d2449b5cdde41d873",
+    "campaign_id": "C1966ccf07210e91a"
   },
   "facts": {
     "Access read at": "2026-11-01T22:00:00Z",
     "Campaign": "Q4 2026 access review",
-    "Campaign ID": "C61b04c11174dbf64",
+    "Campaign ID": "C1966ccf07210e91a",
     "Due": "2026-11-16",
     "Reviewers chosen by": "manager",
     "Systems": "ad, csv:ledger, entra"
@@ -29,8 +29,8 @@
     {
       "kind": "shaar-export",
       "name": "entra.jsonl",
-      "sha256": "750dd952e2622fc921a3c8f33b754e699ab480557923fd46e0b1e7a0be0707b3",
-      "size": 3490
+      "sha256": "dfe2df70b884bcd6e3c5633ddf34601f073d2dd89cdec19691455798b547b0ff",
+      "size": 3485
     },
     {
       "kind": "csv",
@@ -76,7 +76,7 @@
         "resource": "Payroll App Users",
         "resource_kind": "group",
         "reviewer": "Casey Owner",
-        "row_id": "R7e2286fe57e8",
+        "row_id": "R2a8397b44f53",
         "source": "entra.jsonl, line 14",
         "status": "Enabled",
         "via": "Direct"
@@ -88,19 +88,19 @@
         "resource": "Server Operators",
         "resource_kind": "group",
         "reviewer": "Casey Owner",
-        "row_id": "R11cecb2e3123",
+        "row_id": "Rae38d4d67f84",
         "source": "ad.jsonl, line 18",
         "status": "Enabled",
         "via": "Direct"
       },
       {
-        "access": "Global Administrator",
+        "access": "whole directory",
         "account": "morgan.lead@corp.example",
         "principal": "Morgan Lead",
         "resource": "Global Administrator",
         "resource_kind": "role",
         "reviewer": "Jordan Director",
-        "row_id": "Rd57718e25b3c",
+        "row_id": "R8745b3514235",
         "source": "entra.jsonl, line 11",
         "status": "Enabled",
         "via": "Direct"
@@ -112,7 +112,7 @@
         "resource": "Ledger",
         "resource_kind": "application",
         "reviewer": "Jordan Director",
-        "row_id": "R5b26d19ff14c",
+        "row_id": "Ra3203c9fb2b2",
         "source": "ledger.csv, row 3",
         "status": "Enabled",
         "via": "Direct"
@@ -124,7 +124,7 @@
         "resource": "Finance Admins",
         "resource_kind": "group",
         "reviewer": "Morgan Lead",
-        "row_id": "R2e1377f5a86c",
+        "row_id": "R0a59068317b1",
         "source": "ad.jsonl, line 13",
         "status": "Enabled",
         "via": "Direct"
@@ -136,7 +136,7 @@
         "resource": "Finance Admins",
         "resource_kind": "group",
         "reviewer": "Morgan Lead",
-        "row_id": "Rcf3e823507b7",
+        "row_id": "R42c734801af7",
         "source": "ad.jsonl, line 17",
         "status": "Disabled",
         "via": "Direct"
@@ -148,7 +148,7 @@
         "resource": "Ledger",
         "resource_kind": "application",
         "reviewer": "Morgan Lead",
-        "row_id": "Rba3add9d40c3",
+        "row_id": "R89aecc206b71",
         "source": "ledger.csv, row 4",
         "status": "Enabled",
         "via": "Direct"
@@ -160,7 +160,7 @@
         "resource": "Ledger",
         "resource_kind": "application",
         "reviewer": "Morgan Lead",
-        "row_id": "R7c9006452035",
+        "row_id": "R824c58e8c34c",
         "source": "ledger.csv, row 6",
         "status": "Disabled",
         "via": "Direct"
@@ -172,7 +172,7 @@
         "resource": "Ledger",
         "resource_kind": "application",
         "reviewer": "Morgan Lead",
-        "row_id": "R3c96926303ef",
+        "row_id": "R94a7683b4b39",
         "source": "ledger.csv, row 5",
         "status": "Enabled",
         "via": "Direct"
@@ -184,7 +184,7 @@
         "resource": "Ops Helpers",
         "resource_kind": "group",
         "reviewer": "Morgan Lead",
-        "row_id": "Raa06884d69bd",
+        "row_id": "Reba9a6a36510",
         "source": "ad.jsonl, line 15",
         "status": "Enabled",
         "via": "Direct"
@@ -196,7 +196,7 @@
         "resource": "Payroll App Users",
         "resource_kind": "group",
         "reviewer": "Morgan Lead",
-        "row_id": "R69e878188490",
+        "row_id": "Rdafff73f0394",
         "source": "entra.jsonl, line 12",
         "status": "Enabled",
         "via": "Direct"
@@ -208,7 +208,7 @@
         "resource": "Payroll App Users",
         "resource_kind": "group",
         "reviewer": "Morgan Lead",
-        "row_id": "Re38173dfa1b5",
+        "row_id": "R240ac286f67a",
         "source": "entra.jsonl, line 13",
         "status": "Enabled",
         "via": "Direct"
@@ -220,7 +220,7 @@
         "resource": "Server Operators",
         "resource_kind": "group",
         "reviewer": "Morgan Lead",
-        "row_id": "R47487ba919fb",
+        "row_id": "R9a395c188238",
         "source": "ad.jsonl, line 14",
         "status": "Enabled",
         "via": "Server Operators > Ops Helpers"

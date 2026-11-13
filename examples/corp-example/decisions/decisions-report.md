@@ -5,7 +5,7 @@
 | Item | Value |
 | --- | --- |
 | Campaign | Q4 2026 access review |
-| Campaign ID | C61b04c11174dbf64 |
+| Campaign ID | C1966ccf07210e91a |
 | Packets read | 3 of 3 returned files |
 | Comment required for | no decision |
 
@@ -26,11 +26,11 @@ Accepted Remove decisions. shaar does not remove access: an administrator makes 
 
 | Row ID | User | Account | Access to | Access | Reviewer | Comment |
 | --- | --- | --- | --- | --- | --- | --- |
-| R7e2286fe57e8 | Emery Contractor | emery.contractor@⁠corp.example | Payroll App Users | member | Casey Owner | Contract ended |
-| R11cecb2e3123 | Emery Contractor | emery.contractor@⁠corp.example | Server Operators | member | Casey Owner | Contract ended |
-| Rcf3e823507b7 | Blake Sample | blake.sample@⁠corp.example | Finance Admins | member | Morgan Lead | Left the company in September |
-| R7c9006452035 | Blake Sample | blake.sample@⁠corp.example | Ledger | Viewer | Morgan Lead | Left the company in September |
-| Re38173dfa1b5 | Drew Analyst | drew.analyst@⁠corp.example | Payroll App Users | member | Morgan Lead | Moved to another team |
+| R2a8397b44f53 | Emery Contractor | emery.contractor@⁠corp.example | Payroll App Users | member | Casey Owner | Contract ended |
+| Rae38d4d67f84 | Emery Contractor | emery.contractor@⁠corp.example | Server Operators | member | Casey Owner | Contract ended |
+| R42c734801af7 | Blake Sample | blake.sample@⁠corp.example | Finance Admins | member | Morgan Lead | Left the company in September |
+| R824c58e8c34c | Blake Sample | blake.sample@⁠corp.example | Ledger | Viewer | Morgan Lead | Left the company in September |
+| R240ac286f67a | Drew Analyst | drew.analyst@⁠corp.example | Payroll App Users | member | Morgan Lead | Moved to another team |
 
 ## Needs attention (4 rows)
 
@@ -38,8 +38,8 @@ Entries without an accepted decision, and rows that did not belong in the packet
 
 | Row ID | Reviewer | User | Access to | Outcome | Why it needs attention | Source |
 | --- | --- | --- | --- | --- | --- | --- |
-| Raa06884d69bd | Morgan Lead | Drew Analyst | Ops Helpers | undecided | no decision | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 7 |
-| R47487ba919fb | Morgan Lead | Drew Analyst | Server Operators | unsure | the reviewer was unsure; follow up for Keep or Remove | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 10 |
+| Reba9a6a36510 | Morgan Lead | Drew Analyst | Ops Helpers | undecided | no decision | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 7 |
+| R9a395c188238 | Morgan Lead | Drew Analyst | Server Operators | unsure | the reviewer was unsure; follow up for Keep or Remove | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 10 |
 |  |  |  |  | unassigned | the input names no manager for this principal | ledger.csv, row 2 |
 |  |  |  |  | unassigned | the input names no manager for this principal | ad.jsonl, line 16 |
 
@@ -49,19 +49,19 @@ The outcome for every entry of the campaign.
 
 | Row ID | Reviewer | User | Access to | Access | Decision | Comment | Outcome | Packet | Source |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| R7e2286fe57e8 | Casey Owner | Emery Contractor | Payroll App Users | member | Remove | Contract ended | accepted | returned-01-Casey-Owner-da089e.xlsx | returned-01-Casey-Owner-da089e.xlsx, Review row 2 |
-| R11cecb2e3123 | Casey Owner | Emery Contractor | Server Operators | member | Remove | Contract ended | accepted | returned-01-Casey-Owner-da089e.xlsx | returned-01-Casey-Owner-da089e.xlsx, Review row 3 |
-| Rd57718e25b3c | Jordan Director | Morgan Lead | Global Administrator | Global Administrator | Keep | Break-glass holder | accepted | returned-02-Jordan-Director-24304a.xlsx | returned-02-Jordan-Director-24304a.xlsx, Review row 2 |
-| R5b26d19ff14c | Jordan Director | Morgan Lead | Ledger | Approver | Keep |  | accepted | returned-02-Jordan-Director-24304a.xlsx | returned-02-Jordan-Director-24304a.xlsx, Review row 3 |
-| R2e1377f5a86c | Morgan Lead | Avery Example | Finance Admins | member | Keep |  | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 2 |
-| Rcf3e823507b7 | Morgan Lead | Blake Sample | Finance Admins | member | Remove | Left the company in September | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 3 |
-| Rba3add9d40c3 | Morgan Lead | Avery Example | Ledger | Approver | Keep |  | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 4 |
-| R7c9006452035 | Morgan Lead | Blake Sample | Ledger | Viewer | Remove | Left the company in September | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5 |
-| R3c96926303ef | Morgan Lead | Drew Analyst | Ledger | Viewer | Keep |  | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 6 |
-| Raa06884d69bd | Morgan Lead | Drew Analyst | Ops Helpers | member |  |  | undecided | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 7 |
-| R69e878188490 | Morgan Lead | Avery Example | Payroll App Users | member | Keep |  | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 8 |
-| Re38173dfa1b5 | Morgan Lead | Drew Analyst | Payroll App Users | member | Remove | Moved to another team | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9 |
-| R47487ba919fb | Morgan Lead | Drew Analyst | Server Operators | member | Unsure | Ask the platform team | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 10 |
+| R2a8397b44f53 | Casey Owner | Emery Contractor | Payroll App Users | member | Remove | Contract ended | accepted | returned-01-Casey-Owner-da089e.xlsx | returned-01-Casey-Owner-da089e.xlsx, Review row 2 |
+| Rae38d4d67f84 | Casey Owner | Emery Contractor | Server Operators | member | Remove | Contract ended | accepted | returned-01-Casey-Owner-da089e.xlsx | returned-01-Casey-Owner-da089e.xlsx, Review row 3 |
+| R8745b3514235 | Jordan Director | Morgan Lead | Global Administrator | whole directory | Keep | Break-glass holder | accepted | returned-02-Jordan-Director-24304a.xlsx | returned-02-Jordan-Director-24304a.xlsx, Review row 2 |
+| Ra3203c9fb2b2 | Jordan Director | Morgan Lead | Ledger | Approver | Keep |  | accepted | returned-02-Jordan-Director-24304a.xlsx | returned-02-Jordan-Director-24304a.xlsx, Review row 3 |
+| R0a59068317b1 | Morgan Lead | Avery Example | Finance Admins | member | Keep |  | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 2 |
+| R42c734801af7 | Morgan Lead | Blake Sample | Finance Admins | member | Remove | Left the company in September | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 3 |
+| R89aecc206b71 | Morgan Lead | Avery Example | Ledger | Approver | Keep |  | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 4 |
+| R824c58e8c34c | Morgan Lead | Blake Sample | Ledger | Viewer | Remove | Left the company in September | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5 |
+| R94a7683b4b39 | Morgan Lead | Drew Analyst | Ledger | Viewer | Keep |  | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 6 |
+| Reba9a6a36510 | Morgan Lead | Drew Analyst | Ops Helpers | member |  |  | undecided | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 7 |
+| Rdafff73f0394 | Morgan Lead | Avery Example | Payroll App Users | member | Keep |  | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 8 |
+| R240ac286f67a | Morgan Lead | Drew Analyst | Payroll App Users | member | Remove | Moved to another team | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9 |
+| R9a395c188238 | Morgan Lead | Drew Analyst | Server Operators | member | Unsure | Ask the platform team | accepted | returned-03-Morgan-Lead-e16dc6.xlsx | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 10 |
 |  |  |  |  |  |  |  | unassigned |  | ledger.csv, row 2 |
 |  |  |  |  |  |  |  | unassigned |  | ad.jsonl, line 16 |
 
@@ -80,7 +80,7 @@ No problems were recorded while reading the inputs.
 | File | Kind | Bytes | SHA-256 |
 | --- | --- | --- | --- |
 | ad.jsonl | shaar-export | 4029 | f248f8e56d8926cf7baf6b489a600d0266df95b241b21f9b27df521dacb68733 |
-| entra.jsonl | shaar-export | 3490 | 750dd952e2622fc921a3c8f33b754e699ab480557923fd46e0b1e7a0be0707b3 |
+| entra.jsonl | shaar-export | 3485 | dfe2df70b884bcd6e3c5633ddf34601f073d2dd89cdec19691455798b547b0ff |
 | ledger.csv | csv | 478 | ee38eb63cd3d672d6b9a45ec978f40dc71037e9834c44be1e6ad44040b4fb115 |
 
 ---
