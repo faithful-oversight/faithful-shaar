@@ -245,7 +245,7 @@ class _Reader:
             return
         decision = _parse(values.get(DECISION, ""))
         comment = values.get(COMMENT, "").strip()
-        notes = [f"the cell {note}" for note in returned.notes]
+        notes = list(returned.notes)
         if decision == "?":
             text = values.get(DECISION, "").strip()
             seen.invalid.append((f"{text[:40]!r} is not Keep, Remove or Unsure", name, citation))

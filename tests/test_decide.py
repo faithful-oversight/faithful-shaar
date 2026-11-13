@@ -78,10 +78,10 @@ def test_blank_invalid_and_comment_rules() -> None:
 def test_a_formula_cell_is_not_accepted() -> None:
     _, camp = standard()
     packet = returned(camp, 1101, ALL)
-    packet.rows[0].notes.append("held a formula")
+    packet.rows[0].notes.append("Decision held a formula")
     record = run(camp, {"m.xlsx": packet})
     assert record.rows[0].state == "invalid"
-    assert record.rows[0].reason == "the cell held a formula"
+    assert record.rows[0].reason == "Decision held a formula"
 
 
 def test_an_edited_row_is_altered_not_accepted() -> None:

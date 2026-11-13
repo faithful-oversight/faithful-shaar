@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any
 
 from faithful_shaar.assign import MapEntry, assign
 from faithful_shaar.errors import InputError
+from faithful_shaar.formats.xlsx import cell_text
 from faithful_shaar.model import InputFile, Problem, Source
 
 if TYPE_CHECKING:
@@ -154,7 +155,7 @@ def display_for(
         sign_in = principal.last_sign_in
         if principal.kind not in {"user", "unknown"}:
             user = f"{user} ({principal.kind})"
-    return {
+    shown = {
         "user": user,
         "account": account,
         "status": status,
@@ -165,6 +166,9 @@ def display_for(
         "via": " > ".join(grant.via) if grant.via else "Direct",
         "co_owners": ", ".join(co_owners),
     }
+    # The campaign keeps exactly the text a packet cell holds, so a returned packet can be
+    # compared with it character for character.
+    return {name: cell_text(value)[0].strip() for name, value in shown.items()}
 
 
 def campaign_id(name: str, created_at: str, inputs: list[InputFile]) -> str:

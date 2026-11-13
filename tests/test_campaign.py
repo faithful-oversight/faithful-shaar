@@ -122,3 +122,15 @@ def test_a_principal_with_no_name_shows_its_id() -> None:
         [Principal(sid(1110), "ad", "S-1-5-21-1000-1000-1000-1110", "", "user")], [], []
     )
     assert display_for(grant(1110, 2001), snap)["user"] == "S-1-5-21-1000-1000-1000-1110"
+
+
+def test_the_campaign_keeps_the_text_a_packet_cell_holds() -> None:
+    long_name = "Avery\x07Example " + "x" * 40000
+    snap = snapshot(
+        [Principal(sid(1110), "ad", "S-1-5-21-1000-1000-1000-1110", long_name, "user")], [], []
+    )
+    shown = display_for(grant(1110, 2001), snap)["user"]
+    assert "\x07" not in shown
+    assert "�" in shown
+    assert shown.endswith("[truncated]")
+    assert len(shown) <= 32767

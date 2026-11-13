@@ -357,7 +357,7 @@ def test_whitespace_and_escape_lookalikes_survive() -> None:
 
 
 _text = st.text(
-    alphabet=st.characters(blacklist_categories=("Cs",), blacklist_characters="\r"), max_size=40
+    alphabet=st.characters(exclude_categories=["Cs"], exclude_characters="\r"), max_size=40
 )
 
 
