@@ -30,6 +30,21 @@ classifiers = [
 ]
 dependencies = []
 
+[project.optional-dependencies]
+# Reading exports, CSV files and workbooks needs no dependencies. Each extra adds one
+# way to collect or to fetch a secret.
+# Running the Active Directory exporter remotely over PowerShell remoting (WinRM).
+ad = ["pypsrp>=0.8"]
+# Reading Entra ID through Microsoft Graph: Microsoft's maintained library for
+# certificate, client-secret and device-code sign-in.
+entra = ["azure-identity>=1.19"]
+# Secret references: the system keyring, HashiCorp Vault, AWS Secrets Manager, and
+# Azure Key Vault.
+keyring = ["keyring>=25"]
+vault = ["hvac>=2.3"]
+aws = ["boto3>=1.35"]
+azure = ["azure-identity>=1.19", "azure-keyvault-secrets>=4.9"]
+
 [project.scripts]
 shaar = "faithful_shaar.cli:main"
 
@@ -46,6 +61,8 @@ dev = [
   "cyclonedx-bom>=7",
   "furo>=2025.12.19",
   "hypothesis>=6.100",
+  "jsonschema>=4.23",
+  "types-jsonschema>=4.23",
   "mypy>=1.15",
   "myst-parser>=5",
   "pip-audit>=2.9",
