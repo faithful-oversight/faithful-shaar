@@ -118,7 +118,8 @@ def entra_after(sample: Path, folder: Path, tenant: str) -> Path:
     trailer = json.loads(lines[-1])
     trailer["sha256"] = hashlib.sha256(text.encode("utf-8")).hexdigest()
     path = folder / "entra.jsonl"
-    path.write_text(text + json.dumps(trailer) + "\n", "utf-8")
+    # bytes, not text: on Windows text mode would write CRLF and break the trailer hash
+    path.write_bytes((text + json.dumps(trailer) + "\n").encode("utf-8"))
     return path
 
 
