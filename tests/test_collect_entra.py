@@ -1014,7 +1014,7 @@ def test_directory_roles(client: GraphClient, fake: FakeGraph) -> None:
         "kind": "role",
         "owner_ids": [],
         "complete": True,
-        "extra": {},
+        "extra": {"assignment": "active", "role_id": ROLE_ADMIN},
     }
     assert roles["33333333-3333-4333-8333-333333333333"]["name"] == (
         "33333333-3333-4333-8333-333333333333"
@@ -1037,11 +1037,14 @@ def test_pim_eligible_assignments_are_marked_eligible(client: GraphClient, fake:
     export = run(client, entra.Scope(pim=True))
     [grant] = kinds(export, "grant")
     assert grant["entitlement"] == "Global Administrator (eligible)"
-    assert grant["resource_id"] == ROLE_ADMIN
+    assert grant["resource_id"] == f"{ROLE_ADMIN}:eligible"
     assert "/roleManagement/directory/roleAssignments" not in fake.paths()
+    roles = {r["id"]: r for r in kinds(export, "resource")}
+    assert ROLE_ADMIN not in roles  # active assignments were not read
+    assert roles[f"{ROLE_ADMIN}:eligible"]["name"] == "Global Administrator (eligible)"
 
 
-def test_roles_and_pim_together_keep_both_grants_on_one_role(
+def test_roles_and_pim_are_separate_resources_each_with_its_own_completeness(
     client: GraphClient, fake: FakeGraph
 ) -> None:
     role_tenant(fake)
@@ -1051,7 +1054,9 @@ def test_roles_and_pim_together_keep_both_grants_on_one_role(
         "Global Administrator",
         "Global Administrator (eligible)",
     ]
-    assert {r["id"] for r in kinds(export, "resource")} >= {ROLE_ADMIN, ROLE_READER}
+    resources = {r["id"]: r for r in kinds(export, "resource")}
+    assert set(resources) >= {ROLE_ADMIN, ROLE_READER, f"{ROLE_ADMIN}:eligible"}
+    assert {g["resource_id"] for g in mine} == {ROLE_ADMIN, f"{ROLE_ADMIN}:eligible"}
 
 
 def test_role_failures_are_gaps_and_make_roles_incomplete(
@@ -1075,7 +1080,7 @@ def test_role_failures_are_gaps_and_make_roles_incomplete(
     assert grant["entitlement"] == f"{ROLE_ADMIN} (eligible)"
     [role] = kinds(export, "resource")
     assert role["complete"] is False
-    assert role["name"] == ROLE_ADMIN
+    assert role["name"] == f"{ROLE_ADMIN} (eligible)"
 
 
 # --- collection: managers -----------------------------------------------------------

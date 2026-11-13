@@ -407,41 +407,47 @@ class _Collector:
     # roles
 
     def roles(self, scope: Scope) -> None:
+        """Read active and eligible directory role assignments.
+
+        Active and eligible (PIM) assignments of a role are separate resources, ``<role
+        id>`` and ``<role id>:eligible``, each complete only when its own listing was read
+        in full. A later export that read one listing and not the other therefore can never
+        make an assignment of the other kind look removed.
+        """
         names, definitions = self._role_definitions()
         listings: list[tuple[str, str, Pages]] = []
         if scope.roles:
             listings.append(("", "active", self._assignments("roleAssignments")))
         if scope.pim:
             listings.append(
-                (" (eligible)", "eligible", self._assignments("roleEligibilitySchedules"))
+                (":eligible", "eligible", self._assignments("roleEligibilitySchedules"))
             )
-        complete = True
         scopes: dict[tuple[str, str, str], set[str]] = {}
         group_holders: dict[str, str] = {}
         for suffix, label, pages in listings:
             if pages.error:
-                complete = False
                 self.gap(f"{label} directory role assignments", pages.error)
-            self._role_items(pages.items, names, suffix, scopes, group_holders)
-        for (role_id, principal_id, entitlement), where in scopes.items():
+            seen = self._role_items(pages.items, names, suffix, scopes, group_holders)
+            role_ids = set(definitions) | seen
+            for role_id in role_ids:
+                name = names.get(role_id, role_id)
+                self.out.resources[role_id + suffix] = {
+                    "id": role_id + suffix,
+                    "name": f"{name} (eligible)" if suffix else name,
+                    "kind": "role",
+                    "owner_ids": [],
+                    "complete": not pages.error,
+                    "extra": {"assignment": label, "role_id": role_id},
+                }
+        for (resource_id, principal_id, entitlement), where in scopes.items():
             extra = {"directory_scope": "; ".join(sorted(where))} if where else {}
-            self.add_grant(role_id, principal_id, entitlement, (), extra)
+            self.add_grant(resource_id, principal_id, entitlement, (), extra)
         for ident, name in group_holders.items():
             self.gap(
                 f"members of group {name} ({ident}) who hold a role through it",
                 "a role is assigned to this group; its members are not expanded here, "
                 "so collect the group with --group",
             )
-        role_ids = set(definitions) | {key[0] for key in scopes}
-        for role_id in role_ids:
-            self.out.resources[role_id] = {
-                "id": role_id,
-                "name": names.get(role_id, role_id),
-                "kind": "role",
-                "owner_ids": [],
-                "complete": complete,
-                "extra": {},
-            }
 
     def _role_definitions(self) -> tuple[dict[str, str], set[str]]:
         listing = self.client.pages(
@@ -474,8 +480,10 @@ class _Collector:
         suffix: str,
         scopes: dict[tuple[str, str, str], set[str]],
         group_holders: dict[str, str],
-    ) -> None:
+    ) -> set[str]:
+        """Record each assignment; return the ids of the roles they name."""
         skipped = 0
+        seen: set[str] = set()
         for item in items:
             principal_id, role_id = _text(item, "principalId"), _text(item, "roleDefinitionId")
             if not principal_id or not role_id:
@@ -489,8 +497,9 @@ class _Collector:
                 group_holders[principal_id] = (
                     self.out.principals[principal_id]["name"] or principal_id
                 )
-            entitlement = names.get(role_id, role_id) + suffix
-            where = scopes.setdefault((role_id, principal_id, entitlement), set())
+            seen.add(role_id)
+            entitlement = names.get(role_id, role_id) + (" (eligible)" if suffix else "")
+            where = scopes.setdefault((role_id + suffix, principal_id, entitlement), set())
             if _text(item, "directoryScopeId"):
                 where.add(_text(item, "directoryScopeId"))
         if skipped:
@@ -498,6 +507,7 @@ class _Collector:
                 "role assignments",
                 f"{skipped} assignments without a principal or role id were skipped",
             )
+        return seen
 
     # managers
 
