@@ -20,6 +20,7 @@ What it guarantees, and the tests prove:
 
 from __future__ import annotations
 
+import base64
 import http.client
 import json
 import re
@@ -97,6 +98,7 @@ class Pages:
 
     items: list[dict[str, Any]]
     error: str = ""
+    dropped: int = 0  # list elements that were not JSON objects and so were not kept
 
 
 @dataclass(frozen=True)
@@ -147,6 +149,36 @@ def odata_string(value: str) -> str:
 
 
 _PATH = re.compile(r"(/[A-Za-z0-9._-]+)+")
+_TENANT_GUID = re.compile(
+    r"[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}"
+)
+
+
+def token_tenant(token: str) -> str:
+    """The tenant id (lower case) in the ``tid`` claim of an access token.
+
+    The signature is not checked: this only learns which tenant answered. The token
+    itself is never kept or shown.
+
+    Raises:
+        CollectionError: The token has no readable ``tid`` claim holding a GUID.
+    """
+    segments = token.split(".")
+    claim: object = None
+    if len(segments) > 1:  # header.payload[.signature]
+        try:
+            middle = segments[1]
+            payload = json.loads(base64.urlsafe_b64decode(middle + "=" * (-len(middle) % 4)))
+        except ValueError:  # bad base64, bad UTF-8 and bad JSON are all ValueErrors
+            payload = None
+        if isinstance(payload, dict):
+            claim = payload.get("tid")
+    if isinstance(claim, str) and _TENANT_GUID.fullmatch(claim):
+        return claim.lower()
+    msg = (
+        "the access token does not name its tenant (no usable tid claim), so the tenant is unknown"
+    )
+    raise CollectionError(msg)
 
 
 def _checked(path: str) -> str:
@@ -187,6 +219,14 @@ class GraphClient:
         self._now = now
         self._timeout = timeout
         self._opener = _build_opener()
+
+    def tenant_id(self) -> str:
+        """The canonical tenant id (lower case) of the token this client sends.
+
+        Raises:
+            CollectionError: Sign-in failed or the token names no tenant.
+        """
+        return token_tenant(self._token())
 
     def get(
         self,
@@ -232,26 +272,31 @@ class GraphClient:
     def _listing(self, url: str, needs: str) -> Pages:
         """Follow a listing's pages from ``url``."""
         items: list[dict[str, Any]] = []
+        dropped = 0
         seen: set[str] = set()
         for _ in range(MAX_PAGES):
             seen.add(url)
             try:
                 payload = self._fetch(url, needs)
             except GraphGap as gap:
-                return Pages(items, gap.reason)
+                return Pages(items, gap.reason, dropped)
             values = payload.get("value")
             if not isinstance(values, list):
-                return Pages(items, "the response has no list of values")
-            items.extend(v for v in values if isinstance(v, dict))
+                return Pages(items, "the response has no list of values", dropped)
+            kept = [v for v in values if isinstance(v, dict)]
+            dropped += len(values) - len(kept)
+            items.extend(kept)
             link = payload.get("@odata.nextLink")
             if link is None:
-                return Pages(items)
+                return Pages(items, dropped=dropped)
             if not isinstance(link, str) or not self._same_origin(link):
-                return Pages(items, "refused a paging link that does not stay on the Graph host")
+                return Pages(
+                    items, "refused a paging link that does not stay on the Graph host", dropped
+                )
             if link in seen:
-                return Pages(items, "the paging links repeat")
+                return Pages(items, "the paging links repeat", dropped)
             url = link
-        return Pages(items, f"stopped after {MAX_PAGES} pages")
+        return Pages(items, f"stopped after {MAX_PAGES} pages", dropped)
 
     def _same_origin(self, url: str) -> bool:
         try:

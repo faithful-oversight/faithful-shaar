@@ -170,6 +170,24 @@ def _text(obj: dict[str, Any], key: str) -> str:
     return value if isinstance(value, str) else ""
 
 
+def _lost(pages: Pages) -> int:
+    """How many records of a listing could not be used: not objects, or without an id."""
+    return pages.dropped + sum(1 for item in pages.items if not _text(item, "id"))
+
+
+def _lost_reason(pages: Pages) -> str:
+    return f"{_lost(pages)} records without an id (or that were not objects) were skipped"
+
+
+def _moment(text: str) -> datetime | None:
+    """An ISO 8601 time with a zone (``Z`` allowed) in UTC; None when it cannot be read."""
+    try:
+        when = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    return when.astimezone(UTC) if when.tzinfo is not None else None
+
+
 def _kind(obj: dict[str, Any]) -> str:
     return _KINDS.get(_text(obj, "@odata.type").rpartition(".")[2], "unknown")
 
@@ -191,6 +209,55 @@ def _principal(obj: dict[str, Any]) -> dict[str, Any] | None:
         "last_sign_in": "",
         "extra": extra,
     }
+
+
+@dataclass
+class _RoleReview:
+    """What one role listing could not account for."""
+
+    seen: set[str] = field(default_factory=set)
+    incomplete: set[str] = field(default_factory=set)
+    everything: bool = False  # a record could not be tied to a role: no role is complete
+
+
+# A schedule in one of these states is not access now. Revoked, canceled, denied and
+# failed schedules never took effect or have ended.
+_NOT_CURRENT = frozenset({"revoked", "canceled", "denied", "failed"})
+
+
+def _window(info: dict[str, Any]) -> tuple[datetime | None, datetime | None] | None:
+    """The start and end of a schedule's window (None: open); None when unreadable."""
+    start = info.get("startDateTime")
+    began = _moment(start) if isinstance(start, str) else None
+    expiration = info.get("expiration")
+    if (start is not None and began is None) or not isinstance(expiration, dict):
+        return None
+    end_text, kind = expiration.get("endDateTime"), expiration.get("type")
+    ends = _moment(end_text) if isinstance(end_text, str) else None
+    if kind == "noExpiration":
+        readable = end_text is None
+    else:
+        readable = kind in {"afterDateTime", "afterDuration"} and ends is not None
+    if not readable or (ends is not None and began is not None and ends <= began):
+        return None
+    return began, ends
+
+
+def _eligibility(item: dict[str, Any], now: datetime) -> bool | None:
+    """Is this PIM eligibility schedule in force at ``now``?
+
+    True: provisioned, started, not ended. False: known not to be access now (a final
+    status, or a window that ended or has not begun). None: cannot be told.
+    """
+    status = _text(item, "status").casefold()
+    if status in _NOT_CURRENT:
+        return False
+    info = item.get("scheduleInfo")
+    window = _window(info) if status == "provisioned" and isinstance(info, dict) else None
+    if window is None:
+        return None
+    began, ends = window
+    return (began is None or began <= now) and (ends is None or ends > now)
 
 
 class _Collector:
@@ -263,6 +330,8 @@ class _Collector:
         )
         if listing.error:
             self.gap("security groups", f"the list could not be read completely: {listing.error}")
+        if _lost(listing):
+            self.gap("security groups", _lost_reason(listing))
         return [g for g in listing.items if _text(g, "id")]
 
     def _find_group(self, reference: str) -> dict[str, Any] | None:
@@ -309,6 +378,9 @@ class _Collector:
         )
         if owners.error:
             self.gap(f"owners of {label}", owners.error)
+        if _lost(owners):
+            complete = False
+            self.gap(f"owners of {label}", _lost_reason(owners))
         owner_ids = sorted({self.add_principal(o) for o in owners.items} - {""})
 
         transitive = self.client.pages(
@@ -317,8 +389,11 @@ class _Collector:
         if transitive.error:
             complete = False
             self.gap(f"members of {label}", transitive.error)
+        if _lost(transitive):
+            complete = False
+            self.gap(f"members of {label}", _lost_reason(transitive))
         direct = self._direct(ident, label)
-        if direct.error:
+        if direct.error or _lost(direct):
             complete = False
         direct_ids = {_text(m, "id") for m in direct.items}
         paths = self._nested_paths(ident, name, direct)
@@ -366,6 +441,8 @@ class _Collector:
             )
             if listing.error:
                 self.gap(f"direct members of {name}", listing.error)
+            if _lost(listing):
+                self.gap(f"direct members of {name}", _lost_reason(listing))
             self._direct_cache[ident] = listing
         return self._direct_cache[ident]
 
@@ -406,13 +483,17 @@ class _Collector:
 
     # roles
 
-    def roles(self, scope: Scope) -> None:
+    def roles(self, scope: Scope, now: datetime) -> None:
         """Read active and eligible directory role assignments.
 
         Active and eligible (PIM) assignments of a role are separate resources, ``<role
         id>`` and ``<role id>:eligible``, each complete only when its own listing was read
         in full. A later export that read one listing and not the other therefore can never
         make an assignment of the other kind look removed.
+
+        A grant is one role, one principal and one scope. Neither its resource id nor its
+        entitlement holds the role's name, which can change or fail to be read; the name
+        is only in the resource record.
         """
         names, definitions = self._role_definitions()
         listings: list[tuple[str, str, Pages]] = []
@@ -422,26 +503,29 @@ class _Collector:
             listings.append(
                 (":eligible", "eligible", self._assignments("roleEligibilitySchedules"))
             )
-        scopes: dict[tuple[str, str, str], set[str]] = {}
         group_holders: dict[str, str] = {}
         for suffix, label, pages in listings:
             if pages.error:
                 self.gap(f"{label} directory role assignments", pages.error)
-            seen = self._role_items(pages.items, names, suffix, scopes, group_holders)
-            role_ids = set(definitions) | seen
-            for role_id in role_ids:
+            review = _RoleReview()
+            if pages.dropped:
+                review.everything = True
+                self.gap(
+                    f"{label} role assignments",
+                    f"{pages.dropped} list entries that were not objects were skipped",
+                )
+            self._role_items(pages.items, suffix, now, review, group_holders)
+            for role_id in set(definitions) | review.seen:
                 name = names.get(role_id, role_id)
+                lost = pages.error or review.everything or role_id in review.incomplete
                 self.out.resources[role_id + suffix] = {
                     "id": role_id + suffix,
                     "name": f"{name} (eligible)" if suffix else name,
                     "kind": "role",
                     "owner_ids": [],
-                    "complete": not pages.error,
+                    "complete": not lost,
                     "extra": {"assignment": label, "role_id": role_id},
                 }
-        for (resource_id, principal_id, entitlement), where in scopes.items():
-            extra = {"directory_scope": "; ".join(sorted(where))} if where else {}
-            self.add_grant(resource_id, principal_id, entitlement, (), extra)
         for ident, name in group_holders.items():
             self.gap(
                 f"members of group {name} ({ident}) who hold a role through it",
@@ -476,38 +560,71 @@ class _Collector:
     def _role_items(
         self,
         items: list[dict[str, Any]],
-        names: dict[str, str],
         suffix: str,
-        scopes: dict[tuple[str, str, str], set[str]],
+        now: datetime,
+        review: _RoleReview,
         group_holders: dict[str, str],
-    ) -> set[str]:
-        """Record each assignment; return the ids of the roles they name."""
-        skipped = 0
-        seen: set[str] = set()
+    ) -> None:
+        """Record each assignment as grants, one per scope; note what could not be used."""
+        eligible = bool(suffix)
+        lost = {"unusable": 0, "unscoped": 0, "unevaluated": 0}
         for item in items:
             principal_id, role_id = _text(item, "principalId"), _text(item, "roleDefinitionId")
-            if not principal_id or not role_id:
-                skipped += 1
+            if not role_id:
+                lost["unusable"] += 1
+                review.everything = True  # which role it was for is unknown
                 continue
-            holder = item.get("principal")
-            obj = dict(holder) if isinstance(holder, dict) else {}
-            obj["id"] = principal_id
-            self.add_principal(obj)
-            if self.out.principals[principal_id]["kind"] == "group":
-                group_holders[principal_id] = (
-                    self.out.principals[principal_id]["name"] or principal_id
-                )
-            seen.add(role_id)
-            entitlement = names.get(role_id, role_id) + (" (eligible)" if suffix else "")
-            where = scopes.setdefault((role_id + suffix, principal_id, entitlement), set())
-            if _text(item, "directoryScopeId"):
-                where.add(_text(item, "directoryScopeId"))
-        if skipped:
-            self.gap(
-                "role assignments",
-                f"{skipped} assignments without a principal or role id were skipped",
-            )
-        return seen
+            review.seen.add(role_id)
+            problem = self._role_problem(item, principal_id, now if eligible else None)
+            if problem == "current":
+                self._role_grant(item, principal_id, role_id + suffix, group_holders)
+            elif problem:
+                lost[problem] += 1
+                review.incomplete.add(role_id)
+        what = "eligible role assignments" if eligible else "active role assignments"
+        reasons = {
+            "unusable": "assignments without a principal or role id were skipped",
+            "unscoped": "assignments without a directory scope were skipped",
+            "unevaluated": "eligibility schedules whose status or validity window could "
+            "not be evaluated were not treated as eligible",
+        }
+        for key, count in lost.items():
+            if count:
+                self.gap(what, f"{count} {reasons[key]}")
+
+    @staticmethod
+    def _role_problem(item: dict[str, Any], principal_id: str, now: datetime | None) -> str:
+        """``current`` for a usable assignment in force, ``""`` if known not to be, else why not.
+
+        ``now`` is given for eligibility schedules only, which have a lifecycle.
+        """
+        if not principal_id:
+            return "unusable"
+        if now is not None:
+            state = _eligibility(item, now)
+            if state is None:
+                return "unevaluated"
+            if not state:
+                return ""
+        return "current" if _text(item, "directoryScopeId") else "unscoped"
+
+    def _role_grant(
+        self,
+        item: dict[str, Any],
+        principal_id: str,
+        resource_id: str,
+        group_holders: dict[str, str],
+    ) -> None:
+        holder = item.get("principal")
+        obj = dict(holder) if isinstance(holder, dict) else {}
+        obj["id"] = principal_id
+        self.add_principal(obj)
+        if self.out.principals[principal_id]["kind"] == "group":
+            group_holders[principal_id] = self.out.principals[principal_id]["name"] or principal_id
+        scope_id = _text(item, "directoryScopeId")
+        self.add_grant(
+            resource_id, principal_id, "whole directory" if scope_id == "/" else f"scope {scope_id}"
+        )
 
     # managers
 
@@ -544,12 +661,29 @@ class _Collector:
 
 
 def collect(client: GraphClient, tenant: str, scope: Scope, collected_at: str) -> Export:
-    """Read everything ``scope`` asks for. Only a rejected token stops this early."""
-    export = Export(tenant, client.cloud, scope, collected_at)
+    """Read everything ``scope`` asks for. Only a rejected token stops this early.
+
+    ``tenant`` is what the operator asked for: a GUID or a domain name. The export
+    records the canonical tenant id from the access token's ``tid`` claim, which says
+    which tenant actually answered.
+
+    Raises:
+        CollectionError: The token names no tenant, or another one than the GUID asked
+            for, or ``collected_at`` is not a time.
+    """
+    now = _moment(collected_at)
+    if now is None:
+        msg = f"{collected_at!r} is not a time with a zone"
+        raise CollectionError(msg)
+    actual = client.tenant_id()
+    if _GUID.fullmatch(tenant) and tenant.lower() != actual:
+        msg = f"the access token is for tenant {actual}, not the requested tenant {tenant.lower()}"
+        raise CollectionError(msg)
+    export = Export(actual, client.cloud, scope, collected_at)
     collector = _Collector(client, export)
     collector.groups(scope)
     if scope.roles or scope.pim:
-        collector.roles(scope)
+        collector.roles(scope, now)
     collector.managers()
     return export
 
@@ -581,6 +715,7 @@ def render(export: Export) -> bytes:
                     "pim": scope.pim,
                 },
                 "tenant": export.tenant,
+                "cloud": export.cloud.name,
             }
         )
     ]
@@ -740,7 +875,7 @@ def _run(args: argparse.Namespace) -> None:
     write_private(output, render(export), force=args.force)
     sys.stdout.write(
         f"Read {len(export.principals)} principals, {len(export.resources)} resources and "
-        f"{len(export.grants)} grants from tenant {args.tenant} into {_terminal(str(output))}.\n"
+        f"{len(export.grants)} grants from tenant {export.tenant} into {_terminal(str(output))}.\n"
     )
     for what, reason in sorted(export.gaps):
         sys.stdout.write(f"  not read: {_terminal(what)}: {_terminal(reason)}\n")

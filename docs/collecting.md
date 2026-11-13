@@ -143,6 +143,8 @@ Give exactly one of:
 
 `--tenant` is the tenant id (a GUID) or a verified domain name. `--client-id` is the application's id. The sign-in scope is the Graph host's `/.default`.
 
+The export names the tenant that answered, not the one you typed. shaar reads the `tid` claim of the access token it used (the token's payload is decoded to learn the tenant, its signature is not checked, and the token is neither shown nor stored) and writes that tenant id, in lower case, as the header's `tenant`. The header also records `cloud`, the `--cloud` value. If the token has no `tid` claim, or the claim is not a GUID, collection stops with exit code `3`. If `--tenant` is a GUID that differs from the token's `tid`, collection stops with exit code `3` too. A domain name is accepted as given, because the token is the only proof of which tenant it names.
+
 `--cloud` chooses the national cloud:
 
 | Cloud | Graph host |
@@ -161,9 +163,27 @@ Give at least one:
 - `--group ID|NAME ...`: groups by object id, or by display name. A name must match exactly one group. No match, or several, is a gap, and the gap lists the ids so you can use one.
 - `--all-security-groups`: every group with `securityEnabled` true.
 - `--roles`: active directory role assignments.
-- `--pim`: eligible role assignments. Their entitlement is `ROLE NAME (eligible)`.
+- `--pim`: eligible role assignments (PIM schedules). Only schedules in force at the collection time become grants. See [Directory roles](#directory-roles).
 
-For each group, shaar records the group, its members and nested members, and its owners. For each user it reads, it records the manager. Role assignments are principals holding a role, with the directory scope in `extra.directory_scope`. `signInActivity` is not read, so `last_sign_in` stays empty: it needs an extra license and the `AuditLog.Read.All` permission.
+For each group, shaar records the group, its members and nested members, and its owners. For each user it reads, it records the manager. `signInActivity` is not read, so `last_sign_in` stays empty: it needs an extra license and the `AuditLog.Read.All` permission.
+
+### Directory roles
+
+Each directory role is a resource with the id `ROLE-DEFINITION-ID` (active assignments) or `ROLE-DEFINITION-ID:eligible` (PIM). The two kinds are separate resources, each complete only when its own listing was read in full.
+
+A grant is one role, one principal, and one scope. Its entitlement is `whole directory` when the directory scope is `/`, and the word `scope`, a space, and the scope id otherwise, for example `scope /administrativeUnits/ID`. Scopes are never merged: a principal with the same role in two scopes has two grants. Neither the resource id nor the entitlement holds the role's display name, which can change or fail to be read. A role rename, or a refused role-name request, therefore changes no grant key. The name is only in the resource's `name` (with "(eligible)" added for PIM), and a role whose name was not read is named by its id.
+
+An eligibility schedule becomes a grant only when its `status` is `Provisioned` and its window contains the collection time: `startDateTime` is missing or not later than that time, and `expiration.type` is `noExpiration` or `endDateTime` is later than that time. Schedules known not to be access now are skipped without a gap: status `Revoked`, `Canceled`, `Denied`, or `Failed`, and a window that has ended or has not started. Anything else cannot be told: another or missing status, a missing `scheduleInfo`, or a window that cannot be read or contradicts itself. Such a schedule is not a grant. It is a gap, and its role resource is incomplete.
+
+### What makes a resource incomplete
+
+A record that a listing returns and shaar cannot use is lost evidence, so it is a gap and it withdraws completeness:
+
+- Role listings: an assignment without a `principalId`, without a directory scope, or an eligibility schedule that cannot be evaluated makes its role resource incomplete. An assignment without a usable `roleDefinitionId`, or a list entry that is not an object, cannot be tied to a role, so every role resource of that listing is incomplete.
+- Group listings (`members`, `transitiveMembers`, `owners`): a record without an id, or a list entry that is not an object, makes that group incomplete.
+- A listing that stopped early (a failed page, a refused paging link) makes the same resources incomplete as before.
+
+An incomplete resource never proves that access was removed.
 
 ### Permissions
 

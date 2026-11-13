@@ -9,6 +9,7 @@ azure-identity by a fake credential.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import http.client
 import io
@@ -36,9 +37,22 @@ from faithful_shaar.errors import CollectionError
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-TENANT = "00000000-0000-4000-8000-000000000000"
 CLIENT = "00000000-0000-4000-8000-0000000000aa"
-TOKEN = "tok-Zq81-not-a-real-token"  # noqa: S105 - synthetic
+
+
+def make_jwt(claims: dict[str, Any] | None) -> str:
+    """A synthetic, unsigned access token whose payload holds ``claims``."""
+
+    def part(data: bytes) -> str:
+        return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+    header = part(b'{"alg":"none"}')
+    return f"{header}.{part(json.dumps(claims).encode())}.c2lnbmF0dXJl"
+
+
+TENANT = "00000000-0000-4000-8000-000000000000"
+OTHER_TENANT = "00000000-0000-4000-8000-0000000000ff"
+TOKEN = make_jwt({"tid": TENANT, "note": "not-a-real-token"})
 RESOLVED = secrets._resolved  # noqa: SLF001 - restored after each test
 build_real_opener = graph._build_opener  # noqa: SLF001
 NoRedirect = graph._NoRedirect  # noqa: SLF001
@@ -233,7 +247,7 @@ def group(n: int, name: str) -> dict[str, Any]:
     return {"@odata.type": "#microsoft.graph.group", "id": oid(n), "displayName": name}
 
 
-def value(*items: dict[str, Any], **more: Any) -> dict[str, Any]:
+def value(*items: Any, **more: Any) -> dict[str, Any]:
     return {"value": list(items), **more}
 
 
@@ -976,9 +990,24 @@ def role_tenant(fake: FakeGraph) -> None:
                 "directoryScopeId": f"/administrativeUnits/{oid(40)}",
                 "principal": avery,
             },
-            {"principalId": oid(30), "roleDefinitionId": ROLE_READER, "principal": app},
-            {"principalId": oid(31), "roleDefinitionId": ROLE_READER, "principal": team},
-            {"principalId": oid(32), "roleDefinitionId": "unnamed-role", "principal": None},
+            {
+                "principalId": oid(30),
+                "roleDefinitionId": ROLE_READER,
+                "directoryScopeId": "/",
+                "principal": app,
+            },
+            {
+                "principalId": oid(31),
+                "roleDefinitionId": ROLE_READER,
+                "directoryScopeId": "/",
+                "principal": team,
+            },
+            {
+                "principalId": oid(32),
+                "roleDefinitionId": "unnamed-role",
+                "directoryScopeId": "/",
+                "principal": None,
+            },
             {"principalId": "", "roleDefinitionId": ROLE_READER},
             {"roleDefinitionId": ROLE_READER},
         ),
@@ -990,6 +1019,11 @@ def role_tenant(fake: FakeGraph) -> None:
                 "principalId": oid(11),
                 "roleDefinitionId": ROLE_ADMIN,
                 "directoryScopeId": "/",
+                "status": "Provisioned",
+                "scheduleInfo": {
+                    "startDateTime": "2026-01-01T00:00:00Z",
+                    "expiration": {"type": "noExpiration", "endDateTime": None},
+                },
                 "principal": avery,
             },
         ),
@@ -1001,14 +1035,15 @@ def test_directory_roles(client: GraphClient, fake: FakeGraph) -> None:
     export = run(client, entra.Scope(roles=True))
     grants = kinds(export, "grant")
     by_key = {(g["principal_id"], g["entitlement"]): g for g in grants}
-    admin = by_key[(oid(11), "Global Administrator")]
+    admin = by_key[(oid(11), "whole directory")]
     assert admin["resource_id"] == ROLE_ADMIN
     assert admin["via"] == []
-    assert admin["extra"] == {"directory_scope": f"/; /administrativeUnits/{oid(40)}"}
-    assert by_key[(oid(30), "Global Reader")]["extra"] == {}
-    assert by_key[(oid(32), "unnamed-role")]["resource_id"] == "unnamed-role"
-    assert len(grants) == 4
-    assert not any(e.endswith("(eligible)") for _, e in by_key)
+    assert admin["extra"] == {}
+    assert by_key[(oid(11), f"scope /administrativeUnits/{oid(40)}")]["resource_id"] == ROLE_ADMIN
+    assert by_key[(oid(30), "whole directory")]["resource_id"] == ROLE_READER
+    assert by_key[(oid(32), "whole directory")]["resource_id"] == "unnamed-role"
+    assert len(grants) == 5
+    assert not any("Administrator" in g["entitlement"] for g in grants)
     roles = {r["id"]: r for r in kinds(export, "resource")}
     assert roles[ROLE_ADMIN] == {
         "id": ROLE_ADMIN,
@@ -1018,6 +1053,8 @@ def test_directory_roles(client: GraphClient, fake: FakeGraph) -> None:
         "complete": True,
         "extra": {"assignment": "active", "role_id": ROLE_ADMIN},
     }
+    assert roles[ROLE_READER]["complete"] is False  # two of its records were unusable
+    assert roles["unnamed-role"]["complete"] is True
     assert roles["33333333-3333-4333-8333-333333333333"]["name"] == (
         "33333333-3333-4333-8333-333333333333"
     )
@@ -1026,7 +1063,9 @@ def test_directory_roles(client: GraphClient, fake: FakeGraph) -> None:
     assert principals[oid(30)]["kind"] == "service"
     assert principals[oid(32)]["kind"] == "unknown"
     gaps = {g["what"]: g["reason"] for g in kinds(export, "gap")}
-    assert gaps["role assignments"] == "2 assignments without a principal or role id were skipped"
+    assert gaps["active role assignments"] == (
+        "2 assignments without a principal or role id were skipped"
+    )
     [holder] = [w for w in gaps if w.startswith("members of group Role Team")]
     assert "--group" in gaps[holder]
     assert "/roleManagement/directory/roleEligibilitySchedules" not in fake.paths()
@@ -1038,12 +1077,13 @@ def test_pim_eligible_assignments_are_marked_eligible(client: GraphClient, fake:
     role_tenant(fake)
     export = run(client, entra.Scope(pim=True))
     [grant] = kinds(export, "grant")
-    assert grant["entitlement"] == "Global Administrator (eligible)"
+    assert grant["entitlement"] == "whole directory"
     assert grant["resource_id"] == f"{ROLE_ADMIN}:eligible"
     assert "/roleManagement/directory/roleAssignments" not in fake.paths()
     roles = {r["id"]: r for r in kinds(export, "resource")}
     assert ROLE_ADMIN not in roles  # active assignments were not read
     assert roles[f"{ROLE_ADMIN}:eligible"]["name"] == "Global Administrator (eligible)"
+    assert roles[f"{ROLE_ADMIN}:eligible"]["complete"] is True
 
 
 def test_roles_and_pim_are_separate_resources_each_with_its_own_completeness(
@@ -1052,13 +1092,13 @@ def test_roles_and_pim_are_separate_resources_each_with_its_own_completeness(
     role_tenant(fake)
     export = run(client, entra.Scope(roles=True, pim=True))
     mine = [g for g in kinds(export, "grant") if g["principal_id"] == oid(11)]
-    assert sorted(g["entitlement"] for g in mine) == [
-        "Global Administrator",
-        "Global Administrator (eligible)",
-    ]
+    assert {(g["resource_id"], g["entitlement"]) for g in mine} == {
+        (ROLE_ADMIN, "whole directory"),
+        (ROLE_ADMIN, f"scope /administrativeUnits/{oid(40)}"),
+        (f"{ROLE_ADMIN}:eligible", "whole directory"),
+    }
     resources = {r["id"]: r for r in kinds(export, "resource")}
     assert set(resources) >= {ROLE_ADMIN, ROLE_READER, f"{ROLE_ADMIN}:eligible"}
-    assert {g["resource_id"] for g in mine} == {ROLE_ADMIN, f"{ROLE_ADMIN}:eligible"}
 
 
 def test_role_failures_are_gaps_and_make_roles_incomplete(
@@ -1069,7 +1109,14 @@ def test_role_failures_are_gaps_and_make_roles_incomplete(
     fake.add(
         "/roleManagement/directory/roleEligibilitySchedules",
         {
-            "value": [{"principalId": oid(11), "roleDefinitionId": ROLE_ADMIN}],
+            "value": [
+                {
+                    "principalId": oid(11),
+                    "roleDefinitionId": ROLE_ADMIN,
+                    "directoryScopeId": "/",
+                    **PROVISIONED,
+                }
+            ],
             "@odata.nextLink": "https://evil.example/v1.0/next",
         },
     )
@@ -1079,10 +1126,494 @@ def test_role_failures_are_gaps_and_make_roles_incomplete(
     assert "RoleManagement.Read.Directory" in gaps["active directory role assignments"]
     assert "does not stay on the Graph host" in gaps["eligible directory role assignments"]
     [grant] = kinds(export, "grant")
-    assert grant["entitlement"] == f"{ROLE_ADMIN} (eligible)"
+    assert grant["entitlement"] == "whole directory"
     [role] = kinds(export, "resource")
     assert role["complete"] is False
     assert role["name"] == f"{ROLE_ADMIN} (eligible)"
+
+
+# --- roles: stable grants, scopes, lifecycle, lost records ---------------------------
+
+PROVISIONED: dict[str, Any] = {
+    "status": "Provisioned",
+    "scheduleInfo": {"expiration": {"type": "noExpiration"}},
+}
+AU_SCOPE = f"/administrativeUnits/{oid(40)}"
+
+
+def role_listing(fake: FakeGraph, names: Reply | dict[str, Any], *records: Any) -> None:
+    fake.add("/roleManagement/directory/roleDefinitions", names)
+    fake.add("/roleManagement/directory/roleAssignments", value(*records))
+
+
+def assignment(role: str = ROLE_ADMIN, scope: str | None = "/", **more: Any) -> dict[str, Any]:
+    record: dict[str, Any] = {"principalId": oid(11), "roleDefinitionId": role, **more}
+    if scope is not None:
+        record["directoryScopeId"] = scope
+    return record
+
+
+def grant_keys(export: entra.Export) -> list[tuple[str, str, str]]:
+    return sorted(
+        (g["resource_id"], g["principal_id"], g["entitlement"]) for g in kinds(export, "grant")
+    )
+
+
+def test_a_role_rename_or_a_failed_name_lookup_keeps_every_grant_key(
+    client: GraphClient, fake: FakeGraph
+) -> None:
+    records = [assignment(), assignment(scope=AU_SCOPE)]
+    scope = entra.Scope(roles=True)
+    role_listing(fake, value({"id": ROLE_ADMIN, "displayName": "Custom Old"}), *records)
+    before = run(client, scope)
+    role_listing(fake, value({"id": ROLE_ADMIN, "displayName": "Custom New"}), *records)
+    renamed = run(client, scope)
+    role_listing(fake, Reply(403), *records)
+    unnamed = run(client, scope)
+    assert grant_keys(before) == grant_keys(renamed) == grant_keys(unnamed)
+    assert grant_keys(before) == [
+        (ROLE_ADMIN, oid(11), "scope " + AU_SCOPE),
+        (ROLE_ADMIN, oid(11), "whole directory"),
+    ]
+    names = [kinds(e, "resource")[0]["name"] for e in (before, renamed, unnamed)]
+    assert names == ["Custom Old", "Custom New", ROLE_ADMIN]
+
+
+def test_each_scope_is_its_own_grant_in_active_and_eligible_roles(
+    client: GraphClient, fake: FakeGraph
+) -> None:
+    role_listing(
+        fake, value(), assignment(), assignment(scope=AU_SCOPE), assignment(scope=AU_SCOPE)
+    )
+    fake.add(
+        "/roleManagement/directory/roleEligibilitySchedules",
+        value(assignment(scope=f"/{oid(41)}", **PROVISIONED)),
+    )
+    export = run(client, entra.Scope(roles=True, pim=True))
+    assert grant_keys(export) == sorted(
+        [
+            (f"{ROLE_ADMIN}:eligible", oid(11), f"scope /{oid(41)}"),
+            (ROLE_ADMIN, oid(11), f"scope {AU_SCOPE}"),
+            (ROLE_ADMIN, oid(11), "whole directory"),
+        ]
+    )
+    assert all(g["extra"] == {} for g in kinds(export, "grant"))
+
+
+@pytest.mark.parametrize("scope", [None, "", 7])
+def test_an_assignment_without_a_scope_is_a_gap_and_its_role_is_incomplete(
+    client: GraphClient, fake: FakeGraph, scope: Any
+) -> None:
+    other = "44444444-4444-4444-8444-444444444444"
+    bad = assignment(scope=None)
+    if scope is not None:
+        bad["directoryScopeId"] = scope
+    role_listing(fake, value(), bad, assignment(role=other))
+    export = run(client, entra.Scope(roles=True))
+    assert grant_keys(export) == [(other, oid(11), "whole directory")]
+    resources = {r["id"]: r["complete"] for r in kinds(export, "resource")}
+    assert resources == {ROLE_ADMIN: False, other: True}
+    [gap] = kinds(export, "gap")
+    assert gap == {
+        "what": "active role assignments",
+        "reason": "1 assignments without a directory scope were skipped",
+    }
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"roleDefinitionId": ROLE_ADMIN, "directoryScopeId": "/"},
+        {"principalId": "", "roleDefinitionId": ROLE_ADMIN, "directoryScopeId": "/"},
+        {"principalId": 5, "roleDefinitionId": ROLE_ADMIN, "directoryScopeId": "/"},
+    ],
+)
+def test_a_record_without_a_principal_makes_its_known_role_incomplete(
+    client: GraphClient, fake: FakeGraph, bad: dict[str, Any]
+) -> None:
+    other = "44444444-4444-4444-8444-444444444444"
+    role_listing(fake, value(), assignment(role=other), bad)
+    export = run(client, entra.Scope(roles=True))
+    resources = {r["id"]: r["complete"] for r in kinds(export, "resource")}
+    assert resources == {ROLE_ADMIN: False, other: True}
+    assert [g["resource_id"] for g in kinds(export, "grant")] == [other]
+
+
+@pytest.mark.parametrize("bad_role", [None, "", 5])
+def test_a_record_without_a_role_id_makes_every_role_of_that_listing_incomplete(
+    client: GraphClient, fake: FakeGraph, bad_role: Any
+) -> None:
+    other = "44444444-4444-4444-8444-444444444444"
+    bad = {"principalId": oid(12), "roleDefinitionId": bad_role, "directoryScopeId": "/"}
+    role_listing(fake, value({"id": other, "displayName": "Defined"}), assignment(), bad)
+    fake.add(
+        "/roleManagement/directory/roleEligibilitySchedules",
+        value(assignment(**PROVISIONED)),
+    )
+    export = run(client, entra.Scope(roles=True, pim=True))
+    resources = {r["id"]: r["complete"] for r in kinds(export, "resource")}
+    assert resources == {
+        ROLE_ADMIN: False,
+        other: False,
+        f"{ROLE_ADMIN}:eligible": True,
+        f"{other}:eligible": True,
+    }
+
+
+def test_a_non_object_element_in_a_role_listing_makes_every_role_incomplete(
+    client: GraphClient, fake: FakeGraph
+) -> None:
+    fake.add("/roleManagement/directory/roleDefinitions", value())
+    fake.add(
+        "/roleManagement/directory/roleAssignments",
+        {"value": [assignment(), "text", 7, None, ["x"]]},
+    )
+    export = run(client, entra.Scope(roles=True))
+    assert [r["complete"] for r in kinds(export, "resource")] == [False]
+    assert len(kinds(export, "grant")) == 1
+    assert {
+        "what": "active role assignments",
+        "reason": "4 list entries that were not objects were skipped",
+    } in kinds(export, "gap")
+
+
+def test_non_object_elements_are_counted_across_pages_and_survive_errors(
+    client: GraphClient, fake: FakeGraph
+) -> None:
+    link = "https://graph.microsoft.com/v1.0/g?p=2"
+    fake.add("/g", {"value": [{"id": "1"}, 1], "@odata.nextLink": link}, {"value": [2, "x"]})
+    result = client.pages("/g")
+    assert (len(result.items), result.dropped, result.error) == (1, 3, "")
+    fake.add("/h", {"value": [1], "@odata.nextLink": link.replace("/g?", "/h?")}, Reply(500))
+    failed = client.pages("/h")
+    assert (failed.dropped, bool(failed.error)) == (1, True)
+    fake.add("/i", {"value": [1], "@odata.nextLink": "https://evil.example/x"})
+    assert client.pages("/i").dropped == 1
+    fake.add("/j", {"value": [1], "@odata.nextLink": "https://graph.microsoft.com/v1.0/j"})
+    assert client.pages("/j").dropped == 2  # read twice before the repeat is seen
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        PROVISIONED,
+        {"status": "provisioned", "scheduleInfo": PROVISIONED["scheduleInfo"]},
+        {
+            "status": "Provisioned",
+            "scheduleInfo": {
+                "startDateTime": "2026-11-12T09:30:00Z",
+                "expiration": {"type": "afterDateTime", "endDateTime": "2026-11-12T09:30:01Z"},
+            },
+        },
+        {
+            "status": "Provisioned",
+            "scheduleInfo": {
+                "startDateTime": "2026-01-01T00:00:00.5+02:00",
+                "expiration": {"type": "afterDuration", "endDateTime": "2027-01-01T00:00:00Z"},
+            },
+        },
+    ],
+)
+def test_pim_schedules_in_force_become_grants(
+    client: GraphClient, fake: FakeGraph, record: dict[str, Any]
+) -> None:
+    fake.add("/roleManagement/directory/roleDefinitions", value())
+    fake.add("/roleManagement/directory/roleEligibilitySchedules", value(assignment(**record)))
+    export = run(client, entra.Scope(pim=True))
+    assert len(kinds(export, "grant")) == 1
+    assert kinds(export, "resource")[0]["complete"] is True
+    assert kinds(export, "gap") == []
+
+
+def schedule(status: Any, start: Any = None, expiration: Any = None, **more: Any) -> dict[str, Any]:
+    info: dict[str, Any] = {}
+    if start is not None:
+        info["startDateTime"] = start
+    if expiration is not None:
+        info["expiration"] = expiration
+    record = assignment(**more)
+    if status is not None:
+        record["status"] = status
+    if info or "scheduleInfo" not in more:
+        record.setdefault("scheduleInfo", info)
+    return record
+
+
+NO_END = {"type": "noExpiration"}
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        schedule("Revoked", "2020-01-01T00:00:00Z", NO_END),
+        schedule("Canceled", "2020-01-01T00:00:00Z", NO_END),
+        schedule("Denied"),
+        schedule("Failed", scheduleInfo=None),
+        schedule("revoked", scheduleInfo="garbage"),
+        schedule(
+            "Provisioned",
+            "2020-01-01T00:00:00Z",
+            {"type": "afterDateTime", "endDateTime": "2021-01-01T00:00:00Z"},
+        ),
+        schedule(
+            "Provisioned",
+            "2026-11-12T09:30:00Z",
+            {"type": "afterDateTime", "endDateTime": "2026-11-12T09:30:00Z"},
+            scheduleInfo={
+                "startDateTime": "2025-01-01T00:00:00Z",
+                "expiration": {"type": "afterDateTime", "endDateTime": "2026-11-12T09:30:00Z"},
+            },
+        ),
+        schedule("Provisioned", "2026-11-12T09:30:01Z", NO_END),
+        schedule("Provisioned", "2027-01-01T00:00:00+00:00", NO_END),
+    ],
+    ids=[
+        "revoked",
+        "canceled",
+        "denied",
+        "failed-no-info",
+        "revoked-garbled-info",
+        "expired",
+        "ends-exactly-now",
+        "starts-in-a-second",
+        "future",
+    ],
+)
+def test_pim_schedules_known_not_to_be_current_are_skipped_silently(
+    client: GraphClient, fake: FakeGraph, record: dict[str, Any]
+) -> None:
+    fake.add("/roleManagement/directory/roleDefinitions", value())
+    fake.add("/roleManagement/directory/roleEligibilitySchedules", value(record))
+    export = run(client, entra.Scope(pim=True))
+    assert kinds(export, "grant") == []
+    assert kinds(export, "gap") == []
+    [role] = kinds(export, "resource")
+    assert role["complete"] is True  # the role is known and nobody holds it now
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        schedule(None, None, NO_END),
+        schedule(5, None, NO_END),
+        schedule("PendingApproval", None, NO_END),
+        schedule("Granted", None, NO_END),
+        schedule("Provisioned", "not a time", NO_END),
+        schedule("Provisioned", "2026-01-01T00:00:00", NO_END),  # no zone
+        schedule("Provisioned", 7, NO_END),
+        schedule("Provisioned", "2026-01-01T00:00:00Z"),  # no expiration
+        schedule("Provisioned", None, "soon"),
+        schedule(
+            "Provisioned", None, {"type": "noExpiration", "endDateTime": "2030-01-01T00:00:00Z"}
+        ),
+        schedule("Provisioned", None, {"type": "afterDateTime"}),
+        schedule("Provisioned", None, {"type": "afterDateTime", "endDateTime": "garbled"}),
+        schedule("Provisioned", None, {"type": "afterDateTime", "endDateTime": 5}),
+        schedule("Provisioned", None, {"type": "forever"}),
+        schedule("Provisioned", None, {"endDateTime": "2030-01-01T00:00:00Z"}),
+        schedule(
+            "Provisioned",
+            "2026-06-01T00:00:00Z",
+            {"type": "afterDateTime", "endDateTime": "2026-01-01T00:00:00Z"},
+        ),
+        schedule("Provisioned", scheduleInfo=None),
+        schedule("Provisioned", scheduleInfo=["x"]),
+    ],
+    ids=[
+        "no-status",
+        "status-not-text",
+        "pending",
+        "unknown-status",
+        "garbled-start",
+        "start-without-zone",
+        "start-not-text",
+        "no-expiration",
+        "expiration-not-object",
+        "no-expiration-with-end",
+        "after-date-without-end",
+        "garbled-end",
+        "end-not-text",
+        "unknown-type",
+        "no-type",
+        "end-before-start",
+        "no-schedule-info",
+        "schedule-info-not-object",
+    ],
+)
+def test_pim_schedules_that_cannot_be_evaluated_are_gaps_and_make_the_role_incomplete(
+    client: GraphClient, fake: FakeGraph, record: dict[str, Any]
+) -> None:
+    fake.add("/roleManagement/directory/roleDefinitions", value())
+    fake.add(
+        "/roleManagement/directory/roleEligibilitySchedules",
+        value(record, assignment(role="44444444-4444-4444-8444-444444444444", **PROVISIONED)),
+    )
+    export = run(client, entra.Scope(pim=True))
+    assert [g["resource_id"] for g in kinds(export, "grant")] == [
+        "44444444-4444-4444-8444-444444444444:eligible"
+    ]
+    resources = {r["id"]: r["complete"] for r in kinds(export, "resource")}
+    assert resources == {
+        f"{ROLE_ADMIN}:eligible": False,
+        "44444444-4444-4444-8444-444444444444:eligible": True,
+    }
+    [gap] = kinds(export, "gap")
+    assert gap["what"] == "eligible role assignments"
+    assert gap["reason"].startswith("1 eligibility schedules whose status")
+
+
+def test_the_pim_clock_is_the_collection_time(client: GraphClient, fake: FakeGraph) -> None:
+    window: dict[str, Any] = {
+        "status": "Provisioned",
+        "scheduleInfo": {
+            "startDateTime": "2026-06-01T00:00:00Z",
+            "expiration": {"type": "afterDateTime", "endDateTime": "2026-07-01T00:00:00Z"},
+        },
+    }
+    fake.add("/roleManagement/directory/roleDefinitions", value())
+    fake.add("/roleManagement/directory/roleEligibilitySchedules", value(assignment(**window)))
+    scope = entra.Scope(pim=True)
+    for moment, expected in [
+        ("2026-05-31T23:59:59Z", 0),
+        ("2026-06-01T00:00:00Z", 1),
+        ("2026-06-30T23:59:59Z", 1),
+        ("2026-07-01T00:00:00Z", 0),
+    ]:
+        export = entra.collect(client, TENANT, scope, moment)
+        assert len(kinds(export, "grant")) == expected
+
+
+def test_a_pim_record_with_no_principal_or_scope_is_not_evaluated_as_a_grant(
+    client: GraphClient, fake: FakeGraph
+) -> None:
+    fake.add("/roleManagement/directory/roleDefinitions", value())
+    fake.add(
+        "/roleManagement/directory/roleEligibilitySchedules",
+        value(
+            {"roleDefinitionId": ROLE_ADMIN, **PROVISIONED},
+            assignment(scope=None, **PROVISIONED),
+        ),
+    )
+    export = run(client, entra.Scope(pim=True))
+    assert kinds(export, "grant") == []
+    assert kinds(export, "resource")[0]["complete"] is False
+    assert {g["reason"] for g in kinds(export, "gap")} == {
+        "1 assignments without a principal or role id were skipped",
+        "1 assignments without a directory scope were skipped",
+    }
+
+
+# --- groups: lost records -----------------------------------------------------------
+
+
+@pytest.mark.parametrize("listing", ["members", "transitiveMembers", "owners"])
+@pytest.mark.parametrize("bad", [{"displayName": "Nameless"}, {"id": 5}, "text", None])
+def test_a_membership_record_that_cannot_be_used_makes_its_group_incomplete(
+    client: GraphClient, fake: FakeGraph, listing: str, bad: Any
+) -> None:
+    simple_group(fake, 1, "G", [user(11, "Avery Example")])
+    simple_group(fake, 2, "H", [user(11, "Avery Example")])
+    fake.add(f"/groups/{oid(1)}/{listing}", value(user(11, "Avery Example"), bad))
+    export = run(client, entra.Scope(groups=(oid(1), oid(2))))
+    resources = {r["id"]: r["complete"] for r in kinds(export, "resource")}
+    assert resources == {oid(1): False, oid(2): True}
+    assert [g["principal_id"] for g in kinds(export, "grant") if g["resource_id"] == oid(1)] == (
+        [oid(11)]
+    )
+    [gap] = kinds(export, "gap")
+    assert gap["reason"] == "1 records without an id (or that were not objects) were skipped"
+
+
+def test_a_nested_group_listing_that_loses_a_record_is_a_gap(
+    client: GraphClient, fake: FakeGraph
+) -> None:
+    simple_group(fake, 1, "Outer", [group(2, "Inner")])
+    fake.add(f"/groups/{oid(2)}/members", value(user(11, "Avery Example"), 5))
+    export = run(client, entra.Scope(groups=(oid(1),)))
+    assert any(g["what"].startswith("direct members of group Inner") for g in kinds(export, "gap"))
+
+
+def test_a_security_group_listing_that_loses_a_record_is_a_gap(
+    client: GraphClient, fake: FakeGraph
+) -> None:
+    simple_group(fake, 1, "G", [])
+    fake.add("/groups", value(group(1, "G"), {"displayName": "no id"}, 3))
+    export = run(client, entra.Scope(all_security_groups=True))
+    assert [g["what"] for g in kinds(export, "gap")] == ["security groups"]
+
+
+# --- the tenant ---------------------------------------------------------------------
+
+
+def credential_client(token: str) -> GraphClient:
+    return GraphClient(CLOUDS["global"], FakeCredential(token), now=lambda: NOW)
+
+
+def test_the_export_names_the_canonical_tenant_of_the_token_and_the_cloud(
+    fake: FakeGraph,
+) -> None:
+    token = make_jwt({"tid": OTHER_TENANT.upper()})
+    client = credential_client(token)
+    assert client.tenant_id() == OTHER_TENANT
+    for requested in ("corp.example", OTHER_TENANT, OTHER_TENANT.upper()):
+        export = entra.collect(client, requested, entra.Scope(), "2026-11-12T09:30:00Z")
+        assert export.tenant == OTHER_TENANT
+        header = read_export(entra.render(export))[0]
+        assert header["tenant"] == OTHER_TENANT
+        assert header["cloud"] == "global"
+        assert "domain" not in header
+        assert token.encode() not in entra.render(export)
+    assert fake.requests == []
+
+
+def test_the_header_names_the_chosen_cloud(fake: FakeGraph) -> None:
+    gov = GraphClient(CLOUDS["usgov"], FakeCredential(make_jwt({"tid": TENANT})))
+    export = entra.collect(gov, TENANT, entra.Scope(), "2026-11-12T09:30:00Z")
+    assert read_export(entra.render(export))[0]["cloud"] == "usgov"
+    assert fake.requests == []
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "no-dots-at-all",
+        "a.b",
+        "a.!!!.c",
+        "a." + base64.urlsafe_b64encode(b"\xff\xfe").decode() + ".c",
+        "a." + base64.urlsafe_b64encode(b"not json").decode() + ".c",
+        make_jwt(None),
+        make_jwt({"oid": TENANT}),
+        make_jwt({"tid": 5}),
+        make_jwt({"tid": "corp.example"}),
+        make_jwt({"tid": TENANT + "0"}),
+        make_jwt({"tid": ""}),
+    ],
+)
+def test_a_token_without_a_usable_tid_claim_is_a_collection_error(
+    fake: FakeGraph, token: str
+) -> None:
+    client = credential_client(token)
+    with pytest.raises(CollectionError, match="no usable tid claim") as caught:
+        entra.collect(client, "corp.example", entra.Scope(roles=True), "2026-11-12T09:30:00Z")
+    assert token not in str(caught.value)
+    assert fake.requests == []
+
+
+def test_a_guid_tenant_that_differs_from_the_token_is_a_collection_error(
+    fake: FakeGraph,
+) -> None:
+    client = credential_client(make_jwt({"tid": TENANT}))
+    with pytest.raises(CollectionError, match="not the requested tenant") as caught:
+        entra.collect(client, OTHER_TENANT.upper(), entra.Scope(roles=True), "2026-11-12T09:30:00Z")
+    assert TENANT in str(caught.value)
+    assert OTHER_TENANT in str(caught.value)
+    assert fake.requests == []
+
+
+def test_a_collection_time_that_is_not_a_time_is_refused(client: GraphClient) -> None:
+    for bad in ("yesterday", "2026-11-12T09:30:00", ""):
+        with pytest.raises(CollectionError, match="not a time"):
+            entra.collect(client, TENANT, entra.Scope(roles=True), bad)
 
 
 # --- collection: managers -----------------------------------------------------------
@@ -1152,6 +1683,7 @@ def test_the_export_has_a_header_records_and_a_trailer_that_checks(
             "pim": False,
         },
         "tenant": TENANT,
+        "cloud": "global",
     }
     assert set(trailer) == {"end", "records", "sha256"}
     assert trailer["end"] is True
@@ -1557,11 +2089,8 @@ def test_a_group_nested_in_another_target_is_read_once(
     }
 
 
-def test_owners_and_managers_without_an_id_are_ignored(
-    client: GraphClient, fake: FakeGraph
-) -> None:
+def test_managers_without_an_id_are_ignored(client: GraphClient, fake: FakeGraph) -> None:
     simple_group(fake, 1, "G", [user(11, "Avery Example")])
-    fake.add(f"/groups/{oid(1)}/owners", value({"displayName": "Nameless"}))
     fake.add(f"/users/{oid(11)}", {"id": oid(11), "manager": {"displayName": "Nameless"}})
     export = run(client, entra.Scope(groups=(oid(1),)))
     assert kinds(export, "resource")[0]["owner_ids"] == []

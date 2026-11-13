@@ -26,9 +26,10 @@ The first line. It must be valid JSON with `"shaar_export": 1` and a `system` of
 | `collector` | The tool that wrote the file: `name` and `version`. |
 | `collected_at` | When the access was read, as ISO 8601 with `Z` or an offset. A header without a valid time is a problem, and the time is then unknown. |
 | `scope` | Free JSON that says what was asked for. |
-| `domain` or `tenant` | The domain (AD) or the tenant (Entra). |
+| `domain` or `tenant` | The domain (AD) or the tenant (Entra). For Entra it is the canonical tenant id, in lower case, from the `tid` claim of the access token that was used. An Entra export has no `domain`. |
+| `cloud` | Entra only: the national cloud (`global`, `usgov`, `usgovdod`, or `china`). |
 
-shaar keeps `scope`, `collector`, `domain`, and `tenant` as context. It does not interpret them.
+shaar keeps `scope`, `collector`, `domain`, `tenant`, and `cloud` as context. It does not interpret them.
 
 ### Records
 
@@ -41,7 +42,7 @@ Each record line holds exactly one member: `principal`, `resource`, `grant`, or 
 | `grant` | `principal_id`, `resource_id`, `entitlement` (all required), `via` (the names of the nested groups the access came through, empty when direct), `extra`. |
 | `gap` | `what` and `reason`: something the collector could not read. It becomes a problem. |
 
-A grant is one principal's entitlement on one resource. Group membership has the entitlement `member`. A directory role has the role's name. Two paths to the same access are one grant: `via` is the shortest path, and `extra.paths` lists every path, joined with a semicolon and a space.
+A grant is one principal's entitlement on one resource. Group membership has the entitlement `member`. A directory role grant is one scope of one role: the entitlement is `whole directory`, or the word `scope`, a space, and the scope id (for example `scope /administrativeUnits/ID`), and never the role's name, which is only in the resource's `name`. Eligible (PIM) role grants are on the resource `ROLE-ID:eligible`, and only schedules in force at `collected_at` are written. Two paths to the same access are one grant: `via` is the shortest path, and `extra.paths` lists every path, joined with a semicolon and a space.
 
 A `complete` of `false` means the resource's membership was cut short: a paging failure, a failed range read, access denied, or throttling.
 
