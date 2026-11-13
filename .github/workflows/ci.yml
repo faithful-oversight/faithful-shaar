@@ -68,8 +68,14 @@ jobs:
         with:
           enable-cache: false
           python-version: ${{ matrix.python }}
-      - run: uv sync --locked
+      # All extras let the real transport and secret-source tests run. GitHub's runners
+      # include pwsh, so the exporter's PowerShell tests run too. SHAAR_REQUIRE_PWSH
+      # makes those tests, and the PowerShell syntax check, fail rather than skip if
+      # PowerShell is missing.
+      - run: uv sync --locked --all-extras
       - run: scripts/check.sh test
+        env:
+          SHAAR_REQUIRE_PWSH: "1"
 
   docs:
     name: Docs, config, and workflow security
@@ -86,6 +92,8 @@ jobs:
           enable-cache: false
       - run: uv sync --locked
       - run: scripts/check.sh docs site config reuse
+        env:
+          SHAAR_REQUIRE_PWSH: "1"
       - run: scripts/check.sh workflows
         env:
           # Only zizmor sees the token. It lets zizmor run its online audits,
