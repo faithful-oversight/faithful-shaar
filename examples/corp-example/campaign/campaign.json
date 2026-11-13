@@ -9,7 +9,7 @@
     "entra:role:62e90394-69f5-4237-9190-012177145e10"
   ],
   "created_at": "2026-11-02T09:00:00Z",
-  "digest": "99cab383dce34f27541f6fd83c9ac48e6a5b320728724148886449d6d33d2071",
+  "digest": "2a682d7d049bd2d42efc54557e666acf4a280a503e2e4037b8355c68e9d8a3f3",
   "due": "2026-11-16",
   "id": "C61b04c11174dbf64",
   "inputs": [
@@ -33,12 +33,7 @@
     }
   ],
   "name": "Q4 2026 access review",
-  "problems": [
-    {
-      "reason": "no resource id: the resource is matched by name, which is weaker",
-      "source": "ledger.csv, row 1"
-    }
-  ],
+  "problems": [],
   "reviewers": [
     {
       "email": "casey.owner@corp.example",

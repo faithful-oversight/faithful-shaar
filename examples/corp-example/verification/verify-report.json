@@ -9,7 +9,7 @@
   },
   "data": {
     "as_of": "2026-11-20T22:00:00Z",
-    "campaign_digest": "99cab383dce34f27541f6fd83c9ac48e6a5b320728724148886449d6d33d2071",
+    "campaign_digest": "2a682d7d049bd2d42efc54557e666acf4a280a503e2e4037b8355c68e9d8a3f3",
     "campaign_id": "C61b04c11174dbf64"
   },
   "facts": {
@@ -46,15 +46,7 @@
     "Why access is still present.",
     "Changes made after the later export was taken."
   ],
-  "problems": [
-    {
-      "reason": "no resource id: the resource is matched by name, which is weaker",
-      "source": {
-        "detail": "row 1",
-        "file": "ledger.csv"
-      }
-    }
-  ],
+  "problems": [],
   "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/verify-report-v1.schema.json",
   "sections": {
     "kept_but_gone": [

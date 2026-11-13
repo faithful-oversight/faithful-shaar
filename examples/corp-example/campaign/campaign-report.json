@@ -2,11 +2,11 @@
   "counts": {
     "Access entries": 13,
     "Entries with no reviewer": 2,
-    "Problems reading the inputs": 1,
+    "Problems reading the inputs": 0,
     "Reviewers": 3
   },
   "data": {
-    "campaign_digest": "99cab383dce34f27541f6fd83c9ac48e6a5b320728724148886449d6d33d2071",
+    "campaign_digest": "2a682d7d049bd2d42efc54557e666acf4a280a503e2e4037b8355c68e9d8a3f3",
     "campaign_id": "C61b04c11174dbf64"
   },
   "facts": {
@@ -18,7 +18,7 @@
     "Systems": "ad, csv:ledger, entra"
   },
   "generated_at": "2026-11-02T09:00:00Z",
-  "headline": "13 access entries for 3 reviewers. 2 entries have no reviewer. Some input could not be read; see Not read.",
+  "headline": "13 access entries for 3 reviewers. 2 entries have no reviewer.",
   "inputs": [
     {
       "kind": "shaar-export",
@@ -45,15 +45,7 @@
     "What a group or role lets its members do: only who holds it.",
     "Whether any access is appropriate: that is each reviewer's decision."
   ],
-  "problems": [
-    {
-      "reason": "no resource id: the resource is matched by name, which is weaker",
-      "source": {
-        "detail": "row 1",
-        "file": "ledger.csv"
-      }
-    }
-  ],
+  "problems": [],
   "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/campaign-report-v1.schema.json",
   "sections": {
     "reviewers": [

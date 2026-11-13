@@ -204,7 +204,9 @@ class _Reader:
         if "principal_id" not in cols:
             reason = "no principal_id column: principals are matched by name, which is weaker"
             self.snapshot.problems.append(Problem(source, reason))
-        if cmap.resource or "resource_id" not in cols:
+        # A resource the map or --resource names is fixed by whoever runs shaar, so the
+        # same name is used for every export of it; only a name read from rows is weaker.
+        if not cmap.resource and "resource_id" not in cols:
             reason = "no resource id: the resource is matched by name, which is weaker"
             self.snapshot.problems.append(Problem(source, reason))
 

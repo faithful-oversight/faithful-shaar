@@ -18,7 +18,7 @@ _MAX_DNS = 253
 
 
 def server_name(server: str) -> str:
-    """Check that ``--server`` is a fully qualified DNS name, and return it.
+    """Check that ``--host`` is a fully qualified DNS name, and return it.
 
     The HTTPS certificate is verified against this name and Kerberos asks for a
     ticket for it, so an IP address or a bare host name would either fail
@@ -35,7 +35,7 @@ def server_name(server: str) -> str:
         pass
     else:
         msg = (
-            f"--server {server!r} is an IP address. Give the domain controller's DNS "
+            f"--host {server!r} is an IP address. Give the domain controller's DNS "
             "name, which its certificate and Kerberos service name use"
         )
         raise CollectionError(msg)
@@ -45,7 +45,7 @@ def server_name(server: str) -> str:
         or not all(_LABEL.fullmatch(label) for label in labels)
         or labels[-1].isdigit()
     ):
-        msg = f"--server {server!r} is not a fully qualified DNS name, such as dc01.corp.example"
+        msg = f"--host {server!r} is not a fully qualified DNS name, such as dc01.corp.example"
         raise CollectionError(msg)
     return name
 

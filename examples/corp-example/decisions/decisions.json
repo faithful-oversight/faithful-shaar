@@ -1,8 +1,8 @@
 {
-  "campaign_digest": "99cab383dce34f27541f6fd83c9ac48e6a5b320728724148886449d6d33d2071",
+  "campaign_digest": "2a682d7d049bd2d42efc54557e666acf4a280a503e2e4037b8355c68e9d8a3f3",
   "campaign_id": "C61b04c11174dbf64",
   "created_at": "2026-11-21T09:00:00Z",
-  "digest": "a5ea14e2cdd4cb344dc021b5daebcf11acb46192b455af8811754f3f1d719f7c",
+  "digest": "5df92e057c7354464587c1e477bb3a94b88bfaad623544bf850bc2a8a100d1d3",
   "packets": [
     {
       "file": "returned-01-Casey-Owner-da089e.xlsx",
@@ -11,7 +11,7 @@
       "reported_modified": "2026-11-02T09:00:00Z",
       "reviewer": "Casey Owner",
       "reviewer_key": "mail:casey.owner@corp.example",
-      "sha256": "802d375d0b39da8e21b2b622440b1a66dd4f3ee6775f23c047102953481468d1",
+      "sha256": "a0b9e08f27e6b775c137b4d8d1ad4ea33a6bdc7293c1a8ec3605ec0257cf677b",
       "status": "read"
     },
     {
@@ -21,7 +21,7 @@
       "reported_modified": "2026-11-02T09:00:00Z",
       "reviewer": "Jordan Director",
       "reviewer_key": "mail:jordan.director@corp.example",
-      "sha256": "ad79bdd3549422ad12bad60e68a9be912311ef0622dec69054ea14b7a62f877d",
+      "sha256": "bf273465fe43071370463fbde586e9bd1d6caf7f42a15d21373bcc6461e974ce",
       "status": "read"
     },
     {
@@ -31,7 +31,7 @@
       "reported_modified": "2026-11-02T09:00:00Z",
       "reviewer": "Morgan Lead",
       "reviewer_key": "mail:morgan.lead@corp.example",
-      "sha256": "8c4247b0b794dcd7c163699e097e55f3b557a628635a63dec2afcbbd2f948caf",
+      "sha256": "921ff9bcc0ca8b685355809af7fb29e4a1d51d29d527b8b5652fc1380f91714d",
       "status": "read"
     }
   ],

@@ -1,6 +1,6 @@
 # Access review campaign: Q4 2026 access review
 
-13 access entries for 3 reviewers. 2 entries have no reviewer. Some input could not be read; see Not read.
+13 access entries for 3 reviewers. 2 entries have no reviewer.
 
 | Item | Value |
 | --- | --- |
@@ -16,7 +16,7 @@
 | Access entries | 13 |
 | Reviewers | 3 |
 | Entries with no reviewer | 2 |
-| Problems reading the inputs | 1 |
+| Problems reading the inputs | 0 |
 
 ## Reviewers and packets (3 rows)
 
@@ -57,13 +57,9 @@ Every entry sent for review, by reviewer.
 | R4512f0a10ac0 | Morgan Lead | Drew Analyst | drew.analyst@⁠corp.example | Enabled | Payroll App Users | group | member | Direct | entra.jsonl, line 13 |
 | R47487ba919fb | Morgan Lead | Drew Analyst | drew.analyst@⁠corp.example | Enabled | Server Operators | group | member | Server Operators \> Ops Helpers | ad.jsonl, line 14 |
 
-## Not read (1 problem)
+## Not read (0 problems)
 
-These could not be read or trusted, so what they hold is not in this report.
-
-| Source | Reason |
-| --- | --- |
-| ledger.csv, row 1 | no resource id: the resource is matched by name, which is weaker |
+No problems were recorded while reading the inputs.
 
 ## What this report does not show
 

@@ -665,7 +665,9 @@ def add_collect_entra_arguments(collect_subparsers: Any) -> None:
         "--group", nargs="+", action="extend", default=[], metavar="ID|NAME",
         help="read these groups (an object id, or a display name that matches one group)",
     )  # fmt: skip
-    entra.add_argument("--all-security-groups", action="store_true", help="read every group")
+    entra.add_argument(
+        "--all-security-groups", action="store_true", help="read every security-enabled group"
+    )
     entra.add_argument("--roles", action="store_true", help="read directory role assignments")
     entra.add_argument("--pim", action="store_true", help="read eligible role assignments")
     entra.add_argument("-o", "--output", required=True, type=Path, metavar="FILE")

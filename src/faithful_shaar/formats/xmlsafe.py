@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Parse XML from untrusted files with the standard library's expat parser.
 
-The protections follow the ones in toledot's event XML reader:
+The protections are the same as in the other Faithful Oversight tools:
 
 * A DOCTYPE (and so every entity declaration, internal or external) is refused. An
   entity reference that was never declared is not well-formed, so it is refused too.
@@ -10,10 +10,10 @@ The protections follow the ones in toledot's event XML reader:
 * Elements may nest at most :data:`MAX_DEPTH` levels, counted on every element.
 * A file larger than :data:`MAX_BYTES` is refused before it is decoded.
 * The declared encoding is ignored. The bytes are decoded here, from the byte order
-  mark if there is one, otherwise as UTF-8, otherwise as UTF-16. Real ``Get-GPOReport
-  -All`` captures are UTF-8 bytes that declare ``utf-16``, so trusting the declaration
-  would fail them. The decoded text is handed to expat as text, which makes expat
-  read it as UTF-8 whatever the declaration says.
+  mark if there is one, otherwise as UTF-8, otherwise as UTF-16. Spreadsheet programs
+  do not always declare what they write, so the declaration is not trusted. The decoded
+  text is handed to expat as text, which makes expat read it as UTF-8 whatever the
+  declaration says.
 
 The result is a tree of :class:`xml.etree.ElementTree.Element` objects built from
 expat events. Names that have a namespace are written ``{uri}local``, and identity is by

@@ -194,7 +194,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=_time,
         default=None,
         metavar="TIME",
-        help="when the later access was read, if the inputs do not say",
+        help="when the later access was read; overrides the time the inputs record",
     )
     _csv_options(check)
     check.add_argument("--force", action="store_true", help="replace existing files")

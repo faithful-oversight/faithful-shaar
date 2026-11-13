@@ -2,18 +2,18 @@
   "files": [
     {
       "name": "verify-report.json",
-      "sha256": "e4fef244f5955a80ced7f98338f039cacb64fbef51579aba1c8c32b5720b8090",
-      "size": 4126
+      "sha256": "08ef200da3f955059d6c8b3d19c853669a9d947b6eb819ef081a5bf788d4282c",
+      "size": 3945
     },
     {
       "name": "verify-report.md",
-      "sha256": "f05dc42ba5527aa535abb057fc2783b8ff31b06a44381fb2d5809eac7b57e610",
-      "size": 3096
+      "sha256": "f74b18383ddb37ae092005b65bc0c8e7c63481ffb8f039488cfa6b11b0170624",
+      "size": 2948
     },
     {
       "name": "verify-report.html",
-      "sha256": "c966ef10f6369cc7588a76a2280a671598a0a1b32e51ca96aea62635a08b043f",
-      "size": 7476
+      "sha256": "6e91273538da016d504dac41e04611a7703af3392a0942212429df1760540057",
+      "size": 7181
     },
     {
       "name": "removals.csv",

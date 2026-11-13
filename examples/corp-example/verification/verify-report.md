@@ -46,13 +46,9 @@ Access on the reviewed resources that the campaign did not include. Information 
 | --- | --- | --- | --- |
 | Emery Contractor | Finance Admins | member | ad.jsonl, line 18 |
 
-## Not read (1 problem)
+## Not read (0 problems)
 
-These could not be read or trusted, so what they hold is not in this report.
-
-| Source | Reason |
-| --- | --- |
-| ledger.csv, row 1 | no resource id: the resource is matched by name, which is weaker |
+No problems were recorded while reading the inputs.
 
 ## What this report does not show
 

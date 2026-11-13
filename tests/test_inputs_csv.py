@@ -716,7 +716,7 @@ def test_entra_members_preset_with_a_fixed_resource() -> None:
     )
     assert snap.complete_resources == {group.key}
     assert snap.systems == {"entra", "csv:entra-members"}
-    assert any("resource is matched by name" in r for r in reasons(snap))
+    assert not any("resource is matched by name" in r for r in reasons(snap))  # fixed by --resource
     assert len(snap.grants) == 2
 
 

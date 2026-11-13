@@ -89,7 +89,7 @@ _ZIP_EPOCH = datetime(1980, 1, 1, tzinfo=UTC)
 
 _INSTRUCTIONS = (
     "Choose Keep, Remove or Unsure in the Decision column for every row.",
-    "Add a comment for every Remove.",
+    "Add a comment to explain each Remove.",
     "Do not add, delete or edit rows. Only the Decision and Comment cells can be changed.",
     "Leave the hidden Row ID and Row check columns alone: they match your answers to this review.",
     "Save the file and return it to the person who sent it.",
