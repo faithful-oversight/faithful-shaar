@@ -1,0 +1,75 @@
+{
+  "files": [
+    {
+      "name": "campaign.json",
+      "sha256": "49d73d784bafd9b1c6e80a81459060119ad948b617d515ca098150fb076261cf",
+      "size": 13857
+    },
+    {
+      "name": "packet-01-Casey-Owner-da089e.xlsx",
+      "sha256": "775225194ae05dd1b324c78342a31c906568660103c07c63308da267bdaf6364",
+      "size": 5195
+    },
+    {
+      "name": "packet-02-Jordan-Director-24304a.xlsx",
+      "sha256": "70b8cc27f946c7d5304f64d1221df1043ac16059deb70e05e2c362a6d2d14a43",
+      "size": 5206
+    },
+    {
+      "name": "packet-03-Morgan-Lead-e16dc6.xlsx",
+      "sha256": "355a53498e746633fe6695cc14d2d7f8ad466ee95aa2ae7d763b89232a5f6579",
+      "size": 6017
+    },
+    {
+      "name": "campaign-report.json",
+      "sha256": "2a6916f540cbf33120ee51fa2fe37619f86ba703c193f21823a7c2c0ebfdb3f9",
+      "size": 7925
+    },
+    {
+      "name": "campaign-report.md",
+      "sha256": "2ed0fb0c6adb26928ec6479c5cb109c4ce037360c98c17c2a54f43d599f9588c",
+      "size": 4699
+    },
+    {
+      "name": "campaign-report.html",
+      "sha256": "758f73c6c723212d0628cae72c175d7dc7d0dd7d325f856224d864d4f58c00ef",
+      "size": 9933
+    },
+    {
+      "name": "unassigned.csv",
+      "sha256": "53f7d9c57219c4db138c8599f731cd80561f015cbb370b4990fba982e9b5ec38",
+      "size": 311
+    },
+    {
+      "name": "rows.csv",
+      "sha256": "4b8d028a8daeeff5fe0ba24d99441bf8659abf715e27837a9194c208450a1641",
+      "size": 1849
+    }
+  ],
+  "generated_at": "2026-11-02T09:00:00Z",
+  "inputs": [
+    {
+      "kind": "shaar-export",
+      "name": "ad.jsonl",
+      "sha256": "f248f8e56d8926cf7baf6b489a600d0266df95b241b21f9b27df521dacb68733",
+      "size": 4029
+    },
+    {
+      "kind": "shaar-export",
+      "name": "entra.jsonl",
+      "sha256": "750dd952e2622fc921a3c8f33b754e699ab480557923fd46e0b1e7a0be0707b3",
+      "size": 3490
+    },
+    {
+      "kind": "csv",
+      "name": "ledger.csv",
+      "sha256": "ee38eb63cd3d672d6b9a45ec978f40dc71037e9834c44be1e6ad44040b4fb115",
+      "size": 478
+    }
+  ],
+  "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/manifest-v1.schema.json",
+  "tool": {
+    "name": "shaar",
+    "version": "example"
+  }
+}

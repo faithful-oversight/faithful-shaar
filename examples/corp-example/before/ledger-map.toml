@@ -1,0 +1,13 @@
+# Column map for the Ledger finance application's user export.
+system = "ledger"
+resource = "Ledger"
+resource_kind = "application"
+
+[columns]
+principal_id = "Email"
+email = "Email"
+principal_name = "Full name"
+manager_id = "Manager email"
+enabled = "Active"
+entitlement = "Role"
+last_sign_in = "Last login"

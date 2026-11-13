@@ -431,6 +431,11 @@ def build_manifest(
     }
 
 
+def render_manifest(manifest: Mapping[str, Any]) -> bytes:
+    """Return the text of ``manifest.json``, exactly as :func:`write_outputs` writes it."""
+    return _dumps(manifest).encode("utf-8")
+
+
 def write_outputs(  # noqa: PLR0913 - the documented API
     directory: Path,
     files: Mapping[str, bytes],
@@ -468,7 +473,7 @@ def write_outputs(  # noqa: PLR0913 - the documented API
     manifest = build_manifest(
         files, generated_at=generated_at, tool_version=tool_version, inputs=inputs
     )
-    write_files(directory, {**files, MANIFEST_FILE: _dumps(manifest).encode("utf-8")}, force=force)
+    write_files(directory, {**files, MANIFEST_FILE: render_manifest(manifest)}, force=force)
     return manifest
 
 

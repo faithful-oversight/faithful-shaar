@@ -28,7 +28,7 @@ from faithful_shaar import campaign as cmod
 from faithful_shaar.formats.xlsx import Packet, PacketRow, write_packet
 from faithful_shaar.inputs import read_inputs
 from faithful_shaar.outputs.files import write_files
-from faithful_shaar.outputs.render import render_all
+from faithful_shaar.outputs.render import build_manifest, render_all, render_manifest
 from faithful_shaar.outputs.safety import command_line
 from faithful_shaar.reports import campaign_document, packets
 
@@ -318,6 +318,10 @@ def build() -> dict[str, dict[str, bytes]]:
         **packets(built),
         **render_all(document, ["unassigned", "rows"]),
     }
+    manifest = build_manifest(
+        campaign_files, generated_at=CREATED, tool_version="example", inputs=built.inputs
+    )
+    campaign_files["manifest.json"] = render_manifest(manifest)
     return {
         "before": before,
         "campaign": campaign_files,

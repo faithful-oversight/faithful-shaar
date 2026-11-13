@@ -1,0 +1,60 @@
+{
+  "files": [
+    {
+      "name": "verify-report.json",
+      "sha256": "3319fe4bc7600ac7dcbe1cdbcb643c6db59ea1ea342a0ea03f70a6b3fca44dd0",
+      "size": 4127
+    },
+    {
+      "name": "verify-report.md",
+      "sha256": "bf27baa931d748a0049a7ba6ddb1b9d2faf0e39f33d158c834e867b20690bf45",
+      "size": 3097
+    },
+    {
+      "name": "verify-report.html",
+      "sha256": "13cb64459a7eaa67d9cccbf0beebb92a5d666f752c33a64cab990f9f5d7b1388",
+      "size": 7472
+    },
+    {
+      "name": "removals.csv",
+      "sha256": "b47c7e9b5d12b9b957b7b4f3f8023751bfe1064008b1f847c60002b8a176184a",
+      "size": 1001
+    },
+    {
+      "name": "kept_but_gone.csv",
+      "sha256": "26d4dbe301b42ff3d1ebc751f9a84ab0953de0adcf61f0fbe19bb11b00734c2b",
+      "size": 137
+    },
+    {
+      "name": "new_since_review.csv",
+      "sha256": "8af7e43cbea192c0d327e98468990b0f590c253047e1757e2343961cd7c45ca9",
+      "size": 96
+    }
+  ],
+  "generated_at": "2026-11-21T09:00:00Z",
+  "inputs": [
+    {
+      "kind": "shaar-export",
+      "name": "ad.jsonl",
+      "sha256": "e5d96356d61ef233f7ff4740c9971bdca0129482dc2e1c47ce25529e39b41276",
+      "size": 4029
+    },
+    {
+      "kind": "shaar-export",
+      "name": "entra.jsonl",
+      "sha256": "292b8296fdd558592cdcf7129fa69083fb12e3a199e0212a4e536be74d2db188",
+      "size": 3147
+    },
+    {
+      "kind": "csv",
+      "name": "ledger.csv",
+      "sha256": "653d697528a61ca5f75b9939cf8d5001ff4ee7796b1a2164f33aa17928fec4f2",
+      "size": 305
+    }
+  ],
+  "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/manifest-v1.schema.json",
+  "tool": {
+    "name": "shaar",
+    "version": "0.0.0"
+  }
+}

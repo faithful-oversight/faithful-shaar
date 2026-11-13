@@ -129,7 +129,7 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument(
         "--due",
         type=_date,
-        default="",
+        default=None,
         metavar="YYYY-MM-DD",
         help="when decisions and removals are due",
     )
@@ -192,7 +192,7 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument(
         "--as-of",
         type=_time,
-        default="",
+        default=None,
         metavar="TIME",
         help="when the later access was read, if the inputs do not say",
     )
@@ -281,7 +281,7 @@ def _campaign(args: argparse.Namespace) -> int:
         snapshot,
         name=args.name,
         created_at=when,
-        due=args.due,
+        due=args.due or "",
         rule=args.reviewers,
         entries=entries,
     )
@@ -329,7 +329,7 @@ def _verify(args: argparse.Namespace) -> int:
         args.inputs, label="later", csv_map=args.map, preset=args.preset, resource=args.resource
     )
     when = format_time(_now())
-    outcome = verify.verify(built, record, later, as_of=args.as_of)
+    outcome = verify.verify(built, record, later, as_of=args.as_of or "")
     document = reports.verify_document(
         built, outcome, later, generated_at=when, version=__version__
     )

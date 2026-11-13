@@ -1,0 +1,193 @@
+{
+  "campaign_digest": "99cab383dce34f27541f6fd83c9ac48e6a5b320728724148886449d6d33d2071",
+  "campaign_id": "C61b04c11174dbf64",
+  "created_at": "2026-11-21T09:00:00Z",
+  "digest": "a5ea14e2cdd4cb344dc021b5daebcf11acb46192b455af8811754f3f1d719f7c",
+  "packets": [
+    {
+      "file": "returned-01-Casey-Owner-da089e.xlsx",
+      "reason": "",
+      "reported_by": "shaar",
+      "reported_modified": "2026-11-02T09:00:00Z",
+      "reviewer": "Casey Owner",
+      "reviewer_key": "mail:casey.owner@corp.example",
+      "sha256": "802d375d0b39da8e21b2b622440b1a66dd4f3ee6775f23c047102953481468d1",
+      "status": "read"
+    },
+    {
+      "file": "returned-02-Jordan-Director-24304a.xlsx",
+      "reason": "",
+      "reported_by": "shaar",
+      "reported_modified": "2026-11-02T09:00:00Z",
+      "reviewer": "Jordan Director",
+      "reviewer_key": "mail:jordan.director@corp.example",
+      "sha256": "ad79bdd3549422ad12bad60e68a9be912311ef0622dec69054ea14b7a62f877d",
+      "status": "read"
+    },
+    {
+      "file": "returned-03-Morgan-Lead-e16dc6.xlsx",
+      "reason": "",
+      "reported_by": "shaar",
+      "reported_modified": "2026-11-02T09:00:00Z",
+      "reviewer": "Morgan Lead",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "sha256": "8c4247b0b794dcd7c163699e097e55f3b557a628635a63dec2afcbbd2f948caf",
+      "status": "read"
+    }
+  ],
+  "require_comment": [],
+  "rows": [
+    {
+      "citation": "returned-01-Casey-Owner-da089e.xlsx, Review row 2",
+      "comment": "Contract ended",
+      "decision": "Remove",
+      "packet": "returned-01-Casey-Owner-da089e.xlsx",
+      "reason": "",
+      "reviewer_key": "mail:casey.owner@corp.example",
+      "row_id": "R1f6664bcbe2a",
+      "state": "accepted"
+    },
+    {
+      "citation": "returned-01-Casey-Owner-da089e.xlsx, Review row 3",
+      "comment": "Contract ended",
+      "decision": "Remove",
+      "packet": "returned-01-Casey-Owner-da089e.xlsx",
+      "reason": "",
+      "reviewer_key": "mail:casey.owner@corp.example",
+      "row_id": "R11cecb2e3123",
+      "state": "accepted"
+    },
+    {
+      "citation": "returned-02-Jordan-Director-24304a.xlsx, Review row 2",
+      "comment": "Break-glass holder",
+      "decision": "Keep",
+      "packet": "returned-02-Jordan-Director-24304a.xlsx",
+      "reason": "",
+      "reviewer_key": "mail:jordan.director@corp.example",
+      "row_id": "R9281ee88382f",
+      "state": "accepted"
+    },
+    {
+      "citation": "returned-02-Jordan-Director-24304a.xlsx, Review row 3",
+      "comment": "",
+      "decision": "Keep",
+      "packet": "returned-02-Jordan-Director-24304a.xlsx",
+      "reason": "",
+      "reviewer_key": "mail:jordan.director@corp.example",
+      "row_id": "R5b26d19ff14c",
+      "state": "accepted"
+    },
+    {
+      "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 2",
+      "comment": "",
+      "decision": "Keep",
+      "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+      "reason": "",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_id": "R2e1377f5a86c",
+      "state": "accepted"
+    },
+    {
+      "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 3",
+      "comment": "Left the company in September",
+      "decision": "Remove",
+      "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+      "reason": "",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_id": "Rcf3e823507b7",
+      "state": "accepted"
+    },
+    {
+      "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 4",
+      "comment": "",
+      "decision": "Keep",
+      "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+      "reason": "",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_id": "Rba3add9d40c3",
+      "state": "accepted"
+    },
+    {
+      "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5",
+      "comment": "Left the company in September",
+      "decision": "Remove",
+      "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+      "reason": "",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_id": "R7c9006452035",
+      "state": "accepted"
+    },
+    {
+      "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 6",
+      "comment": "",
+      "decision": "Keep",
+      "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+      "reason": "",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_id": "R3c96926303ef",
+      "state": "accepted"
+    },
+    {
+      "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 7",
+      "comment": "",
+      "decision": "",
+      "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+      "reason": "no decision",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_id": "Raa06884d69bd",
+      "state": "undecided"
+    },
+    {
+      "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 8",
+      "comment": "",
+      "decision": "Keep",
+      "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+      "reason": "",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_id": "Ree674961366f",
+      "state": "accepted"
+    },
+    {
+      "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9",
+      "comment": "Moved to another team",
+      "decision": "Remove",
+      "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+      "reason": "",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_id": "R4512f0a10ac0",
+      "state": "accepted"
+    },
+    {
+      "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 10",
+      "comment": "Ask the platform team",
+      "decision": "Unsure",
+      "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+      "reason": "",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_id": "R47487ba919fb",
+      "state": "accepted"
+    },
+    {
+      "citation": "ledger.csv, row 2",
+      "comment": "",
+      "decision": "",
+      "packet": "",
+      "reason": "the input names no manager for this principal",
+      "reviewer_key": "",
+      "row_id": "",
+      "state": "unassigned"
+    },
+    {
+      "citation": "ad.jsonl, line 16",
+      "comment": "",
+      "decision": "",
+      "packet": "",
+      "reason": "the input names no manager for this principal",
+      "reviewer_key": "",
+      "row_id": "",
+      "state": "unassigned"
+    }
+  ],
+  "shaar_decisions": 1,
+  "strays": []
+}

@@ -1,0 +1,130 @@
+{
+  "counts": {
+    "Kept but gone": 1,
+    "New since the review": 1,
+    "Removals verified": 2,
+    "Still present, not yet due": 0,
+    "Still present, past due": 1,
+    "Unknown": 2
+  },
+  "data": {
+    "as_of": "2026-11-20T22:00:00Z",
+    "campaign_digest": "99cab383dce34f27541f6fd83c9ac48e6a5b320728724148886449d6d33d2071",
+    "campaign_id": "C61b04c11174dbf64"
+  },
+  "facts": {
+    "Campaign": "Q4 2026 access review",
+    "Campaign ID": "C61b04c11174dbf64",
+    "Due": "2026-11-16",
+    "Later access read at": "2026-11-20T22:00:00Z"
+  },
+  "generated_at": "2026-11-21T09:00:00Z",
+  "headline": "2 of 5 removals verified. Still present: 1 past due, 0 not yet due. Unknown: 2.",
+  "inputs": [
+    {
+      "kind": "shaar-export",
+      "name": "ad.jsonl",
+      "sha256": "e5d96356d61ef233f7ff4740c9971bdca0129482dc2e1c47ce25529e39b41276",
+      "size": 4029
+    },
+    {
+      "kind": "shaar-export",
+      "name": "entra.jsonl",
+      "sha256": "292b8296fdd558592cdcf7129fa69083fb12e3a199e0212a4e536be74d2db188",
+      "size": 3147
+    },
+    {
+      "kind": "csv",
+      "name": "ledger.csv",
+      "sha256": "653d697528a61ca5f75b9939cf8d5001ff4ee7796b1a2164f33aa17928fec4f2",
+      "size": 305
+    }
+  ],
+  "kind": "verify",
+  "not_shown": [
+    "Access the later export does not cover, such as other systems or local accounts.",
+    "Why access is still present.",
+    "Changes made after the later export was taken."
+  ],
+  "problems": [
+    {
+      "reason": "no resource id: the resource is matched by name, which is weaker",
+      "source": {
+        "detail": "row 1",
+        "file": "ledger.csv"
+      }
+    }
+  ],
+  "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/verify-report-v1.schema.json",
+  "sections": {
+    "kept_but_gone": [
+      {
+        "access": "Viewer",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 6",
+        "principal": "Drew Analyst",
+        "resource": "Ledger",
+        "row_id": "R3c96926303ef"
+      }
+    ],
+    "new_since_review": [
+      {
+        "access": "member",
+        "citation": "ad.jsonl, line 18",
+        "principal": "Emery Contractor",
+        "resource": "Finance Admins"
+      }
+    ],
+    "removals": [
+      {
+        "access": "member",
+        "citation": "returned-01-Casey-Owner-da089e.xlsx, Review row 3",
+        "principal": "Emery Contractor",
+        "reason": "still present on 2026-11-20, on or after the due date 2026-11-16",
+        "resource": "Server Operators",
+        "result": "failed",
+        "row_id": "R11cecb2e3123"
+      },
+      {
+        "access": "member",
+        "citation": "returned-01-Casey-Owner-da089e.xlsx, Review row 2",
+        "principal": "Emery Contractor",
+        "reason": "the later export did not read this resource's whole membership",
+        "resource": "Payroll App Users",
+        "result": "unknown",
+        "row_id": "R1f6664bcbe2a"
+      },
+      {
+        "access": "member",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9",
+        "principal": "Drew Analyst",
+        "reason": "the later export did not read this resource's whole membership",
+        "resource": "Payroll App Users",
+        "result": "unknown",
+        "row_id": "R4512f0a10ac0"
+      },
+      {
+        "access": "Viewer",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5",
+        "principal": "Blake Sample",
+        "reason": "not in the later export, which read the whole membership; the principal itself is not in the later export",
+        "resource": "Ledger",
+        "result": "removed",
+        "row_id": "R7c9006452035"
+      },
+      {
+        "access": "member",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 3",
+        "principal": "Blake Sample",
+        "reason": "not in the later export, which read the whole membership; the principal is disabled",
+        "resource": "Finance Admins",
+        "result": "removed",
+        "row_id": "Rcf3e823507b7"
+      }
+    ]
+  },
+  "title": "Access review verification: Q4 2026 access review",
+  "tool": {
+    "name": "shaar",
+    "version": "0.0.0"
+  }
+}

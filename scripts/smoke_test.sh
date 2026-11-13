@@ -24,25 +24,53 @@ uv venv --quiet "$work/venv"
 uv pip install --quiet --python "$work/venv" --no-deps "${wheels[0]}"
 if [[ -x "$work/venv/bin/shaar" ]]; then
   tool="$work/venv/bin/shaar"
+  python="$work/venv/bin/python"
 else
   tool="$work/venv/Scripts/shaar"
+  python="$work/venv/Scripts/python"
 fi
 
 "$tool" --version
 "$tool" --help > /dev/null
 
 # --- Product end-to-end run ---
-# TODO(core team): replace this block with the installed-wheel workflow, as
-# faithful-mishpat's smoke_test.sh does for `example` and `compare`:
-#   1. `"$tool" example "$work/demo"`: the synthetic example must write its inputs.
-#   2. `"$tool" campaign ...`: build a campaign from the example; check the exit code
-#      and that every expected output (JSON, Markdown, HTML, CSVs, manifest) is non-empty.
-#   3. `"$tool" decisions ...`: apply the example decisions; check outputs and exit code.
-#   4. `"$tool" verify ...`: verify the result against the campaign; check the exit code
-#      and that the manifest lists every report.
-# Pick the interpreter for manifest checks the way mishpat does: "$work/venv/bin/python"
-# or "$work/venv/Scripts/python" on Windows. Until these steps exist this script proves
-# only that the wheel installs and starts.
+# The installed wheel runs a whole review on the synthetic example: a new campaign from
+# its exports, then decisions from its returned packets, then verification.
+demo="$work/demo"
+"$tool" example "$demo" > /dev/null
+
+expect() {  # expect CODE COMMAND...: run a command and require its exit code
+  local want="$1"; shift
+  set +e; "$@" > /dev/null; local got=$?; set -e
+  [[ $got -eq $want ]] || { echo "expected exit $want, got $got: $*" >&2; exit 1; }
+}
+
+before="$demo/before"
+expect 1 "$tool" campaign "$before/ad.jsonl" "$before/entra.jsonl" "$before/ledger.csv" \
+  --map "$before/ledger-map.toml" --name "Smoke test" --reviewers manager --due 2026-11-16 \
+  -o "$work/campaign"
+expect 1 "$tool" decisions "$demo/campaign" "$demo"/returned/*.xlsx -o "$work/decisions"
+expect 1 "$tool" verify "$demo/campaign" "$work/decisions" "$demo/after/ad.jsonl" \
+  "$demo/after/entra.jsonl" "$demo/after/ledger.csv" --map "$before/ledger-map.toml" \
+  -o "$work/verification"
+
+# Every folder has its reports, each non-empty, and a manifest listing every other file.
+"$python" - "$work/campaign" "$work/decisions" "$work/verification" <<'PY'
+import hashlib, json, pathlib, sys
+for folder in map(pathlib.Path, sys.argv[1:]):
+    manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+    listed = {entry["name"]: entry for entry in manifest["files"]}
+    present = {p.name for p in folder.iterdir()} - {"manifest.json"}
+    if set(listed) != present:
+        sys.exit(f"{folder.name}: the manifest lists {sorted(listed)}, the folder holds {sorted(present)}")
+    kinds = [name for name in present if name.endswith(("-report.json", "-report.md", "-report.html"))]
+    if len(kinds) != 3:
+        sys.exit(f"{folder.name}: expected three reports, found {sorted(kinds)}")
+    for name, entry in listed.items():
+        data = (folder / name).read_bytes()
+        if not data or hashlib.sha256(data).hexdigest() != entry["sha256"]:
+            sys.exit(f"{folder.name}/{name} is empty or does not match the manifest")
+PY
 # --- End of product end-to-end run ---
 
 echo "smoke test passed: ${wheels[0]}"

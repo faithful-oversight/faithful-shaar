@@ -1,0 +1,356 @@
+{
+  "counts": {
+    "Accepted": 12,
+    "Changed after sending": 0,
+    "Copies disagree": 0,
+    "No reviewer": 2,
+    "Not valid": 0,
+    "Removals to make": 5,
+    "Rows from elsewhere": 0,
+    "Undecided": 1
+  },
+  "data": {
+    "campaign_digest": "99cab383dce34f27541f6fd83c9ac48e6a5b320728724148886449d6d33d2071",
+    "campaign_id": "C61b04c11174dbf64",
+    "decisions_digest": "a5ea14e2cdd4cb344dc021b5daebcf11acb46192b455af8811754f3f1d719f7c",
+    "packets": [
+      {
+        "file": "returned-01-Casey-Owner-da089e.xlsx",
+        "reason": "",
+        "reported_by": "shaar",
+        "reported_modified": "2026-11-02T09:00:00Z",
+        "reviewer": "Casey Owner",
+        "sha256": "802d375d0b39da8e21b2b622440b1a66dd4f3ee6775f23c047102953481468d1",
+        "status": "read"
+      },
+      {
+        "file": "returned-02-Jordan-Director-24304a.xlsx",
+        "reason": "",
+        "reported_by": "shaar",
+        "reported_modified": "2026-11-02T09:00:00Z",
+        "reviewer": "Jordan Director",
+        "sha256": "ad79bdd3549422ad12bad60e68a9be912311ef0622dec69054ea14b7a62f877d",
+        "status": "read"
+      },
+      {
+        "file": "returned-03-Morgan-Lead-e16dc6.xlsx",
+        "reason": "",
+        "reported_by": "shaar",
+        "reported_modified": "2026-11-02T09:00:00Z",
+        "reviewer": "Morgan Lead",
+        "sha256": "8c4247b0b794dcd7c163699e097e55f3b557a628635a63dec2afcbbd2f948caf",
+        "status": "read"
+      }
+    ]
+  },
+  "facts": {
+    "Campaign": "Q4 2026 access review",
+    "Campaign ID": "C61b04c11174dbf64",
+    "Comment required for": "no decision",
+    "Packets read": "3 of 3 returned files"
+  },
+  "generated_at": "2026-11-21T09:00:00Z",
+  "headline": "12 of 13 entries have an accepted decision; 5 removals to make. 4 items need attention.",
+  "inputs": [
+    {
+      "kind": "shaar-export",
+      "name": "ad.jsonl",
+      "sha256": "f248f8e56d8926cf7baf6b489a600d0266df95b241b21f9b27df521dacb68733",
+      "size": 4029
+    },
+    {
+      "kind": "shaar-export",
+      "name": "entra.jsonl",
+      "sha256": "750dd952e2622fc921a3c8f33b754e699ab480557923fd46e0b1e7a0be0707b3",
+      "size": 3490
+    },
+    {
+      "kind": "csv",
+      "name": "ledger.csv",
+      "sha256": "ee38eb63cd3d672d6b9a45ec978f40dc71037e9834c44be1e6ad44040b4fb115",
+      "size": 478
+    }
+  ],
+  "kind": "decisions",
+  "not_shown": [
+    "Whether a decision was right.",
+    "Who filled in a packet. The reviewer recorded is the one the campaign assigned; the author and time a workbook reports about itself are claims, shown as such.",
+    "Any change to access: shaar never adds or removes access."
+  ],
+  "problems": [],
+  "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/decisions-report-v1.schema.json",
+  "sections": {
+    "attention": [
+      {
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 7",
+        "principal": "Drew Analyst",
+        "reason": "no decision",
+        "resource": "Ops Helpers",
+        "reviewer": "Morgan Lead",
+        "row_id": "Raa06884d69bd",
+        "state": "undecided"
+      },
+      {
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 10",
+        "principal": "Drew Analyst",
+        "reason": "the reviewer was unsure; follow up for Keep or Remove",
+        "resource": "Server Operators",
+        "reviewer": "Morgan Lead",
+        "row_id": "R47487ba919fb",
+        "state": "unsure"
+      },
+      {
+        "citation": "ledger.csv, row 2",
+        "principal": "",
+        "reason": "the input names no manager for this principal",
+        "resource": "",
+        "reviewer": "",
+        "row_id": "",
+        "state": "unassigned"
+      },
+      {
+        "citation": "ad.jsonl, line 16",
+        "principal": "",
+        "reason": "the input names no manager for this principal",
+        "resource": "",
+        "reviewer": "",
+        "row_id": "",
+        "state": "unassigned"
+      }
+    ],
+    "decisions": [
+      {
+        "access": "member",
+        "citation": "returned-01-Casey-Owner-da089e.xlsx, Review row 2",
+        "comment": "Contract ended",
+        "decision": "Remove",
+        "packet": "returned-01-Casey-Owner-da089e.xlsx",
+        "principal": "Emery Contractor",
+        "resource": "Payroll App Users",
+        "reviewer": "Casey Owner",
+        "row_id": "R1f6664bcbe2a",
+        "state": "accepted"
+      },
+      {
+        "access": "member",
+        "citation": "returned-01-Casey-Owner-da089e.xlsx, Review row 3",
+        "comment": "Contract ended",
+        "decision": "Remove",
+        "packet": "returned-01-Casey-Owner-da089e.xlsx",
+        "principal": "Emery Contractor",
+        "resource": "Server Operators",
+        "reviewer": "Casey Owner",
+        "row_id": "R11cecb2e3123",
+        "state": "accepted"
+      },
+      {
+        "access": "Global Administrator",
+        "citation": "returned-02-Jordan-Director-24304a.xlsx, Review row 2",
+        "comment": "Break-glass holder",
+        "decision": "Keep",
+        "packet": "returned-02-Jordan-Director-24304a.xlsx",
+        "principal": "Morgan Lead",
+        "resource": "Global Administrator",
+        "reviewer": "Jordan Director",
+        "row_id": "R9281ee88382f",
+        "state": "accepted"
+      },
+      {
+        "access": "Approver",
+        "citation": "returned-02-Jordan-Director-24304a.xlsx, Review row 3",
+        "comment": "",
+        "decision": "Keep",
+        "packet": "returned-02-Jordan-Director-24304a.xlsx",
+        "principal": "Morgan Lead",
+        "resource": "Ledger",
+        "reviewer": "Jordan Director",
+        "row_id": "R5b26d19ff14c",
+        "state": "accepted"
+      },
+      {
+        "access": "member",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 2",
+        "comment": "",
+        "decision": "Keep",
+        "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+        "principal": "Avery Example",
+        "resource": "Finance Admins",
+        "reviewer": "Morgan Lead",
+        "row_id": "R2e1377f5a86c",
+        "state": "accepted"
+      },
+      {
+        "access": "member",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 3",
+        "comment": "Left the company in September",
+        "decision": "Remove",
+        "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+        "principal": "Blake Sample",
+        "resource": "Finance Admins",
+        "reviewer": "Morgan Lead",
+        "row_id": "Rcf3e823507b7",
+        "state": "accepted"
+      },
+      {
+        "access": "Approver",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 4",
+        "comment": "",
+        "decision": "Keep",
+        "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+        "principal": "Avery Example",
+        "resource": "Ledger",
+        "reviewer": "Morgan Lead",
+        "row_id": "Rba3add9d40c3",
+        "state": "accepted"
+      },
+      {
+        "access": "Viewer",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5",
+        "comment": "Left the company in September",
+        "decision": "Remove",
+        "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+        "principal": "Blake Sample",
+        "resource": "Ledger",
+        "reviewer": "Morgan Lead",
+        "row_id": "R7c9006452035",
+        "state": "accepted"
+      },
+      {
+        "access": "Viewer",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 6",
+        "comment": "",
+        "decision": "Keep",
+        "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+        "principal": "Drew Analyst",
+        "resource": "Ledger",
+        "reviewer": "Morgan Lead",
+        "row_id": "R3c96926303ef",
+        "state": "accepted"
+      },
+      {
+        "access": "member",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 7",
+        "comment": "",
+        "decision": "",
+        "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+        "principal": "Drew Analyst",
+        "resource": "Ops Helpers",
+        "reviewer": "Morgan Lead",
+        "row_id": "Raa06884d69bd",
+        "state": "undecided"
+      },
+      {
+        "access": "member",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 8",
+        "comment": "",
+        "decision": "Keep",
+        "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+        "principal": "Avery Example",
+        "resource": "Payroll App Users",
+        "reviewer": "Morgan Lead",
+        "row_id": "Ree674961366f",
+        "state": "accepted"
+      },
+      {
+        "access": "member",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9",
+        "comment": "Moved to another team",
+        "decision": "Remove",
+        "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+        "principal": "Drew Analyst",
+        "resource": "Payroll App Users",
+        "reviewer": "Morgan Lead",
+        "row_id": "R4512f0a10ac0",
+        "state": "accepted"
+      },
+      {
+        "access": "member",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 10",
+        "comment": "Ask the platform team",
+        "decision": "Unsure",
+        "packet": "returned-03-Morgan-Lead-e16dc6.xlsx",
+        "principal": "Drew Analyst",
+        "resource": "Server Operators",
+        "reviewer": "Morgan Lead",
+        "row_id": "R47487ba919fb",
+        "state": "accepted"
+      },
+      {
+        "access": "",
+        "citation": "ledger.csv, row 2",
+        "comment": "",
+        "decision": "",
+        "packet": "",
+        "principal": "",
+        "resource": "",
+        "reviewer": "",
+        "row_id": "",
+        "state": "unassigned"
+      },
+      {
+        "access": "",
+        "citation": "ad.jsonl, line 16",
+        "comment": "",
+        "decision": "",
+        "packet": "",
+        "principal": "",
+        "resource": "",
+        "reviewer": "",
+        "row_id": "",
+        "state": "unassigned"
+      }
+    ],
+    "removals": [
+      {
+        "access": "member",
+        "account": "emery.contractor@corp.example",
+        "comment": "Contract ended",
+        "principal": "Emery Contractor",
+        "resource": "Payroll App Users",
+        "reviewer": "Casey Owner",
+        "row_id": "R1f6664bcbe2a"
+      },
+      {
+        "access": "member",
+        "account": "emery.contractor@corp.example",
+        "comment": "Contract ended",
+        "principal": "Emery Contractor",
+        "resource": "Server Operators",
+        "reviewer": "Casey Owner",
+        "row_id": "R11cecb2e3123"
+      },
+      {
+        "access": "member",
+        "account": "blake.sample@corp.example",
+        "comment": "Left the company in September",
+        "principal": "Blake Sample",
+        "resource": "Finance Admins",
+        "reviewer": "Morgan Lead",
+        "row_id": "Rcf3e823507b7"
+      },
+      {
+        "access": "Viewer",
+        "account": "blake.sample@corp.example",
+        "comment": "Left the company in September",
+        "principal": "Blake Sample",
+        "resource": "Ledger",
+        "reviewer": "Morgan Lead",
+        "row_id": "R7c9006452035"
+      },
+      {
+        "access": "member",
+        "account": "drew.analyst@corp.example",
+        "comment": "Moved to another team",
+        "principal": "Drew Analyst",
+        "resource": "Payroll App Users",
+        "reviewer": "Morgan Lead",
+        "row_id": "R4512f0a10ac0"
+      }
+    ]
+  },
+  "title": "Access review decisions: Q4 2026 access review",
+  "tool": {
+    "name": "shaar",
+    "version": "0.0.0"
+  }
+}
