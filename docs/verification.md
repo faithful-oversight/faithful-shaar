@@ -14,14 +14,23 @@ Only accepted Remove decisions are checked. Each gets one result and a reason.
 
 | Result | Rule |
 | --- | --- |
-| `removed` | The grant is absent from the later input, and the later input read the grant's resource **completely**. The reason adds a note when the principal is also missing from the later input, or is disabled. |
+| `removed` | The grant is absent from the later input, **and** the later input read the grant's resource completely, **and** the read has a time, **and** that time is not before the campaign began, **and** nobody else in the later input holds the same access under another key. See [what removed needs](#what-removed-needs). The reason adds a note when the principal's key is missing from the later input, or the principal is disabled. |
 | `pending` | The grant is still present, and the later input was read before the due date. |
 | `failed` | The grant is still present on or after the due date. Also when the campaign has no due date, or when the later input records no time and you gave no `--as-of`. |
-| `unknown` | The later input cannot show it: it is of another system, it does not include the resource, or it did not read the resource completely. The reason says which. |
+| `unknown` | The later input cannot show it: it is of another system, it does not include the resource, it did not read the resource completely, or one of the other conditions for `removed` fails. The reason says which. |
 
 Matching uses grant keys only. A grant reached through a different nesting path is still the same grant, so a changed `via` is not a failure. Names never match.
 
 The order of the checks matters. A grant that is still present is `pending` or `failed` whatever else is true, because presence needs no completeness. Only an absent grant needs the resource to be complete, and it is the only way to get `removed`.
+
+### What removed needs
+
+An absent grant is `removed` only when all of these hold. Otherwise it is `unknown`, with the reason.
+
+1. **A complete read.** The later input read the resource's whole membership. See [what complete means](formats.md#what-complete-means).
+2. **A time.** The later input has a time: the `collected_at` of its export, or the `--as-of` you give. Without one the reason is "the later export does not say when it was read; give --as-of".
+3. **Not before the campaign.** The time is not before the campaign's `created_at`. Otherwise the reason is "the later export was read before the campaign began", because an older export cannot show a removal that followed the review.
+4. **The same account is not still there.** Nobody else in the later input holds the same entitlement on the same resource with a UPN, email, or id equal to the row's Account. A person can change key between exports, for example when a CSV's id column changes. Their access is then absent under the old key but present under the new one. The reason is "the same account still holds this access under another key" and names the holder.
 
 ### Complete resources only
 
@@ -31,7 +40,7 @@ When the later input is of another system than the access, such as an Entra expo
 
 ### Due date
 
-The due date comes from `--due` on `shaar campaign`. The date the later access was read is the earliest `collected_at` among the later inputs, or the time you give with `--as-of`, which replaces it. shaar compares only the date part of the two. A read taken before the due date gives `pending`, and one on or after it gives `failed`. If no time is known, the result is `failed`, with the reason that the export does not say when it was taken.
+The due date comes from `--due` on `shaar campaign`. The date the later access was read is the earliest `collected_at` among the later inputs, or the time you give with `--as-of`, which replaces it. shaar compares the UTC calendar date of the read time with the due date. A read taken before the due date gives `pending`, and one on or after it gives `failed`. A grant that is still present with no known time is `failed`, with the reason that the export does not say when it was taken. An absent grant with no known time is `unknown`.
 
 ### Earliest collection time across inputs
 

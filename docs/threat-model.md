@@ -26,8 +26,9 @@
 shaar binds a packet to its campaign with SHA-256 digests: a row check for each row, a packet digest for each packet, a campaign digest for `campaign.json`, and a digest in `decisions.json`. shaar uses **no secret key and no signature**.
 
 - The digests detect accidental damage and casual changes: a reviewer who edits a row, a packet returned for another campaign, a hand-edited `campaign.json`, a truncated file.
-- They do **not** stop a determined attacker who can write the files. Such a person can change a row, recompute the SHA-256 values, and write a consistent set. Nothing in shaar can tell.
-- Signing was out of scope for 0.1.0. The project chose hash binding over signatures: it needs no key management, and the main risks it addresses are mistakes and casual edits. If you need proof of who decided, rely on the channel that carries the packets, and keep the campaign folder and the returned files in a system that controls who can write. See [decision record 6](adr/0006-campaign-integrity.md).
+- They do **not** stop a determined attacker. The digests are unkeyed SHA-256. Anyone who has a campaign's files, or one packet plus knowledge of another reviewer's rows, can build a packet that decides another reviewer's rows. shaar accepts it and attributes it to the assigned reviewer. Nothing in shaar can tell.
+- Control who receives packets and who runs `shaar decisions`, and keep the returned files.
+- Signing was out of scope for 0.1.0 by Filip's choice: the project chose hash binding over signatures: it needs no key management, and the main risks it addresses are mistakes and casual edits. If you need proof of who decided, rely on the channel that carries the packets, and keep the campaign folder and the returned files in a system that controls who can write. See [decision record 6](adr/0006-campaign-integrity.md).
 
 ## Threats and controls (STRIDE)
 

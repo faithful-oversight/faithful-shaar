@@ -198,7 +198,8 @@ Member and owner requests select `id,displayName,userPrincipalName,mail,accountE
 
 ### Safety rules
 
-- **The token never leaves the Graph host.** It goes only to the configured host over HTTPS with the default certificate checks. shaar follows no redirect. A paging link (`@odata.nextLink`) is followed only when its scheme and host equal the base URL's and its path is under `/v1.0`. Any other link stops the listing with a gap.
+- **Plain paths only.** shaar puts ids from Graph responses into request paths. A path is requested only when every segment is plain letters, digits, `.`, `_`, or `-`, and none is `.` or `..`. Any other id is a gap, so a response cannot steer a request elsewhere.
+- **The token never leaves the Graph host.** It goes only to the configured host over HTTPS with the default certificate checks. shaar follows no redirect. A paging link (`@odata.nextLink`) is followed only when its scheme and host equal the base URL's and its path is under `/v1.0/`. Any other link stops the listing with a gap.
 - **Paging and size.** A listing stops after 500 pages, on a repeated link, or on a response over 16 MiB, with a gap. Requests time out after 60 seconds.
 - **Throttling.** HTTP 429, 503, and 504 are retried up to five times, waiting as `Retry-After` says (seconds or a date), capped at 60 seconds, with doubling backoff otherwise.
 - **Failures.** Other errors become gaps. A 403 names the permission needed. HTTP 401, or a failed sign-in, stops collection with exit code `3`.

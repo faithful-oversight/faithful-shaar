@@ -42,7 +42,11 @@ The map's reviewer is identified by `reviewer_id`, with case ignored. Use one id
 
 ### One reviewer per person
 
-A person often appears in several systems with a different key in each. For the manager and owner rules, a reviewer who has an email address is identified by that address, so one person gets one packet across Active Directory, Entra ID, and a CSV. A reviewer with no email is identified by their principal key. Map reviewers are identified by `reviewer_id`.
+A person often appears in several systems with a different key in each. For the manager and owner rules, a reviewer who has an email address is identified by that address, so one person gets one packet across Active Directory, Entra ID, and a CSV. A reviewer with no email is identified by their principal key. Map reviewers are identified by `reviewer_id`. Merging by email has three consequences:
+
+- A shared mailbox used as the email of several people merges them into one reviewer and one packet.
+- A person with two different email addresses gets two packets.
+- People without an email are never merged across systems.
 
 ### No self-review
 
@@ -50,9 +54,9 @@ Nobody reviews their own access. shaar treats two principals as one person when 
 
 - Manager rule: a manager who is the principal is not used.
 - Owner rule: owners who hold the access are skipped, and the next owner reviews it.
-- Map rule: a mapped reviewer whose `reviewer_id` equals the principal's key, id, name, UPN, or email leaves the entry unassigned.
+- Map rule: a mapped reviewer whose `reviewer_id` or `reviewer_email` equals the principal's key, id, name, UPN, or email leaves the entry unassigned.
 
-shaar has no option to send these entries to a fallback reviewer. They are unassigned, with the reason.
+shaar has no fallback reviewer for these entries. They are unassigned, with the reason, and you can place them with a reviewer map that names someone else.
 
 ### Unassigned entries
 
@@ -108,7 +112,7 @@ A packet's zip entries are written in a fixed order with the campaign's creation
 
 The campaign id is `C` and 16 hex digits over the name, the creation time, and the digests of the inputs. A row id is `R` and 12 hex digits over the campaign id and the grant key.
 
-These digests detect accidents and casual edits. They are not signatures: anyone who can write both files can recompute them. See the [threat model](threat-model.md) and [decision record 6](adr/0006-campaign-integrity.md).
+These digests detect accidents and casual edits. They are plain, unkeyed SHA-256 values, not signatures. Anyone who has a campaign's files can recompute them. So can anyone who has one packet and knows another reviewer's rows: they can build a packet that decides those rows, and shaar will accept it and attribute it to the assigned reviewer. Control who receives packets and who runs `shaar decisions`, and keep the returned files. See the [threat model](threat-model.md) and [decision record 6](adr/0006-campaign-integrity.md).
 
 ## What makes a decision count
 
@@ -131,7 +135,7 @@ Then each row of the workbook gets one of these outcomes:
 | `conflict` | Copies of the row disagree: two copies with different decisions, or a valid copy and an invalid one. The decision is not used. |
 | `unassigned` | The campaign had no reviewer for the entry. |
 
-Decision text is trimmed and compared without regard to case, so `remove` counts as `Remove`. Identical copies of a row, in one packet or across packets, count once. Row order does not matter, columns can be moved because shaar finds them by header, and a workbook saved by Excel, LibreOffice, or Google Sheets is read the same as one saved by shaar.
+Decision text is trimmed and compared with Unicode case folding, so `remove` and ` KEEP ` count as `Remove` and `Keep`. Identical copies of a row, in one packet or across packets, count once. Row order does not matter, columns can be moved because shaar finds them by header, and a workbook saved by Excel, LibreOffice, or Google Sheets is read the same as one saved by shaar.
 
 ### Strays
 

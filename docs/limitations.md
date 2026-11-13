@@ -31,7 +31,7 @@ The tool will not:
 - Nobody can be recognized as the same person across systems except by key or by identical email address. A person with a different address in each system gets a packet for each.
 - Under the owner rule, one owner reviews an entry and the others are only named. Owners are not asked in turn.
 - Entries with no reviewer are never sent. No fallback reviewer exists.
-- A map reviewer is identified by `reviewer_id` only. A map row whose email equals the principal's email, but whose id does not match, is not caught as self-review. <!-- TODO(verify): confirm that matching only the reviewer id (not the mapped email) against the principal is the intended rule. -->
+- Merging by email is crude. A shared mailbox merges people into one packet, and a person with two addresses gets two.
 
 ## What the inputs cannot show
 
