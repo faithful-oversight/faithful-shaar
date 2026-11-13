@@ -26,7 +26,7 @@ from faithful_shaar.campaign import DISPLAY, canonical
 from faithful_shaar.errors import InputError
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
     from faithful_shaar.campaign import Campaign, Row
 
@@ -43,17 +43,33 @@ COMMENT = "Comment"
 class ReturnedRow(Protocol):
     """A data row of a returned workbook, as :mod:`faithful_shaar.formats.xlsx` reads it."""
 
-    row: int
-    values: dict[str, str]
-    notes: list[str]
+    @property
+    def row(self) -> int:
+        """The sheet row number."""
+
+    @property
+    def values(self) -> dict[str, str]:
+        """Header text to cell text."""
+
+    @property
+    def notes(self) -> list[str]:
+        """What the reader noticed, such as a formula in a cell."""
 
 
 class ReturnedPacket(Protocol):
     """A returned workbook, as :mod:`faithful_shaar.formats.xlsx` reads it."""
 
-    about: dict[str, str]
-    rows: list[Any]
-    core: dict[str, str]
+    @property
+    def about(self) -> dict[str, str]:
+        """The About sheet's labels and values."""
+
+    @property
+    def rows(self) -> Sequence[ReturnedRow]:
+        """The Review sheet's data rows."""
+
+    @property
+    def core(self) -> dict[str, str]:
+        """What the file says about itself (author, time): claims, not facts."""
 
 
 @dataclass(frozen=True)
@@ -109,12 +125,13 @@ class DecisionRecord:
 
     @property
     def complete(self) -> bool:
-        """Whether every row has an accepted decision and nothing needs attention."""
-        return (
-            all(r.state == "accepted" for r in self.rows)
-            and not self.strays
-            and all(p.status == "read" for p in self.packets)
-        )
+        """Whether every row has a firm accepted decision and nothing needs attention.
+
+        Unsure is accepted, as what the reviewer said, but it is not firm: the entry still
+        needs a Keep or Remove, so a record with any Unsure is not complete.
+        """
+        firm = all(r.state == "accepted" and r.decision != "Unsure" for r in self.rows)
+        return firm and not self.strays and all(p.status == "read" for p in self.packets)
 
 
 @dataclass

@@ -23,6 +23,12 @@ def sid(rid: int) -> str:
     return keys.sid(f"{DOMAIN_SID}-{rid}")
 
 
+def reviewer_key(rid: int) -> str:
+    """Return the reviewer key of a standard person: their email address."""
+    name = next(p.name for p in people() if p.key == sid(rid))
+    return f"mail:{name.lower().replace(' ', '.')}@corp.example"
+
+
 def person(
     rid: int, name: str, *, manager: int | None = None, enabled: bool | None = True
 ) -> Principal:
@@ -151,7 +157,7 @@ def returned(
     ``decisions`` maps ``"User|Resource"``, or just ``"User"`` for all of a user's rows, to
     the text typed in the Decision cell.
     """
-    key = reviewer if isinstance(reviewer, str) else sid(reviewer)
+    key = reviewer if isinstance(reviewer, str) else reviewer_key(reviewer)
     entry = next(r for r in campaign.reviewers if r.key == key)
     rows = []
     for number, row in enumerate(campaign.rows_for(key), start=2):

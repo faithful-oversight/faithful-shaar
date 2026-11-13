@@ -12,6 +12,11 @@ Three rules, chosen per campaign:
 
 A grant no rule can place is *unassigned*, with the reason. Unassigned grants are always
 reported; they are never dropped.
+
+One person often appears in several systems (Active Directory, Entra ID, an application),
+each with its own key. A reviewer with an email address is therefore identified by that
+address, so one person gets one packet, and nobody reviews their own access in another
+system either.
 """
 
 from __future__ import annotations
@@ -34,7 +39,11 @@ MAX_MAP_BYTES = 16 * 1024 * 1024
 
 @dataclass(frozen=True)
 class Reviewer:
-    """Who reviews a grant. ``key`` is a principal key, or ``map:<id>`` for a mapped reviewer."""
+    """Who reviews a grant.
+
+    ``key`` is ``mail:<address>`` for a reviewer with an email address, the principal key
+    for one without, or ``map:<id>`` for a mapped reviewer.
+    """
 
     key: str
     name: str
@@ -61,7 +70,20 @@ class MapEntry:
 
 
 def _reviewer(principal: Principal) -> Reviewer:
-    return Reviewer(principal.key, principal.name or principal.id, principal.email)
+    email = principal.email.strip()
+    key = f"mail:{email.casefold()}" if email else principal.key
+    return Reviewer(key, principal.name or principal.id, email)
+
+
+def _same_person(one: Principal, other: Principal | None) -> bool:
+    """Whether two principals are one person: the same key, or the same email address."""
+    if other is None:
+        return False
+    if one.key == other.key:
+        return True
+    return (
+        bool(one.email.strip()) and one.email.strip().casefold() == other.email.strip().casefold()
+    )
 
 
 def _names(principal: Principal) -> set[str]:
@@ -83,7 +105,7 @@ def by_manager(grant: Grant, snapshot: Snapshot) -> Assignment:
     manager = snapshot.principals.get(principal.manager_key)
     if manager is None:
         return Assignment(None, "the manager is not in the input, so they cannot be named")
-    if manager.key == principal.key:
+    if _same_person(manager, principal):
         return Assignment(None, "the input names the principal as their own manager")
     return Assignment(_reviewer(manager))
 
@@ -105,7 +127,12 @@ def by_owner(grant: Grant, snapshot: Snapshot) -> Assignment:
         return Assignment(
             None, "the resource's owners are not in the input, so they cannot be named"
         )
-    others = [owner for owner in owners if owner.key != grant.principal_key]
+    holder = snapshot.principals.get(grant.principal_key)
+    others = [
+        owner
+        for owner in owners
+        if owner.key != grant.principal_key and not _same_person(owner, holder)
+    ]
     if not others:
         return Assignment(
             None, "the only owner is the principal, who cannot review their own access"

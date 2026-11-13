@@ -12,14 +12,14 @@ from faithful_shaar import campaign as cmod
 from faithful_shaar.campaign import build, display_for, dump, load, row_check
 from faithful_shaar.errors import InputError
 from faithful_shaar.model import Principal
-from tests.core_fixtures import CREATED, grant, sid, snapshot, standard
+from tests.core_fixtures import CREATED, grant, reviewer_key, sid, snapshot, standard
 
 
 def test_rows_are_assigned_ordered_and_digested() -> None:
     _, camp = standard("manager")
     assert camp.id.startswith("C") and len(camp.id) == 17  # noqa: PT018
     assert [r.name for r in camp.reviewers] == ["Morgan Lead"]
-    rows = camp.rows_for(sid(1101))
+    rows = camp.rows_for(reviewer_key(1101))
     assert [(r.display["resource"], r.display["user"]) for r in rows] == [
         ("Finance Admins", "Avery Example"),
         ("Finance Admins", "Blake Sample"),
@@ -35,7 +35,7 @@ def test_rows_are_assigned_ordered_and_digested() -> None:
 
 def test_what_reviewers_see() -> None:
     snap, camp = standard("manager")
-    row = camp.rows_for(sid(1101))[1]
+    row = camp.rows_for(reviewer_key(1101))[1]
     assert row.display == {
         "user": "Blake Sample",
         "account": "blake.sample@corp.example",
@@ -63,9 +63,12 @@ def test_owner_rule_shows_co_owners() -> None:
     _, camp = standard("owner")
     assert [r.name for r in camp.reviewers] == ["Casey Owner", "Morgan Lead"]
     payroll = next(r for r in camp.rows if r.display["resource"] == "Payroll Viewers")
-    assert (payroll.reviewer_key, payroll.display["co_owners"]) == (sid(1104), "Morgan Lead")
+    assert (payroll.reviewer_key, payroll.display["co_owners"]) == (
+        reviewer_key(1104),
+        "Morgan Lead",
+    )
     server = [r for r in camp.rows if r.display["resource"] == "Server Ops"]
-    assert {(r.reviewer_key, r.display["co_owners"]) for r in server} == {(sid(1101), "")}
+    assert {(r.reviewer_key, r.display["co_owners"]) for r in server} == {(reviewer_key(1101), "")}
     assert [u.reason for u in camp.unassigned] == [
         "the only owner is the principal, who cannot review their own access"
     ]

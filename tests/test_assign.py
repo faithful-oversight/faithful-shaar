@@ -10,7 +10,7 @@ import pytest
 
 from faithful_shaar.assign import Reviewer, assign, by_map, read_map
 from faithful_shaar.errors import InputError
-from tests.core_fixtures import grant, group, people, person, sid, snapshot
+from tests.core_fixtures import grant, group, people, person, snapshot
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -39,7 +39,7 @@ def snap() -> Snapshot:
 def test_manager_rule() -> None:
     s = snap()
     assert assign(grant(1102, 2001), s, "manager").reviewer == Reviewer(
-        sid(1101), "Morgan Lead", "morgan.lead@corp.example"
+        "mail:morgan.lead@corp.example", "Morgan Lead", "morgan.lead@corp.example"
     )
     assert (
         assign(grant(1101, 2001), s, "manager").reason
@@ -153,3 +153,27 @@ def test_map_file_must_be_readable_utf8_and_small(
 def test_unknown_rule() -> None:
     with pytest.raises(ValueError, match="unknown reviewer rule"):
         assign(grant(1102, 2001), snap(), "lottery")
+
+
+def test_one_person_in_two_systems_is_one_reviewer_and_never_reviews_themselves() -> None:
+    from faithful_shaar import keys  # noqa: PLC0415
+    from faithful_shaar.model import Principal  # noqa: PLC0415
+
+    casey_entra = Principal(
+        keys.entra("00000000-0000-4000-8000-000000000005"),
+        "entra",
+        "x",
+        "Casey Owner",
+        "user",
+        email="Casey.Owner@corp.example",
+    )
+    s = snap()
+    s.principals[casey_entra.key] = casey_entra
+    held = grant(1102, 2002)
+    held = held.__class__(held.key, "ad", casey_entra.key, held.resource_key, "member")
+    result = assign(held, s, "owner")  # Casey owns Server Ops in AD and holds it in Entra
+    assert result.reviewer is not None
+    assert result.reviewer.name == "Morgan Lead"
+    assert assign(grant(1102, 2001), s, "owner").reviewer == Reviewer(
+        "mail:casey.owner@corp.example", "Casey Owner", "casey.owner@corp.example"
+    )

@@ -12,7 +12,8 @@ the files; ``shaar example DIR`` writes them:
 - ``returned/``: the packets as the reviewers sent them back, decisions filled in. One
   reviewer marked an entry Unsure; another left one blank.
 - ``after/``: access read again after the due date. Most removals were made; one was not,
-  and one resource could not be read in full.
+  one resource could not be read in full, kept access was taken away anyway, and the
+  contractor was given new access that the review never saw.
 """
 
 from __future__ import annotations
@@ -162,7 +163,10 @@ def ad_export(*, after: bool) -> bytes:
     if not after:
         grants += [_grant(_sid(1103), finance), _grant(_sid(1106), server)]
     else:
-        grants += [_grant(_sid(1106), server)]  # the contractor's removal was not made
+        grants += [
+            _grant(_sid(1106), server),  # the contractor's removal was not made
+            _grant(_sid(1106), finance),  # and the contractor was added somewhere new
+        ]
     scope = {"groups": ["Finance Admins", "Server Operators"]}
     return _export(
         "ad", scope, AFTER_AT if after else BEFORE_AT, records + grants, {"domain": "corp.example"}
@@ -198,6 +202,7 @@ resource_kind = "application"
 
 [columns]
 principal_id = "Email"
+email = "Email"
 principal_name = "Full name"
 manager_id = "Manager email"
 enabled = "Active"
@@ -212,8 +217,9 @@ def ledger_csv(*, after: bool) -> bytes:
         ("Jordan Director", "jordan.director", "", "Yes", "Viewer"),
         ("Morgan Lead", "morgan.lead", "jordan.director", "Yes", "Approver"),
         ("Avery Example", "avery.example", "morgan.lead", "Yes", "Approver"),
-        ("Drew Analyst", "drew.analyst", "morgan.lead", "Yes", "Viewer"),
     ]
+    if not after:
+        rows.append(("Drew Analyst", "drew.analyst", "morgan.lead", "Yes", "Viewer"))
     if not after:
         rows.append(("Blake Sample", "blake.sample", "morgan.lead", "No", "Viewer"))
     lines = ["Full name,Email,Manager email,Active,Role,Last login"]

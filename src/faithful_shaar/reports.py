@@ -265,7 +265,15 @@ def decisions_document(
             "citation": outcome.citation,
         }
         decided.append(entry)
-        if outcome.state != "accepted":
+        if outcome.state == "accepted" and outcome.decision == "Unsure":
+            attention.append(
+                {k: entry[k] for k in ("row_id", "reviewer", "principal", "resource", "citation")}
+                | {
+                    "state": "unsure",
+                    "reason": "the reviewer was unsure; follow up for Keep or Remove",
+                }
+            )
+        elif outcome.state != "accepted":
             attention.append(
                 {
                     k: entry[k]

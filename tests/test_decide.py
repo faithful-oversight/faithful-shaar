@@ -12,7 +12,7 @@ import pytest
 from faithful_shaar import decide as dmod
 from faithful_shaar.decide import DecisionRecord, dump, load, read_decisions
 from faithful_shaar.errors import InputError
-from tests.core_fixtures import FakePacket, FakeRow, reader, returned, sid, standard
+from tests.core_fixtures import FakePacket, FakeRow, reader, returned, reviewer_key, standard
 
 if TYPE_CHECKING:
     from faithful_shaar.campaign import Campaign
@@ -54,7 +54,7 @@ def test_complete_when_every_row_is_decided() -> None:
     keep = {"Avery Example": "Keep", "Blake Sample": "Remove", "svc-backup (service)": "Keep"}
     packets = {"casey.xlsx": returned(camp, 1104, keep)}
     record = run(camp, packets)
-    morgan_rows = [r for r in record.rows if r.reviewer_key == sid(1101)]
+    morgan_rows = [r for r in record.rows if r.reviewer_key == reviewer_key(1101)]
     assert {r.reason for r in morgan_rows} == {"the packet was not returned"}
     assert not record.complete
     packets["morgan.xlsx"] = returned(camp, 1101, keep)
@@ -104,7 +104,7 @@ def test_missing_and_stray_rows() -> None:
     morgan_row = returned(camp, 1101).rows[0]
     casey.rows.append(FakeRow(92, morgan_row.values))
     record = run(camp, {"casey.xlsx": casey})
-    first = next(r for r in record.rows if r.row_id == camp.rows_for(sid(1104))[0].row_id)
+    first = next(r for r in record.rows if r.row_id == camp.rows_for(reviewer_key(1104))[0].row_id)
     assert (first.state, first.reason) == ("undecided", "missing from the returned packet")
     assert first.citation == ""
     assert [(s.row_id, s.reason) for s in record.strays] == [
