@@ -2,17 +2,17 @@
   "files": [
     {
       "name": "verify-report.json",
-      "sha256": "3319fe4bc7600ac7dcbe1cdbcb643c6db59ea1ea342a0ea03f70a6b3fca44dd0",
+      "sha256": "4a032c570d9832c99a2b3fdd973869b71916fcb70b7ed078572e0f7e1d265940",
       "size": 4127
     },
     {
       "name": "verify-report.md",
-      "sha256": "bf27baa931d748a0049a7ba6ddb1b9d2faf0e39f33d158c834e867b20690bf45",
+      "sha256": "4198c3856cc25b193f20e5cf54dee0c4dfe4f172796b4f444ca0eede5bd01363",
       "size": 3097
     },
     {
       "name": "verify-report.html",
-      "sha256": "13cb64459a7eaa67d9cccbf0beebb92a5d666f752c33a64cab990f9f5d7b1388",
+      "sha256": "64e973fccf5f8952396c1bd6fb30ef736cdfcc9d68b06be974e5a56e1a60377d",
       "size": 7472
     },
     {
@@ -55,6 +55,6 @@
   "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/manifest-v1.schema.json",
   "tool": {
     "name": "shaar",
-    "version": "0.0.0"
+    "version": "0.1.0"
   }
 }
