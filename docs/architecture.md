@@ -1,37 +1,86 @@
 # Architecture
 
-> **Status: planned.** This page describes the intended design. It changes as the design is decided and recorded in [architecture decision records](adr/index.md).
-
-## Shape of the tool
-
-shaar is a command-line tool and a Python library with the same core.
+shaar is a command-line tool and a Python library with the same core. Reading exports and CSV files, writing packets and reports, and reading packets need no runtime dependency beyond the Python standard library. The collectors and secret providers use optional dependencies, installed as extras.
 
 ```text
-inputs (CSV access exports and reviewer decision files)
-        |
-        v
-  adapters   -> read one input format each, and record what they could not read
-        |
-        v
-  model      -> typed, validated records with a link back to each source record
-        |
-        v
-  analysis   -> pure functions: records in, findings out, no input or output
-        |
-        v
-  reporters  -> Markdown, HTML, CSV, and JSON output
+ domain-joined computer
+   Export-ShaarAccess.ps1 --> shaar export        header, records, trailer with SHA-256
+ WinRM --> shaar collect ad -----+                         |
+ Microsoft Graph --> shaar collect entra ------------------+
+ CSV files, with a column map or preset --------------------+
+                                                           v
+   inputs      detect each input's kind from its content, read it into a Snapshot, merge
+                                                           |
+                                                           v
+   assign      one reviewer per entry: manager, owner, or reviewer map
+   campaign    rows, row checks, packet digests, campaign digest --> campaign.json
+   formats     one packet workbook per reviewer                   --> packet-NN-*.xlsx
+                                                           |
+              reviewers fill in the packets and return them
+                                                           v
+   formats     read each returned workbook with the hardened reader
+   decide      check each row against the campaign           --> decisions.json
+                                                           |
+              administrators remove access
+                                                           v
+   verify      compare a later Snapshot with the accepted removals
+   reports     fill a report document for each command
+   outputs     render JSON, Markdown, HTML, CSV, and a manifest, and write them safely
+   cli         arguments, files, exit codes
 ```
+
+## Data flow
+
+1. `inputs.read_inputs` fingerprints each input (size and SHA-256), detects its kind, and reads it with `inputs.export` or `inputs.csvread`. Each becomes a `Snapshot` with its principals, resources, grants, the resources whose membership was read in full, and the problems found. `inputs.merge` combines them and keeps the earliest collection time.
+2. `campaign.build` asks `assign` for a reviewer for every grant. It sorts the rows, gives each a row id and a row check, gives each reviewer a packet digest, and digests the whole campaign. `campaign.dump` writes `campaign.json`.
+3. `reports.packets` turns each reviewer's rows into a `formats.xlsx` packet. `reports.campaign_document` fills the campaign report.
+4. `decide.read_decisions` reads returned workbooks with `formats.xlsx.read_packet` and checks each against the campaign. It yields a `DecisionRecord`, which `decide.dump` writes as `decisions.json`.
+5. `verify.verify` checks a later `Snapshot` against the accepted removals.
+6. `outputs.render` renders each report document and writes the files with a manifest. The renderers read only the document.
+
+## Modules
+
+| Module | Responsibility |
+| --- | --- |
+| `cli` | Arguments, exit codes, and the commands `campaign`, `decisions`, `verify`, `schema`, and `example`. |
+| `errors` | `ShaarError` and its subclasses `InputError`, `CollectionError`, and `UsageError`. |
+| `model` | The plain data every reader produces: `Principal`, `Resource`, `Grant`, `Snapshot`, `Source`, and `Problem`. |
+| `keys` | The keys that identify principals, resources, and grants across inputs. |
+| `inputs` | `export` reads a shaar export, `csvread` and `csvmap` read a CSV with its map, `combine` and `merge` combine grants and snapshots. |
+| `assign` | The reviewer rules and the reviewer map. |
+| `campaign` | Rows, digests, `campaign.json`, and loading it back with its digest checked. |
+| `decide` | Reads returned packets into a decision record. |
+| `verify` | Checks a later snapshot against the accepted removals. |
+| `formats` | `xlsx` writes and reads packet workbooks, and `xmlsafe` is the XML parser they share. |
+| `reports` | Builds the report documents and the packet files from a campaign, a decision record, or a verification. |
+| `outputs` | `document` is the report contract, `columns` the columns of every section, `render` the formats, `files` the safe writer, `safety` the escaping, and `schema` the JSON Schemas. |
+| `collect` | `ad` and `remote` for the exporter and WinRM, `entra` and `graph` for Microsoft Graph, `secrets`, `names`, `fileout`, and `script`. |
+| `clock` | Writes times as text the same way on every platform. |
+| `example` | The synthetic review for `shaar example` and tests. |
+| `data` | The PowerShell exporter `Export-ShaarAccess.ps1`. |
+| `schema` | The published JSON Schemas. |
+
+## The model
+
+A **grant** is one principal's entitlement on one resource: the unit that is reviewed. A **key** identifies each of the three across inputs, and matching uses keys only. Every record keeps a `Source`, so every finding can cite a file and a place. Every snapshot keeps its list of `Problem` records, and the set of resources whose membership was read in full. Only for those resources is the absence of a grant evidence.
 
 ## Rules the design follows
 
-- **Separation.** Adapters handle input, analysis is pure logic, and reporters handle output. Analysis never reads files or prints.
-- **A versioned contract.** Machine-readable output follows a published JSON Schema with a version number. Breaking changes to the schema require a major release.
-- **No prompts.** The tool never asks questions interactively, so it runs unchanged in scripts and pipelines.
-- **Structured exit codes.** `0` means success with no findings, `1` means findings were reported, `2` means the command was used incorrectly, and `3` means the input could not be processed.
-- **Unknowns are results.** When the tool cannot verify something, it reports *unknown* with the reason, never *passed*.
-- **Read-only and offline.** The tool does not change the systems it examines and does not need network access.
+- **Read-only.** The tool never changes the systems it examines. Collectors only read, and the Entra client can send only `GET`.
+- **Unknown is a result.** Anything that could not be read, matched, or verified is reported as unknown or as a problem, never as passed, removed, or clean.
+- **Every finding cites its source.** A filename and a detail: a line, a row, or a sheet row.
+- **Hash-bound packets.** Row checks, packet digests, and a campaign digest tie returned work to what was sent. They are not signatures. See [decision record 6](adr/0006-campaign-integrity.md).
+- **No prompts.** The tool never asks questions interactively.
+- **Structured exit codes.** `0` OK, `1` findings, `2` usage, `3` input, `4` internal.
+- **Safe output.** Files are owner-only and never replaced without `--force`. Reports escape every value. `SOURCE_DATE_EPOCH` makes everything reproducible.
+- **Separation.** Readers handle input, `assign`, `decide`, and `verify` are logic on plain data, and renderers handle output.
 
 ## Packaging
 
-- Python package on PyPI: `faithful-shaar`, with the command `shaar`.
-- Further formats, such as a standalone executable or a container image, are added only when a decision record justifies them.
+- Python package on PyPI: `faithful-shaar`, with the command `shaar`. It needs Python 3.11 or newer and has no runtime dependencies.
+- Extras: `ad`, `entra`, `keyring`, `vault`, `aws`, and `azure`. See the README.
+- A standalone executable or a container image is added only when a decision record justifies it.
+
+## Decisions
+
+See the [architecture decision records](adr/index.md).
