@@ -142,6 +142,30 @@ def by_owner(grant: Grant, snapshot: Snapshot) -> Assignment:
     return Assignment(_reviewer(chosen), co_owners=co_owners)
 
 
+def _map_table(name: str, text: str) -> tuple[list[str], list[list[str]]]:
+    """Return a reviewer map's normalized header and its rows, refusing an ambiguous header."""
+    try:
+        records = list(csv.reader(io.StringIO(text, newline="")))
+    except csv.Error as exc:
+        msg = f"the reviewer map {name} cannot be read as CSV: {exc}"
+        raise InputError(msg) from None
+    header = [name.strip().casefold() for name in records[0]] if records else []
+    repeated = sorted({name for name in header if name and header.count(name) > 1})
+    if repeated:
+        # Two reviewer_id (or resource ...) columns: which one was meant cannot be known.
+        msg = f"the reviewer map {name} has more than one {repeated[0]!r} column"
+        raise InputError(msg)
+    fields = set(header) - {""}
+    missing = {"reviewer_id", "reviewer_name"} - fields
+    if missing or not fields & {"resource", "principal"}:
+        msg = (
+            f"the reviewer map {name} needs the columns reviewer_id, reviewer_name, "
+            "and resource or principal (reviewer_email is optional)"
+        )
+        raise InputError(msg)
+    return header, records[1:]
+
+
 def read_map(path: Path) -> list[MapEntry]:
     """Read a reviewer map: ``resource`` or ``principal``, then the reviewer's id, name, email.
 
@@ -161,18 +185,18 @@ def read_map(path: Path) -> list[MapEntry]:
     except UnicodeDecodeError:
         msg = f"the reviewer map {path.name} is not UTF-8 text"
         raise InputError(msg) from None
-    reader = csv.DictReader(io.StringIO(text, newline=""))
-    fields = {name.strip().casefold() for name in reader.fieldnames or []}
-    missing = {"reviewer_id", "reviewer_name"} - fields
-    if missing or not fields & {"resource", "principal"}:
-        msg = (
-            f"the reviewer map {path.name} needs the columns reviewer_id, reviewer_name, "
-            "and resource or principal (reviewer_email is optional)"
-        )
-        raise InputError(msg)
+    header, records = _map_table(path.name, text)
     entries = []
-    for line, row in enumerate(reader, start=2):
-        values = {(k or "").strip().casefold(): (v or "").strip() for k, v in row.items() if k}
+    for line, cells in enumerate(records, start=2):
+        if not cells:
+            continue
+        if len(cells) != len(header):
+            msg = (
+                f"the reviewer map {path.name}, row {line}: has {len(cells)} cells but the "
+                f"header has {len(header)}"
+            )
+            raise InputError(msg)
+        values = {k: v.strip() for k, v in zip(header, cells, strict=True) if k}
         reviewer_id = values.get("reviewer_id", "")
         if not reviewer_id or not (values.get("resource") or values.get("principal")):
             msg = (

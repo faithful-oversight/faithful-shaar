@@ -473,8 +473,27 @@ def write_outputs(  # noqa: PLR0913 - the documented API
     manifest = build_manifest(
         files, generated_at=generated_at, tool_version=tool_version, inputs=inputs
     )
-    write_files(directory, {**files, MANIFEST_FILE: render_manifest(manifest)}, force=force)
+    write_files(
+        directory,
+        {**files, MANIFEST_FILE: render_manifest(manifest)},
+        force=force,
+        remove=_earlier_files(directory) if force else (),
+    )
     return manifest
+
+
+def _earlier_files(directory: Path) -> list[str]:
+    """Return the plain file names an earlier run's manifest in ``directory`` lists.
+
+    Only names the manifest lists are ever taken away, never other files someone put in the
+    directory. An unreadable manifest lists nothing.
+    """
+    try:
+        data = json.loads((directory / MANIFEST_FILE).read_bytes())
+        listed = [entry["name"] for entry in data["files"]]
+    except (OSError, ValueError, KeyError, TypeError):
+        return []
+    return [n for n in listed if isinstance(n, str) and _FILE_NAME.match(n) and n != MANIFEST_FILE]
 
 
 __all__ = [

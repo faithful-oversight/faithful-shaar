@@ -757,3 +757,8 @@ def test_extra_columns() -> None:
         generic(optional=True, extra={"grant": ["Ticket"]}),
     )
     assert short.principals
+
+
+def test_a_map_tenant_must_be_a_tenant_id() -> None:
+    with pytest.raises(InputError, match="tenant id"):
+        build_map({"system": "x", "tenant": "corp.example", "columns": {"principal_id": "id"}})

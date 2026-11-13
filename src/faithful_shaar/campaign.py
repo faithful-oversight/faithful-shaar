@@ -129,9 +129,13 @@ def row_check(campaign_id: str, row_id: str, grant_key: str, display: dict[str, 
     return _sha256(canonical(payload))
 
 
-def packet_digest(checks: list[str]) -> str:
-    """Return a packet's digest over its row checks in packet order."""
-    return _sha256("\n".join(checks))
+def packet_digest(reviewer_key: str, checks: list[str]) -> str:
+    """Return a packet's digest over its reviewer and its row checks in packet order.
+
+    The reviewer is part of it, so a packet made for one reviewer cannot be taken as
+    another's, even where the two would hold the same rows.
+    """
+    return _sha256("\n".join([reviewer_key, *checks]))
 
 
 def _status(enabled: bool | None) -> str:  # noqa: FBT001 - the value shown, not a switch
@@ -171,10 +175,33 @@ def display_for(
     return {name: cell_text(value)[0].strip() for name, value in shown.items()}
 
 
-def campaign_id(name: str, created_at: str, inputs: list[InputFile]) -> str:
-    """Return a campaign id: ``C`` and 16 hex digits over the name, time and inputs."""
-    hashes = "\n".join(sorted(item.sha256 for item in inputs))
-    return "C" + _sha256(f"{name}\n{created_at}\n{hashes}")[:16]
+def campaign_id(  # noqa: PLR0913 - everything that decides who reviews what
+    name: str,
+    created_at: str,
+    inputs: list[InputFile],
+    *,
+    due: str = "",
+    rule: str = "",
+    entries: list[MapEntry] | None = None,
+) -> str:
+    """Return a campaign id: ``C`` and 16 hex digits over everything that shapes the campaign.
+
+    That is the name, time, inputs, due date, reviewer rule and reviewer map. Two campaigns
+    that could assign a row differently never share an id, so a packet from one is never
+    read as a packet of the other.
+    """
+    shaped = {
+        "name": name,
+        "created_at": created_at,
+        "inputs": sorted(item.sha256 for item in inputs),
+        "due": due,
+        "rule": rule,
+        "map": sorted(
+            [e.resource, e.principal, e.reviewer.key, e.reviewer.name, e.reviewer.email]
+            for e in entries or []
+        ),
+    }
+    return "C" + _sha256(canonical(shaped))[:16]
 
 
 def _slug(name: str, key: str) -> str:
@@ -192,7 +219,7 @@ def build(  # noqa: PLR0913 - the parts of a campaign
     entries: list[MapEntry] | None = None,
 ) -> Campaign:
     """Build a campaign from a snapshot: assign every grant, then number and digest the rows."""
-    cid = campaign_id(name, created_at, snapshot.inputs)
+    cid = campaign_id(name, created_at, snapshot.inputs, due=due, rule=rule, entries=entries)
     placed: list[tuple[Grant, Any, dict[str, str]]] = []
     unassigned: list[Unassigned] = []
     reviewers: dict[str, Any] = {}
@@ -253,7 +280,7 @@ def build(  # noqa: PLR0913 - the parts of a campaign
                 reviewer.name,
                 reviewer.email,
                 f"packet-{index:02d}-{_slug(reviewer.name, reviewer.key)}.xlsx",
-                packet_digest([row.row_check for row in mine]),
+                packet_digest(reviewer.key, [row.row_check for row in mine]),
                 len(mine),
             )
         )

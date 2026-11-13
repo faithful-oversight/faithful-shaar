@@ -36,3 +36,16 @@ First release.
 ### Fixed
 
 - The source archive now includes `scripts`, which its tests import, and the build check collects the tests from an extracted copy.
+- Findings from the second independent review, fixed before release:
+  - Entra keys carry the tenant id, which `shaar collect entra` takes from the token, and well-known AD SIDs carry the domain. An id without one is never part of a complete resource, so an export from another tenant or domain cannot verify a removal.
+  - A directory role grant's entitlement is its scope (`whole directory` or `scope ID`), never the role's name, so renaming a role or a refused name lookup does not make every grant look removed. Each scope is its own grant.
+  - An eligible (PIM) role counts only while its schedule is provisioned and in force. Records Microsoft Graph returned but shaar could not read make their group or role incomplete.
+  - A CSV without `collected_at` no longer takes another input's time. Each resource is dated by the inputs that hold it.
+  - An export record of an unknown type makes the file incomplete.
+  - A `|` or `%` in a name can no longer make two grants share a key.
+  - The campaign id covers the due date, the reviewer rule, and the reviewer map, and the packet digest covers the reviewer, so a packet from a differently assigned campaign is rejected.
+  - A packet with two Decision (or other known) columns, and a reviewer map with a repeated column or a row of the wrong width, are refused instead of read one way.
+  - shaar refuses to write a packet too large to read back.
+  - With `--force`, files from the earlier run that the new run does not write are taken away.
+  - A reviewer map field too long for CSV, a non-text `encoding` in a column map, and a workbook with an undecodable entry name are input errors, not internal errors.
+  - The AD exporter marks a group incomplete when a nested group's primary-group members cannot be read, lists one route per holding group and nesting group in `extra.paths`, reports every nesting cycle, and checks the lower bound of the last ranged member read.

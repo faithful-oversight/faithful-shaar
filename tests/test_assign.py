@@ -195,3 +195,8 @@ def test_owner_rule_with_a_holder_missing_from_the_input() -> None:
     result = assign(grant(1999, 2002), snap(), "owner")
     assert result.reviewer is not None
     assert result.reviewer.name == "Casey Owner"
+
+
+def test_blank_map_rows_are_skipped(tmp_path: Path) -> None:
+    entries = read_map(write(tmp_path, "resource,reviewer_id,reviewer_name\n\nr,x,y\n"))
+    assert [e.line for e in entries] == [3]

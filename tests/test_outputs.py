@@ -785,3 +785,42 @@ def test_a_section_without_an_intro_has_no_intro_paragraph() -> None:
     assert "About rows." in render_markdown(doc).decode("utf-8")
     assert "<p>About rows.</p>" not in render_html(plain).decode("utf-8")
     assert "<p>About rows.</p>" in render_html(doc).decode("utf-8")
+
+
+def test_force_takes_away_the_earlier_runs_files_but_nothing_else(tmp_path: Path) -> None:
+    # An earlier campaign had a fourth packet; the rebuilt one has three. The old packet
+    # must not stay beside the new set, where it could be sent out by mistake.
+    old = {"packet-01.xlsx": b"1", "packet-04.xlsx": b"old"}
+    write_outputs(tmp_path, old, force=False, generated_at=WHEN, tool_version="1")
+    (tmp_path / "notes.txt").write_bytes(b"mine")
+    write_outputs(
+        tmp_path, {"packet-01.xlsx": b"2"}, force=True, generated_at=WHEN, tool_version="1"
+    )
+    assert sorted(p.name for p in tmp_path.iterdir()) == [
+        "manifest.json",
+        "notes.txt",
+        "packet-01.xlsx",
+    ]
+
+
+@pytest.mark.parametrize(
+    "manifest", [b"not json", b"{}", b'{"files": [1]}', b'{"files": [{"name": "../x"}]}']
+)
+def test_an_unreadable_earlier_manifest_takes_nothing_away(tmp_path: Path, manifest: bytes) -> None:
+    (tmp_path / "manifest.json").write_bytes(manifest)
+    (tmp_path / "packet-04.xlsx").write_bytes(b"old")
+    write_outputs(tmp_path, {"a.txt": b"x"}, force=True, generated_at=WHEN, tool_version="1")
+    assert (tmp_path / "packet-04.xlsx").read_bytes() == b"old"
+
+
+@pytest.mark.skipif(os.name != "posix", reason="symbolic links need POSIX here")
+def test_force_never_takes_away_a_listed_link(tmp_path: Path) -> None:
+    victim = tmp_path / "victim"
+    victim.write_bytes(b"precious")
+    out = tmp_path / "out"
+    write_outputs(out, {"b.txt": b"1"}, force=False, generated_at=WHEN, tool_version="1")
+    (out / "b.txt").unlink()
+    (out / "b.txt").symlink_to(victim)
+    write_outputs(out, {"a.txt": b"x"}, force=True, generated_at=WHEN, tool_version="1")
+    assert (out / "b.txt").is_symlink()
+    assert victim.read_bytes() == b"precious"

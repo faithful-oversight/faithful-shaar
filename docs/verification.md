@@ -28,7 +28,7 @@ The order of the checks matters. A grant that is still present is `pending` or `
 An absent grant is `removed` only when all of these hold. Otherwise it is `unknown`, with the reason.
 
 1. **A complete read.** The later input read the resource's whole membership. See [what complete means](formats.md#what-complete-means).
-2. **A time.** The later input has a time: the `collected_at` of its export, or the `--as-of` you give. Without one the reason is `the later export does not say when it was read; give --as-of`.
+2. **A time.** The later inputs that hold the resource have a time: the `collected_at` of their exports, or the `--as-of` you give. Without one the reason is `the later export does not say when it was read; give --as-of`.
 3. **Not before the campaign.** The time is not before the campaign's `created_at`. Otherwise the reason is `the later export was read before the campaign began`, because an older export cannot show a removal that followed the review.
 4. **The same account is not still there.** Nobody else in the later input holds the same entitlement on the same resource with a UPN, email, or id equal to the row's Account. A person can change key between exports, for example when a CSV's id column changes. Their access is then absent under the old key but present under the new one. The reason is "the same account still holds this access under another key" and names the holder.
 
@@ -40,13 +40,15 @@ When the later input is of another system than the access, such as an Entra expo
 
 ### Due date
 
-The due date comes from `--due` on `shaar campaign`. The date the later access was read is the earliest `collected_at` among the later inputs, or the time you give with `--as-of`, which replaces it. shaar compares the UTC calendar date of the read time with the due date. A read taken before the due date gives `pending`, and one on or after it gives `failed`. A grant that is still present with no known time is `failed`, with the reason that the export does not say when it was taken. An absent grant with no known time is `unknown`.
+The due date comes from `--due` on `shaar campaign`. The date the later access was read is the earliest `collected_at` among the later inputs that hold the resource, or the time you give with `--as-of`, which replaces it. shaar compares the UTC calendar date of the read time with the due date. A read taken before the due date gives `pending`, and one on or after it gives `failed`. A grant that is still present with no known time is `failed`, with the reason that the export does not say when it was taken. An absent grant with no known time is `unknown`.
 
 ### Earliest collection time across inputs
 
 When you give several later inputs, shaar uses the **earliest** `collected_at`, not the latest. A verification can claim only evidence as recent as the oldest input it rests on. If one export is from before the due date and another from after, a still-present grant is `pending`, because shaar cannot rule out that the older export is the one that shows it.
 
-An export without a valid time makes the answer unknown, and so does any mix that includes one. A CSV without `collected_at` in its map makes no claim and is left out of the comparison. Give `--as-of` when no input records a time.
+Each resource takes the time of the inputs that hold it. An export or CSV without a valid time leaves its resources without a time, so an absent grant there is `unknown`; it never borrows the time of another input. The read as a whole has no time when any input lacks one. Give `--as-of` when no input records a time, or give each CSV's map its `collected_at`.
+
+An export from another Entra tenant or AD domain holds other keys, so the campaign's resources are not in it and their grants are `unknown`.
 
 ## Active and eligible role assignments
 

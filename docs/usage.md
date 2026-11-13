@@ -194,7 +194,7 @@ A value that is not a whole number of seconds, or is out of range, is ignored an
 
 - A new output folder is readable only by your user account on Linux and macOS, and so is every file in it.
 - Without `--force`, shaar never replaces an existing file, even one that appears while it runs. It stops with exit code `3` and names the files.
-- With `--force`, shaar moves the old files aside and puts them back if any step fails, so the folder holds either the old set or the new set.
+- With `--force`, shaar moves the old files aside and puts them back if any step fails, so the folder holds either the old set or the new set. Files the earlier run's `manifest.json` lists that the new run does not write, such as a packet for a reviewer who is no longer in the campaign, are taken away too. Other files in the folder are left alone.
 - A symbolic link at a target name is replaced, never followed.
 - The manifest is written last. A manifest means every other file is in place.
 - Run one shaar at a time per output folder. A crash or power loss while writing can leave a partial file or `.shaar-old-*` backups. The manifest lists the size and SHA-256 of every file from its run, so that is detectable.

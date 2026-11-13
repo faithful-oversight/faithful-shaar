@@ -24,6 +24,8 @@ from tests.fixtures_access import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from faithful_shaar.model import Snapshot
 
 ADMINS = sid(512)
@@ -463,3 +465,24 @@ def test_every_grant_with_a_missing_record_gets_its_own_problem() -> None:
     assert sum("principal with no record" in r for r in found) == 2
     assert sum("resource with no record" in r for r in found) == 2
     assert len(snap.principals) == 1
+
+
+def test_an_entra_export_without_a_tenant_is_never_complete() -> None:
+    data = export_bytes([resource(guid(3), "Group")], system="entra", header={"tenant": None})
+    snap = read(data)
+    assert any("no tenant id" in r for r in reasons(snap))
+    assert snap.complete_resources == set()
+    assert f"entra:?:id:{guid(3)}" in snap.resources
+
+
+def test_a_well_known_sid_without_a_domain_is_never_complete(tmp_path: Path) -> None:
+    from faithful_shaar.inputs import read_inputs  # noqa: PLC0415
+
+    path = tmp_path / "ad.jsonl"
+    path.write_bytes(
+        export_bytes([resource("S-1-5-32-544", "Administrators")], header={"domain": None})
+    )
+    snap = read_inputs([path], label="x")
+    assert "ad:sid:S-1-5-32-544@?" in snap.resources
+    assert snap.complete_resources == set()
+    assert any("tenant or domain" in p.reason or "domain" in p.reason for p in snap.problems)

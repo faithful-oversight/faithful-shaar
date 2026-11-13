@@ -49,8 +49,26 @@ before="$demo/before"
 expect 1 "$tool" campaign "$before/ad.jsonl" "$before/entra.jsonl" "$before/ledger.csv" \
   --map "$before/ledger-map.toml" --name "Smoke test" --reviewers manager --due 2026-11-16 \
   -o "$work/campaign"
-expect 1 "$tool" decisions "$demo/campaign" "$demo"/returned/*.xlsx -o "$work/decisions"
-expect 1 "$tool" verify "$demo/campaign" "$work/decisions" "$demo/after/ad.jsonl" \
+# Fill in the packets of the campaign just made, as the example's reviewers would, so the
+# rest of the run uses what this wheel wrote, not the example's committed packets.
+"$python" - "$work/campaign" "$work/returned" <<'PY'
+import pathlib, sys
+from faithful_shaar import campaign, example
+made = campaign.load(pathlib.Path(sys.argv[1], "campaign.json").read_bytes())
+out = pathlib.Path(sys.argv[2])
+out.mkdir()
+for name, data in example._returned(made).items():
+    (out / name).write_bytes(data)
+assert sorted(out.glob("*.xlsx")), "no packets were filled in"
+PY
+expect 1 "$tool" decisions "$work/campaign" "$work"/returned/*.xlsx -o "$work/decisions"
+"$python" - "$work/decisions/decisions.json" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["packets"] and all(p["status"] == "read" for p in data["packets"]), data["packets"]
+assert any(r["state"] == "accepted" for r in data["rows"]), "no decision was accepted"
+PY
+expect 1 "$tool" verify "$work/campaign" "$work/decisions" "$demo/after/ad.jsonl" \
   "$demo/after/entra.jsonl" "$demo/after/ledger.csv" --map "$demo/after/ledger-map.toml" \
   -o "$work/verification"
 

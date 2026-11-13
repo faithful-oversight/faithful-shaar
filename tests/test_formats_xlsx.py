@@ -890,12 +890,20 @@ def swap_cell(xml: str, ref: str, text: str) -> str:
     return pattern.sub(new, xml, count=1)
 
 
-def test_headers_are_matched_loosely_and_duplicates_noted() -> None:
+def test_a_repeated_known_header_stops_the_packet() -> None:
+    # Two Row ID (or Decision) columns: which one counts cannot be known.
     review = swap_cell(REVIEW, "C1", " row id ")
     data = excel_style(**{"xl/worksheets/data-sheet.xml": review})
+    with pytest.raises(InputError, match="two 'Row ID' columns"):
+        read_packet(data, "x.xlsx")
+
+
+def test_a_repeated_unknown_header_is_noted() -> None:
+    review = swap_cell(swap_cell(REVIEW, "C1", "Notes"), "B1", "Notes")
+    data = excel_style(**{"xl/worksheets/data-sheet.xml": review})
     result = read_packet(data, "x.xlsx")
-    assert result.headers == ["Row ID", "User", "Comment"]
-    assert any("repeats the header 'Row ID'" in n for n in result.notes)
+    assert result.headers.count("Notes") == 1
+    assert any("repeats the header 'Notes'" in n for n in result.notes)
 
 
 def test_blank_header_cells_are_skipped() -> None:
@@ -1070,3 +1078,16 @@ def test_about_without_an_instructions_row() -> None:
     result = read_packet(excel_style(**{"xl/worksheets/notes.xml": about}), "x.xlsx")
     assert result.about["Notes"] == "Choose."
     assert result.about["After"] == "x"
+
+
+def test_a_packet_too_large_to_read_back_is_not_written(monkeypatch: pytest.MonkeyPatch) -> None:
+    # What the writer makes, the reader must accept, with room for the reviewer's edits.
+    assert xlsx.WRITE_MAX_ROWS < xlsx.MAX_ROWS
+    assert xlsx.WRITE_MAX_BYTES < xlsx.MAX_UNCOMPRESSED_BYTES
+    monkeypatch.setattr(xlsx, "WRITE_MAX_ROWS", 2)
+    with pytest.raises(InputError, match="would have 3 rows"):
+        write_packet(make_packet(3))
+    monkeypatch.setattr(xlsx, "WRITE_MAX_ROWS", 100)
+    monkeypatch.setattr(xlsx, "WRITE_MAX_BYTES", 1000)
+    with pytest.raises(InputError, match="split the campaign"):
+        write_packet(make_packet(3))

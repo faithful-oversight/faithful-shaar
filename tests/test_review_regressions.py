@@ -1,0 +1,264 @@
+# SPDX-FileCopyrightText: 2026 Faithful Oversight, LLC
+# SPDX-License-Identifier: Apache-2.0
+"""Counterexamples from the PR #5 review, run through the command line end to end."""
+
+from __future__ import annotations
+
+import hashlib
+import io
+import json
+import shutil
+import zipfile
+from typing import TYPE_CHECKING, Any
+
+import pytest
+
+from faithful_shaar import example
+from faithful_shaar.cli import ExitCode, main
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+
+@pytest.fixture(scope="module")
+def sample(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    root = tmp_path_factory.mktemp("example")
+    assert main(["example", str(root / "ex")]) == ExitCode.OK
+    return root / "ex"
+
+
+def campaign_argv(sample: Path, out: Path, *more: str) -> list[str]:
+    before = sample / "before"
+    return [
+        "campaign",
+        str(before / "ad.jsonl"),
+        str(before / "entra.jsonl"),
+        str(before / "ledger.csv"),
+        "--map",
+        str(before / "ledger-map.toml"),
+        "--name",
+        example.NAME,
+        "--due",
+        example.DUE,
+        "-o",
+        str(out),
+        *more,
+    ]
+
+
+def verify(sample: Path, out: Path, after: list[Path], ledger_map: Path) -> dict[str, str]:
+    """Run verify on the example's decisions; return each removal's result by user."""
+    code = main(
+        [
+            "verify",
+            str(sample / "campaign"),
+            str(decisions(sample, out.parent)),
+            *map(str, after),
+            "--map",
+            str(ledger_map),
+            "-o",
+            str(out),
+        ]
+    )
+    assert code in {ExitCode.OK, ExitCode.FINDINGS}
+    data: dict[str, Any] = json.loads((out / "verify-report.json").read_text("utf-8"))
+    return {
+        f"{row['principal']}|{row['resource']}": row["result"]
+        for row in data["sections"]["removals"]
+    }
+
+
+def decisions(sample: Path, root: Path) -> Path:
+    out = root / "decisions"
+    if not out.exists():
+        returned = sorted(str(p) for p in (sample / "returned").glob("*.xlsx"))
+        assert main(["decisions", str(sample / "campaign"), *returned, "-o", str(out)]) in {
+            ExitCode.OK,
+            ExitCode.FINDINGS,
+        }
+    return out
+
+
+def after_set(sample: Path) -> list[Path]:
+    after = sample / "after"
+    return [after / "ad.jsonl", after / "entra.jsonl", after / "ledger.csv"]
+
+
+def test_the_example_verifies_as_documented(sample: Path, tmp_path: Path) -> None:
+    results = verify(
+        sample, tmp_path / "v", after_set(sample), sample / "after" / "ledger-map.toml"
+    )
+    assert sorted(results.values()) == ["failed", "removed", "removed", "unknown", "unknown"]
+    assert any(k.endswith("|Ledger") and v == "removed" for k, v in results.items())
+
+
+def test_f03_an_undated_csv_cannot_prove_a_removal(sample: Path, tmp_path: Path) -> None:
+    # The ledger export's map gives no time: the export could predate the campaign.
+    text = (sample / "after" / "ledger-map.toml").read_text("utf-8")
+    undated = tmp_path / "undated.toml"
+    undated.write_text(
+        "\n".join(line for line in text.splitlines() if not line.startswith("collected_at")),
+        "utf-8",
+    )
+    results = verify(sample, tmp_path / "v", after_set(sample), undated)
+    ledger = [v for k, v in results.items() if k.endswith("|Ledger")]
+    assert ledger == ["unknown"]
+    # the dated exports still prove their own removals
+    assert "removed" in results.values()
+
+
+def entra_after(sample: Path, folder: Path, tenant: str) -> Path:
+    """The example's later Entra export, read in full, from ``tenant``."""
+    lines = (sample / "after" / "entra.jsonl").read_text("utf-8").splitlines()
+    header = json.loads(lines[0])
+    header["tenant"] = tenant
+    body = [json.dumps(header), *lines[1:-1]]
+    body = [line.replace('"complete": false', '"complete": true') for line in body]
+    text = "".join(f"{line}\n" for line in body)
+    trailer = json.loads(lines[-1])
+    trailer["sha256"] = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    path = folder / "entra.jsonl"
+    path.write_text(text + json.dumps(trailer) + "\n", "utf-8")
+    return path
+
+
+def test_f02_an_export_from_another_tenant_proves_nothing(sample: Path, tmp_path: Path) -> None:
+    after = after_set(sample)
+    ledger_map = sample / "after" / "ledger-map.toml"
+    same = tmp_path / "same"
+    same.mkdir()
+    control = entra_after(sample, same, example.TENANT)
+    results = verify(sample, tmp_path / "v1", [after[0], control, after[2]], ledger_map)
+    payroll = [v for k, v in results.items() if k.endswith("|Payroll App Users")]
+    assert payroll == ["removed", "removed"]  # the same tenant, read in full: proven
+    other = tmp_path / "other"
+    other.mkdir()
+    foreign = entra_after(sample, other, "11111111-1111-4111-8111-111111111111")
+    results = verify(sample, tmp_path / "v2", [after[0], foreign, after[2]], ledger_map)
+    payroll = [v for k, v in results.items() if k.endswith("|Payroll App Users")]
+    assert payroll == ["unknown", "unknown"]
+
+
+def test_f07_a_separator_in_a_name_cannot_merge_two_rows(tmp_path: Path) -> None:
+    table = tmp_path / "app.csv"
+    table.write_text(
+        "user,group\nA|B,C\nA,B|C\n",
+        "utf-8",
+    )
+    cmap = tmp_path / "map.toml"
+    cmap.write_text(
+        'system = "app"\ncollected_at = "2026-11-01T00:00:00Z"\n'
+        '[columns]\nprincipal_name = "user"\nresource_name = "group"\n',
+        "utf-8",
+    )
+    out = tmp_path / "c"
+    code = main(
+        [
+            "campaign",
+            str(table),
+            "--map",
+            str(cmap),
+            "--name",
+            "Pipes",
+            "--due",
+            "2026-12-01",
+            "--reviewers",
+            "owner",
+            "-o",
+            str(out),
+        ]
+    )
+    assert code == ExitCode.FINDINGS  # nobody owns these: both rows are unassigned
+    data = json.loads((out / "campaign.json").read_text("utf-8"))
+    keys = [u["grant_key"] for u in data["unassigned"]]
+    assert len(keys) == 2
+    assert len(set(keys)) == 2
+
+
+@pytest.mark.parametrize(
+    ("text", "said"),
+    [
+        (
+            "resource,reviewer_id,reviewer_id,reviewer_name\nTier0 Admins,expected,unexpected,N\n",
+            "more than one 'reviewer_id' column",
+        ),
+        (
+            "resource,Reviewer_ID , reviewer_id,reviewer_name\nTier0 Admins,a,b,N\n",
+            "more than one 'reviewer_id' column",
+        ),
+        ("resource,reviewer_id,reviewer_name\nTier0 Admins,a,N,extra\n", "has 4 cells"),
+        ("resource,reviewer_id,reviewer_name\nTier0 Admins," + "x" * 200_000 + ",N\n", "as CSV"),
+    ],
+)
+def test_f14_an_ambiguous_reviewer_map_publishes_nothing(
+    sample: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str], text: str, said: str
+) -> None:
+    reviewer_map = tmp_path / "map.csv"
+    reviewer_map.write_text(text, "utf-8")
+    out = tmp_path / "c"
+    argv = campaign_argv(sample, out, "--reviewers", "map", "--reviewer-map", str(reviewer_map))
+    assert main(argv) == ExitCode.INPUT_ERROR
+    assert said in capsys.readouterr().err
+    assert not out.exists() or not any(out.iterdir())
+
+
+def test_a_non_text_encoding_in_a_column_map_is_an_input_error(
+    sample: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    cmap = tmp_path / "map.toml"
+    cmap.write_text(
+        (sample / "before" / "ledger-map.toml").read_text("utf-8")
+        + '\nencoding = "base64_codec"\n',
+        "utf-8",
+    )
+    # TOML keys after a table belong to it, so put the setting at the top instead
+    lines = cmap.read_text("utf-8").splitlines()
+    lines = ['encoding = "base64_codec"', *lines[:-1]]
+    cmap.write_text("\n".join(lines) + "\n", "utf-8")
+    argv = campaign_argv(sample, tmp_path / "c", "--reviewers", "manager")
+    argv[argv.index("--map") + 1] = str(cmap)
+    assert main(argv) == ExitCode.INPUT_ERROR
+    assert "encoding" in capsys.readouterr().err
+
+
+def bad_name_zip() -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("é.xml", b"<x/>")
+    # make the UTF-8 flagged name invalid UTF-8 in both headers
+    return buffer.getvalue().replace("é".encode(), b"\xff\xa9")
+
+
+def test_a_returned_file_with_an_undecodable_entry_name_is_unreadable_not_fatal(
+    sample: Path, tmp_path: Path
+) -> None:
+    returned = sorted((sample / "returned").glob("*.xlsx"))
+    bad = tmp_path / "bad.xlsx"
+    bad.write_bytes(bad_name_zip())
+    with pytest.raises(UnicodeDecodeError):
+        zipfile.ZipFile(io.BytesIO(bad.read_bytes()))  # what the reader must survive
+    out = tmp_path / "d"
+    code = main(
+        ["decisions", str(sample / "campaign"), *map(str, returned), str(bad), "-o", str(out)]
+    )
+    assert code == ExitCode.FINDINGS
+    data = json.loads((out / "decisions.json").read_text("utf-8"))
+    status = {p["file"]: p["status"] for p in data["packets"]}
+    assert status["bad.xlsx"] == "unreadable"
+    assert sum(s == "read" for s in status.values()) == len(returned)
+
+
+def test_f13_a_forced_rebuild_leaves_no_packet_of_the_earlier_run(
+    sample: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "c"
+    assert main(campaign_argv(sample, out, "--reviewers", "manager")) == ExitCode.FINDINGS
+    earlier = sorted(p.name for p in out.glob("packet-*.xlsx"))
+    stale = out / "packet-09-Someone-000000.xlsx"
+    shutil.copy(out / earlier[0], stale)
+    manifest = json.loads((out / "manifest.json").read_text("utf-8"))
+    manifest["files"].append({"name": stale.name, "size": 0, "sha256": "0" * 64})
+    (out / "manifest.json").write_text(json.dumps(manifest), "utf-8")
+    argv = campaign_argv(sample, out, "--reviewers", "manager", "--force")
+    assert main(argv) == ExitCode.FINDINGS
+    assert sorted(p.name for p in out.glob("packet-*.xlsx")) == earlier

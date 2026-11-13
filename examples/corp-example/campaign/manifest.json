@@ -2,37 +2,37 @@
   "files": [
     {
       "name": "campaign.json",
-      "sha256": "257efb64121c262d105884109bbd458e6dce760579677ab9637b3278a4cbe19f",
+      "sha256": "4fa5d4ff7679245e1dfc803c1ced8407e8bb733d632c39ae9c88dc1c7293276c",
       "size": 14378
     },
     {
       "name": "packet-01-Casey-Owner-da089e.xlsx",
-      "sha256": "65d5d60959c2bba7453337b3b580df318fd59b9e6356a5185097c2079ca219c9",
+      "sha256": "f45a5a9f137a16f01fe99cff59abffa90a81022d92ca08bf22badcc348f39bf0",
       "size": 14218
     },
     {
       "name": "packet-02-Jordan-Director-24304a.xlsx",
-      "sha256": "9ce3f3c4946a4ef03c47de9c2bba749d5d8fbde2e5310074f94867af27f329e1",
+      "sha256": "8a444f11b66d3d5cdd9a4b84be12c183293a02d659025bc5a801f5a6d5809f13",
       "size": 14205
     },
     {
       "name": "packet-03-Morgan-Lead-e16dc6.xlsx",
-      "sha256": "a214d8378d43d9664d1afdf806d2a6fb79199338b915de8dc2bcb71936f68fdb",
+      "sha256": "7d83d2861c5f2f6059dd3758209722a1e921235c496d741f563e40cd6dd3c651",
       "size": 20751
     },
     {
       "name": "campaign-report.json",
-      "sha256": "ee112e0d0eaf45afef5d6585deb6db48a2b00344906f88ae891012a8ac892a51",
+      "sha256": "2c3ccf06eee3db0bbdbc3d793a11c376851b878fd31ebced74a8e0d45e0ff3cd",
       "size": 7695
     },
     {
       "name": "campaign-report.md",
-      "sha256": "2be1f28e406f8ce254ea6b47bfa179613b38a3c1dddb0058ad1244b51adfcfb4",
+      "sha256": "a19df3cf39ff4e1ea32b3fa7f57208918a18bfe1b24171b09678aa0af6424bdc",
       "size": 4502
     },
     {
       "name": "campaign-report.html",
-      "sha256": "bd73076d438a2da310fdae6a5ea6a8146f5258b528e88cb04bb91c11d2da586e",
+      "sha256": "df6b92c86e70c070db0158688a5f20ae8bf906645cf81c5cb74d5d927d7938ad",
       "size": 9589
     },
     {
@@ -42,7 +42,7 @@
     },
     {
       "name": "rows.csv",
-      "sha256": "20081e8446ba488a79abab2bb08fc348a040ccb3adfc773707ad7b6655a0cef8",
+      "sha256": "4674ee249d3bacd6f6ad23276b99d0d3c79994aa5a0a8dd4dae7d5071723def4",
       "size": 1844
     }
   ],

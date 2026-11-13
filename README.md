@@ -24,7 +24,7 @@ shaar runs an access review from files. It reads who holds access in Active Dire
      --name "Q4 2026 access review" --reviewers manager --due 2026-11-16 -o campaign
    ```
 
-2. **Send the packets.** Each reviewer gets only their own file from `campaign/packets`. They fill in the Decision column and send it back.
+2. **Send the packets.** Each reviewer gets only their own `packet-*.xlsx` file from the `campaign` folder. They fill in the Decision column and send it back.
 3. **Read the decisions.**
 
    ```shell
@@ -33,11 +33,11 @@ shaar runs an access review from files. It reads who holds access in Active Dire
 
    The report lists accepted decisions, the removals to make, and every row that needs attention.
 
-4. **Verify.** After the due date, export access again and check the removals.
+4. **Verify.** After the due date, export access again and check the removals. A CSV export does not say when it was taken, so its column map gives the time (`collected_at`); the later export needs its own map with the later time.
 
    ```shell
    shaar verify campaign decisions after/ad.jsonl after/entra.jsonl after/ledger.csv \
-     --map ledger-map.toml -o verification
+     --map after/ledger-map.toml -o verification
    ```
 
 Try all of it with made-up data: `shaar example ./shaar-demo` writes the exports, returned packets, and a later export, and prints the three commands. The [usage guide](docs/usage.md) explains every option, and [campaigns](docs/campaigns.md) explains how reviewers are chosen and which returned rows count.

@@ -37,6 +37,7 @@ Finance Admins,ayala.reviewer,Ayala Reviewer,ayala.reviewer@corp.example
 - shaar tries the resource first, then the principal. A row that matches neither is unassigned.
 - When two map rows match one entry and name different reviewers, the entry is unassigned and the reason names the rows.
 - The file must be UTF-8. A byte order mark is accepted. A row without a reviewer id or without a resource and principal is an error.
+- A column may appear only once, with case and spaces ignored, and every row must have as many cells as the header. Otherwise which reviewer was meant cannot be known: shaar stops with exit code `3` and writes nothing.
 
 The map's reviewer is identified by `reviewer_id`, with case ignored. Use one id for each person.
 
@@ -100,17 +101,21 @@ Protection is an accident guard, not a security control. Anyone can remove it in
 
 A packet's zip entries are written in a fixed order with the campaign's creation time as their date, and the document properties use the same time and the creator `shaar`. The same campaign gives the same bytes. See [decision record 7](adr/0007-packet-workbooks.md).
 
+### Size
+
+shaar writes a packet only if it could read it back after the reviewer edits it: at most 90,000 rows and 48 MiB, below the 100,000 rows and 64 MiB that a returned packet may hold. A larger packet stops the campaign with exit code `3` before any file is written. Split the campaign, for example by system or with a reviewer map.
+
 ## Row checks and digests
 
 `campaign.json` holds three kinds of digest, all SHA-256:
 
 - **Row check.** Over the canonical JSON of the campaign id, the row id, the grant key, and every field the reviewer sees. Canonical JSON has sorted keys, no extra spaces, and non-ASCII characters kept as they are.
-- **Packet digest.** Over the row checks of one reviewer's rows, in packet order, joined with line feeds.
+- **Packet digest.** Over the reviewer's key and the row checks of that reviewer's rows, in packet order, joined with line feeds. A packet made for one reviewer is never taken as another's.
 - **Campaign digest.** Over the canonical JSON of the whole campaign without the digest member.
 
 `shaar decisions` and `shaar verify` recompute the campaign digest when they load `campaign.json`. A campaign that was edited is refused with exit code `3`. The decision record has a digest of its own, and `verify` refuses a record that was edited or that belongs to another campaign.
 
-The campaign id is `C` and 16 hex digits over the name, the creation time, and the digests of the inputs. A row id is `R` and 12 hex digits over the campaign id and the grant key.
+The campaign id is `C` and 16 hex digits over the canonical JSON of the name, the creation time, the digests of the inputs, the due date, the reviewer rule, and the reviewer map. Two campaigns that could assign a row differently never share an id, so a packet from one is rejected by the other. A row id is `R` and 12 hex digits over the campaign id and the grant key.
 
 These digests detect accidents and casual edits. They are plain, unkeyed SHA-256 values, not signatures. Anyone who has a campaign's files can recompute them. Anyone who has one packet and knows another reviewer's rows can do the same: they can build a packet that decides those rows, and shaar will accept it and attribute it to the assigned reviewer. Control who receives packets and who runs `shaar decisions`, and keep the returned files. See the [threat model](threat-model.md) and [decision record 6](adr/0006-campaign-integrity.md).
 
@@ -118,7 +123,7 @@ These digests detect accidents and casual edits. They are plain, unkeyed SHA-256
 
 `shaar decisions` reads each returned file against the campaign. First it decides whether the file as a whole is usable:
 
-1. It must be an unencrypted `.xlsx` workbook that breaks no [limit](threat-model.md#hostile-workbooks), with a Review sheet, an About sheet, and a `Row ID` header. Otherwise it is **unreadable**.
+1. It must be an unencrypted `.xlsx` workbook that breaks no [limit](threat-model.md#hostile-workbooks), with a Review sheet, an About sheet, and a `Row ID` header, and no column shaar reads (such as Decision) may appear twice. Otherwise it is **unreadable**.
 2. The campaign id on the About sheet must be the campaign's. Otherwise it is **rejected**.
 3. The packet digest on the About sheet must match one reviewer's packet in the campaign. That reviewer is the packet's owner. Otherwise the file is **rejected**.
 

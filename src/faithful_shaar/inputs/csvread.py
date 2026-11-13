@@ -77,6 +77,9 @@ def decode(raw: bytes, forced: str, name: str) -> str:
             "set `encoding` in the column map"
         )
         raise InputError(msg) from exc
+    except LookupError as exc:
+        msg = f"{name}: {encoding!r} is not a text encoding; set `encoding` in the column map"
+        raise InputError(msg) from exc
     if "\x00" in text:
         msg = f"{name} contains NUL characters, so it is not a text CSV"
         raise InputError(msg)

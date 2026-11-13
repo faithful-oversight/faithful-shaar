@@ -16,8 +16,19 @@ import re
 import sys
 from pathlib import Path
 
-REQUIRED = ("pypsrp", "pyspnego", "hvac", "boto3", "azure-identity", "keyring")
-"""One package from each optional extra, and ``pyspnego``, which ``pypsrp`` pulls in."""
+REQUIRED = (
+    "pypsrp",
+    "pyspnego",
+    "hvac",
+    "boto3",
+    "azure-identity",
+    "azure-keyvault-secrets",
+    "keyring",
+)
+"""A package only each optional extra brings in, and ``pyspnego``, which ``pypsrp`` pulls in.
+
+``azure-identity`` alone does not prove the Azure secret extra was exported: the Entra
+collector needs it too. ``azure-keyvault-secrets`` comes only with that extra."""
 
 _PIN = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)(?:\[[^\]]*\])?\s*==", re.MULTILINE)
 

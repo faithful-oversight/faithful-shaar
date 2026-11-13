@@ -42,15 +42,25 @@ from typing import TYPE_CHECKING
 from faithful_shaar.errors import ShaarError
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Iterable, Mapping
 
 
 class OutputError(ShaarError):
     """Report files could not be written, or would replace files without ``--force``."""
 
 
-def write_files(directory: Path, files: Mapping[str, bytes], *, force: bool) -> list[Path]:
+def write_files(
+    directory: Path,
+    files: Mapping[str, bytes],
+    *,
+    force: bool,
+    remove: Iterable[str] = (),
+) -> list[Path]:
     """Publish every file, or leave the directory as it was.
+
+    With ``force``, the plain files named in ``remove`` (an earlier run's files that this
+    run does not write) are taken away in the same all-or-nothing swap, so no file of the
+    earlier run is left beside the new set.
 
     Raises:
         OutputError: A target exists and ``force`` is false, a target is a
@@ -69,7 +79,8 @@ def write_files(directory: Path, files: Mapping[str, bytes], *, force: bool) -> 
         staged.extend(_stage(directory, data) for data in files.values())
         pairs = list(zip(staged, targets, strict=True))
         if force:
-            _replace_all(directory, pairs)
+            stale = [directory / n for n in remove if n not in files]
+            _replace_all(directory, pairs, [p for p in stale if _plain_file(p)])
         else:
             _link_all(pairs)
     except OSError as exc:
@@ -157,12 +168,18 @@ def _copy_new(temp: Path, target: Path) -> None:
         raise
 
 
-def _replace_all(directory: Path, pairs: list[tuple[Path, Path]]) -> None:
-    """Swap in every new file, restoring the old set if any step fails."""
+def _plain_file(path: Path) -> bool:
+    return path.is_file() and not path.is_symlink()
+
+
+def _replace_all(
+    directory: Path, pairs: list[tuple[Path, Path]], stale: list[Path] | None = None
+) -> None:
+    """Swap in every new file and take away ``stale``, restoring the old set on failure."""
     backups: list[tuple[Path, Path]] = []
     placed: list[Path] = []
     try:
-        for _, target in pairs:
+        for target in [*(t for _, t in pairs), *(stale or [])]:
             if target.exists() or target.is_symlink():
                 backup = _backup_name(directory)
                 try:

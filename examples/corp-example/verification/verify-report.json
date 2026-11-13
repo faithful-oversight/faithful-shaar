@@ -9,12 +9,12 @@
   },
   "data": {
     "as_of": "2026-11-20T22:00:00Z",
-    "campaign_digest": "5136ac6e2e72c2bcb029507089619d94f2c587179d13ff8d2449b5cdde41d873",
-    "campaign_id": "C1966ccf07210e91a"
+    "campaign_digest": "18ac49946693d4befda6e8a6a7d6a976f13cdfa29616bdce80e9325b0903a8dc",
+    "campaign_id": "C21f06e77d8c77003"
   },
   "facts": {
     "Campaign": "Q4 2026 access review",
-    "Campaign ID": "C1966ccf07210e91a",
+    "Campaign ID": "C21f06e77d8c77003",
     "Due": "2026-11-16",
     "Later access read at": "2026-11-20T22:00:00Z"
   },
@@ -55,7 +55,7 @@
         "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 6",
         "principal": "Drew Analyst",
         "resource": "Ledger",
-        "row_id": "R94a7683b4b39"
+        "row_id": "R954d0306e234"
       }
     ],
     "new_since_review": [
@@ -74,16 +74,7 @@
         "reason": "the later export did not read this resource's whole membership",
         "resource": "Payroll App Users",
         "result": "unknown",
-        "row_id": "R240ac286f67a"
-      },
-      {
-        "access": "member",
-        "citation": "returned-01-Casey-Owner-da089e.xlsx, Review row 2",
-        "principal": "Emery Contractor",
-        "reason": "the later export did not read this resource's whole membership",
-        "resource": "Payroll App Users",
-        "result": "unknown",
-        "row_id": "R2a8397b44f53"
+        "row_id": "R01318e99338d"
       },
       {
         "access": "member",
@@ -92,7 +83,7 @@
         "reason": "not in the later export, which read the whole membership; the principal is disabled",
         "resource": "Finance Admins",
         "result": "removed",
-        "row_id": "R42c734801af7"
+        "row_id": "R070a8260809e"
       },
       {
         "access": "Viewer",
@@ -101,7 +92,16 @@
         "reason": "not in the later export, which read the whole membership; the principal's key is not in the later export",
         "resource": "Ledger",
         "result": "removed",
-        "row_id": "R824c58e8c34c"
+        "row_id": "R3c13774fa103"
+      },
+      {
+        "access": "member",
+        "citation": "returned-01-Casey-Owner-da089e.xlsx, Review row 2",
+        "principal": "Emery Contractor",
+        "reason": "the later export did not read this resource's whole membership",
+        "resource": "Payroll App Users",
+        "result": "unknown",
+        "row_id": "R72d2dc2d4e95"
       },
       {
         "access": "member",
@@ -110,7 +110,7 @@
         "reason": "still present on 2026-11-20, on or after the due date 2026-11-16",
         "resource": "Server Operators",
         "result": "failed",
-        "row_id": "Rae38d4d67f84"
+        "row_id": "Radff3f4f68d7"
       }
     ]
   },

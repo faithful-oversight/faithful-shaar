@@ -184,3 +184,23 @@ def test_record_round_trip_and_tamper_check(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(dmod, "MAX_DECISIONS_BYTES", 5)
     with pytest.raises(InputError, match="larger than"):
         load(dump(record))
+
+
+def test_a_packet_from_a_differently_assigned_campaign_is_not_accepted() -> None:
+    # Same name, time and inputs, but the reviewers come from a different rule.
+    _, by_manager = standard("manager")
+    _, by_owner = standard("owner")
+    assert by_manager.id != by_owner.id
+    assert standard("manager")[1].id == by_manager.id  # the same campaign is the same id
+    old = returned(by_manager, 1101, ALL)
+    record = run(by_owner, {"old.xlsx": old})
+    assert all(r.state != "accepted" for r in record.rows)
+    assert [p.status for p in record.packets] == ["rejected"]
+    assert "campaign" in record.packets[0].reason
+
+
+def test_a_packet_digest_names_its_reviewer() -> None:
+    from faithful_shaar.campaign import packet_digest  # noqa: PLC0415
+
+    first = packet_digest("mail:a@corp.example", ["x"])
+    assert first != packet_digest("mail:b@corp.example", ["x"])

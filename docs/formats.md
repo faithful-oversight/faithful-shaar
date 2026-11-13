@@ -85,13 +85,16 @@ A key identifies a principal, resource, or grant across exports. Matching across
 
 | Key | Used for |
 | --- | --- |
-| `ad:sid:S-1-5-21-...` | An Active Directory object. The SID is upper-cased, because SIDs ignore case. |
+| `ad:sid:S-1-5-21-...` | An Active Directory object with a domain SID. The SID is upper-cased, because SIDs ignore case. |
+| `ad:sid:<SID>@<domain>` | A well-known SID that every domain has, such as `S-1-5-32-544`, tied to the export's `domain`. Without a domain the key ends in `@?`. |
 | `ad:dn:cn=...` | An Active Directory object with no readable SID, matched by its case-folded distinguished name. A problem notes the weaker match. |
-| `entra:id:<object id>` | An Entra ID object, with the id in lower case. |
-| `entra:role:<role definition id>` | An Entra ID directory role, in lower case. |
+| `entra:<tenant>:id:<object id>` | An Entra ID object in one tenant, with both ids in lower case. Without a tenant id the tenant part is `?`. |
+| `entra:<tenant>:role:<role definition id>` | An Entra ID directory role in one tenant, in lower case. |
 | `csv:<system>:<id>` | An identifier from a CSV, trimmed and case-folded. The system is the one the map names. |
 
-A grant key is `RESOURCE-KEY|PRINCIPAL-KEY|entitlement`, with the entitlement trimmed and case-folded. Two exports of the same access give the same grant key. That is what lets `verify` find a grant again, even when the nesting path changed.
+A grant key is `RESOURCE-KEY|PRINCIPAL-KEY|entitlement`, with the entitlement trimmed and case-folded. In each part, `%` is written `%25` and `|` is written `%7C`, so a `|` inside a name cannot make two grants share a key.
+
+The same object id in two tenants, or the same well-known SID in two domains, is two different things. A key whose tenant or domain is unknown (`?`) could stand for any of them, so no resource that holds such a key is treated as complete, and a problem says so. Two exports of the same access give the same grant key. That is what lets `verify` find a grant again, even when the nesting path changed.
 
 A system name is 1 to 40 characters: lower-case letters, digits, `.`, `_`, and `-`, starting with a letter or digit. `ad` and `entra` are reserved for the collectors, except that a CSV map can produce `ad` or `entra` keys through `id_style`.
 
@@ -116,6 +119,8 @@ owner_separator = ";"         # splits owner_ids
 via_separator = ">"           # splits via
 complete = true               # false: no resource in the file counts as complete
 collected_at = "2026-11-01T00:00:00Z"   # when the CSV was exported, if known
+domain = "corp.example"       # with id_style sid: the domain well-known SIDs belong to
+tenant = "00000000-0000-4000-8000-000000000000"  # with id_style entra: the tenant id
 optional = false              # true: mapped columns missing from the file are ignored
 id_style = "csv"              # csv, sid, or entra
 
@@ -147,9 +152,11 @@ grant = []
 | `encoding`, `delimiter` | See above. A delimiter is one character or the word `tab`. |
 | `owner_separator`, `via_separator` | Must not be empty. Defaults `;` and `>`. |
 | `complete` | Default `true`. |
-| `collected_at` | ISO 8601 with `Z` or an offset. Without it the CSV records no time. |
+| `collected_at` | ISO 8601 with `Z` or an offset. Without it the CSV records no time, and its resources have no time in verification. A CSV never takes the time of another input. |
+| `domain` | With `id_style = "sid"`, the AD domain that well-known SIDs in the file belong to. |
+| `tenant` | With `id_style = "entra"`, the tenant id (a GUID, not a domain name). Without it, no resource in the file is treated as complete. |
 | `optional` | When `false`, a mapped column that is missing from the file is an error. |
-| `id_style` | How an id column becomes a key: `csv` (`csv:SYSTEM:ID`), `sid` (an AD SID key, `ad:sid:...`), or `entra` (`entra:id:...`). With `sid` or `entra`, an id that is not a SID or not usable is skipped with a problem. Names are always matched as `csv`. |
+| `id_style` | How an id column becomes a key: `csv` (`csv:SYSTEM:ID`), `sid` (an AD SID key, `ad:sid:...`), or `entra` (`entra:TENANT:id:...`). With `sid` or `entra`, an id that is not a SID or not usable is skipped with a problem. Names are always matched as `csv`. |
 | `[columns]` | Maps a field to the header text, matched without regard to case. The fields are listed below. A header that appears twice is an error. |
 | `[values]` | `enabled_true` and `enabled_false`: the cell values that mean enabled and disabled, matched without regard to case. Defaults as shown. A cell that matches neither is read as not recorded, and counted in one problem. |
 | `[principal_kinds]` | Maps a cell value to one of `user`, `group`, `service`, `device`, `other`, `unknown`. A value that is itself one of those kinds needs no entry. Other values become `unknown`, with one problem that counts them. |

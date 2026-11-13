@@ -64,6 +64,10 @@ MAX_UNCOMPRESSED_BYTES = 64 * 1024 * 1024
 MAX_RATIO = 200
 MAX_ROWS = 100_000
 MAX_CELL_CHARS = 32_767
+WRITE_MAX_ROWS = MAX_ROWS * 9 // 10
+WRITE_MAX_BYTES = MAX_UNCOMPRESSED_BYTES * 3 // 4
+"""The most a written packet may hold. They sit below what the reader accepts, so a packet
+still reads after a reviewer adds comments and Excel saves it again."""
 
 _MAX_SHEET_ROW = 1_048_576
 _MAX_SHEET_COLUMN = 16_384
@@ -519,7 +523,15 @@ def write_packet_with_notes(packet: Packet) -> tuple[bytes, list[str]]:
 
     Raises:
         ValueError: ``packet.created_at`` is not an ISO 8601 time.
+        InputError: the packet would be too large to read back when it is returned.
     """
+    if len(packet.rows) > WRITE_MAX_ROWS:
+        msg = (
+            f"the packet for {packet.reviewer_name} would have {len(packet.rows)} rows, more than "
+            f"the {WRITE_MAX_ROWS} a returned packet can safely hold; split the campaign "
+            "(for example by system or with a reviewer map)"
+        )
+        raise InputError(msg)
     when = _timestamp(packet.created_at)
     cleaner = _Cleaner()
     review, last_cell = _review_sheet(packet, cleaner)
@@ -535,6 +547,14 @@ def write_packet_with_notes(packet: Packet) -> tuple[bytes, list[str]]:
         ("xl/worksheets/sheet1.xml", review),
         ("xl/worksheets/sheet2.xml", about),
     )
+    size = sum(len(content) for _name, content in parts)
+    if size > WRITE_MAX_BYTES:
+        msg = (
+            f"the packet for {packet.reviewer_name} would be {size} bytes, more than the "
+            f"{WRITE_MAX_BYTES} a returned packet can safely hold; split the campaign "
+            "(for example by system or with a reviewer map)"
+        )
+        raise InputError(msg)
     stamp = (when.year, when.month, when.day, when.hour, when.minute, when.second)
     buffer = io.BytesIO()
     # Parts are stored, not compressed: deflate output depends on the zlib build, so a
@@ -585,6 +605,8 @@ class _Package:
             self.archive = zipfile.ZipFile(io.BytesIO(data))
         except zipfile.BadZipFile:
             self.fail("it is not an Excel workbook (.xlsx)")
+        except UnicodeDecodeError:
+            self.fail("an entry name in it is not valid text, so it is not a usable workbook")
         infos = self.archive.infolist()
         self._check_limits(infos)
         self._names = {info.filename for info in infos}
@@ -838,6 +860,13 @@ def _header_row(
                 header = _CANONICAL.get(text.casefold(), text)
                 if not header:
                     continue
+                if header in headers.values() and text.casefold() in _CANONICAL:
+                    # Two Decision (or Row ID ...) columns: which one the reviewer meant
+                    # cannot be known, so the packet is not read.
+                    package.fail(
+                        f"the {REVIEW_SHEET} sheet has two {header!r} columns (column "
+                        f"{_column_letters(column - 1)} repeats it); remove one and return it"
+                    )
                 if header in headers.values():
                     notes.append(
                         f"column {_column_letters(column - 1)} repeats the header {header!r}"

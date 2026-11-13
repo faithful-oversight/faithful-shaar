@@ -249,6 +249,7 @@ def _encoding(data: Mapping[str, Any]) -> str:
     try:
         if value:
             codecs.lookup(value)
+            b"".decode(value)  # refuses codecs that are not text encodings (base64_codec)
     except LookupError as exc:
         msg = f"unknown encoding {value[:40]!r}"
         raise _fail(msg) from exc

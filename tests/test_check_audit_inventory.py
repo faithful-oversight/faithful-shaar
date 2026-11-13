@@ -23,7 +23,7 @@ _spec.loader.exec_module(inventory)
 
 EVERY = (
     "pypsrp==0.8.1 \\\n    --hash=sha256:" + "0" * 64 + "\n"
-    "PySPNEGO==0.11.2\nhvac==2.3.0\nboto3[crt]==1.35.0\nazure_identity==1.19.0\nkeyring==25.0.0\n"
+    "PySPNEGO==0.11.2\nhvac==2.3.0\nboto3[crt]==1.35.0\nazure_identity==1.19.0\nazure-keyvault-secrets==4.9.0\nkeyring==25.0.0\n"
     "ruff==0.8.0\n"
 )
 
@@ -35,7 +35,19 @@ def test_an_export_with_every_optional_package_passes() -> None:
 
 def test_missing_packages_are_named_in_order() -> None:
     export = "ruff==0.8.0\nkeyring==25.0.0\n# pypsrp==0.8.1 is only a comment\n"
-    assert inventory.missing(export) == ["pypsrp", "pyspnego", "hvac", "boto3", "azure-identity"]
+    assert inventory.missing(export) == [
+        "pypsrp",
+        "pyspnego",
+        "hvac",
+        "boto3",
+        "azure-identity",
+        "azure-keyvault-secrets",
+    ]
+
+
+def test_the_entra_dependency_alone_does_not_prove_the_azure_secret_extra() -> None:
+    without = EVERY.replace("azure-keyvault-secrets==4.9.0\n", "")
+    assert inventory.missing(without) == ["azure-keyvault-secrets"]
 
 
 def test_a_longer_name_does_not_stand_in_for_a_shorter_one() -> None:
@@ -47,7 +59,10 @@ def test_main_reports_what_is_missing(tmp_path: Path, capsys: pytest.CaptureFixt
     export.write_text("ruff==0.8.0\n", encoding="utf-8")
     assert inventory.main([str(export)]) == 1
     err = capsys.readouterr().err
-    assert "pypsrp, pyspnego, hvac, boto3, azure-identity, keyring missing" in err
+    assert (
+        "pypsrp, pyspnego, hvac, boto3, azure-identity, azure-keyvault-secrets, keyring missing"
+        in err
+    )
     assert "--all-extras" in err
     export.write_text(EVERY, encoding="utf-8")
     assert inventory.main([str(export)]) == 0
