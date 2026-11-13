@@ -106,7 +106,7 @@
         "access": "Viewer",
         "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5",
         "principal": "Blake Sample",
-        "reason": "not in the later export, which read the whole membership; the principal itself is not in the later export",
+        "reason": "not in the later export, which read the whole membership; the principal's key is not in the later export",
         "resource": "Ledger",
         "result": "removed",
         "row_id": "R7c9006452035"

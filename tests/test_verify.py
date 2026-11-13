@@ -25,6 +25,7 @@ from tests.core_fixtures import (
     standard,
 )
 
+AFTER = "2026-11-10T12:00:00Z"  # after the campaign began, before it was due
 DECIDE = {
     "Avery Example|Finance Admins": "Remove",
     "Blake Sample|Finance Admins": "Keep",
@@ -45,6 +46,7 @@ def decided() -> tuple[Campaign, DecisionRecord]:
 
 
 def later(grants: list[Grant], **kw: object) -> Snapshot:
+    kw.setdefault("collected_at", AFTER)
     return snapshot(people(), resources(), grants, label="after", **kw)
 
 
@@ -61,7 +63,7 @@ def test_removed_when_the_whole_membership_was_read() -> None:
         or "disabled" in outcome.checks[0].reason
     )
     assert outcome.complete
-    assert outcome.as_of == "2026-10-31T12:00:00Z"
+    assert outcome.as_of == AFTER
 
 
 def test_still_present_is_pending_before_the_due_date_and_failed_after() -> None:
@@ -101,11 +103,15 @@ def test_unknown_without_evidence() -> None:
 
 def test_a_removed_principal_is_noted() -> None:
     camp, record = decided()
-    gone = snapshot([p for p in people() if p.key != sid(1102)], resources(), [], label="after")
-    assert (
-        "the principal itself is not in the later export"
-        in verify(camp, record, gone).checks[0].reason
+    gone = snapshot(
+        [p for p in people() if p.key != sid(1102)],
+        resources(),
+        [],
+        label="after",
+        collected_at=AFTER,
     )
+    reason = verify(camp, record, gone).checks[0].reason
+    assert "the principal's key is not in the later export" in reason
 
 
 def test_information_lists() -> None:
@@ -142,3 +148,47 @@ def test_nesting_changes_do_not_matter() -> None:
     )
     outcome = verify(camp, record, later([moved, grant(1103, 2003)]))
     assert [c.result for c in outcome.checks] == ["pending", "pending"]
+
+
+def test_absence_proves_nothing_from_an_undated_or_earlier_export() -> None:
+    camp, record = decided()
+    undated = verify(camp, record, later([], collected_at=""))
+    assert {c.reason for c in undated.checks} == {
+        "the later export does not say when it was read; give --as-of"
+    }
+    stale = verify(camp, record, later([], collected_at="2000-01-01T00:00:00Z"))
+    assert {c.reason for c in stale.checks} == {
+        "the later export was read before the campaign began"
+    }
+    naive = verify(camp, record, later([], collected_at="2026-11-10T12:00:00"))  # taken as UTC
+    assert {c.result for c in naive.checks} == {"removed"}
+    garbled = verify(camp, record, later([], collected_at="not a time"))
+    assert {c.result for c in garbled.checks} == {"unknown"}
+    dated = verify(camp, record, later([], collected_at=""), as_of=AFTER)
+    assert {c.result for c in dated.checks} == {"removed"}
+
+
+def test_the_due_date_is_judged_in_utc() -> None:
+    camp, record = decided()
+    # 23:30 on the 14th in UTC-5 is 04:30 UTC on the 15th: the due date, so not pending.
+    late = verify(
+        camp, record, later([grant(1102, 2001)], collected_at="2026-11-14T23:30:00-05:00")
+    )
+    assert late.checks[0].result == "failed"
+    assert "on 2026-11-15" in late.checks[0].reason
+
+
+def test_a_changed_key_is_not_a_removal() -> None:
+    camp, record = decided()
+    avery = next(p for p in people() if p.key == sid(1102))
+    rekeyed = dataclasses.replace(avery, key=keys.dn("cn=avery,dc=corp,dc=example"), id="cn=avery")
+    moved = Grant(
+        keys.grant(sid(2001), rekeyed.key, "member"), "ad", rekeyed.key, sid(2001), "member"
+    )
+    snap = later([grant(1103, 2001), moved, grant(1103, 2003)])
+    snap.principals[rekeyed.key] = rekeyed
+    check = verify(camp, record, snap).checks[0]
+    assert (check.result, check.reason) == (
+        "unknown",
+        "the same account still holds this access under another key (Avery Example)",
+    )
