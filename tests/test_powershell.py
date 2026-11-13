@@ -23,10 +23,17 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
+from faithful_shaar.campaign import build
 from faithful_shaar.collect import script
+from faithful_shaar.decide import read_decisions
+from faithful_shaar.inputs import read_inputs
+from faithful_shaar.verify import verify
+from tests.core_fixtures import reader, returned
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from faithful_shaar.model import Snapshot
 
 TEXT = script.text()
 
@@ -490,6 +497,147 @@ def test_a_range_that_fails_midway_keeps_what_was_read(tmp_path: Path) -> None:
     assert sorted(out.grants_of("Flaky")) == ["Flake 1", "Flake 2", "Flake 3"]
     assert out.resources["Flaky"]["complete"] is False
     assert any("unwilling" in g["reason"] for g in out.gaps)
+
+
+MALFORMED_RANGE = """
+$script:RealSearch = ${function:Search-Directory}
+function Search-Directory([string] $BaseDn, [string] $Filter, [string[]] $Properties, [string] $Scope) {
+    $r = & $script:RealSearch $BaseDn $Filter $Properties $Scope
+    if ($BaseDn -like 'CN=Big Group,*' -and $Properties[0] -match '^member;range=(\\d+)-\\*$' -and [int] $Matches[1] -eq %(ASKED)d) {
+        $old = @($r.Keys | Where-Object { $_ -like 'member;range=*' })[0]
+        $values = $r[$old]
+        $r.Remove($old)
+        $r['member;range=%(ANSWERED)d-*'] = $values
+    }
+    $r
+}
+"""
+
+
+@needs_pwsh
+@pytest.mark.parametrize(("asked", "answered"), [(0, 9), (3, 4)])
+def test_a_terminal_range_must_start_where_it_was_asked(
+    tmp_path: Path, asked: int, answered: int
+) -> None:
+    setup = MALFORMED_RANGE % {"ASKED": asked, "ANSWERED": answered}
+    out = export(tmp_path, setup + "\n$Group = @('Big Group')")
+    assert out.resources["Big Group"]["complete"] is False
+    gap = next(g for g in out.gaps if g["what"] == "members of group Big Group")
+    assert f"unexpected range, member;range={answered}-*, after {asked}" in gap["reason"]
+
+
+def build_graph(extra: str = "") -> str:
+    """Root > A > Shared and Root > B > Shared, with Dana a member of Shared."""
+    return (
+        "G 'Dia Root' 3001; G 'Dia A' 3002; G 'Dia B' 3003; G 'Dia Shared' 3004\n"
+        "$script:Members[(Dn 'Dia Root' 'Groups')] = @((Dn 'Dia A' 'Groups'), (Dn 'Dia B' 'Groups'))\n"
+        "$script:Members[(Dn 'Dia A' 'Groups')] = @((Dn 'Dia Shared' 'Groups'))\n"
+        "$script:Members[(Dn 'Dia B' 'Groups')] = @((Dn 'Dia Shared' 'Groups'))\n"
+        "$script:Members[(Dn 'Dia Shared' 'Groups')] = @((Dn 'Dana Example')" + extra + ")\n"
+        "$Group = @('Dia Root')"
+    )
+
+
+@needs_pwsh
+def test_a_shared_group_gives_one_shortest_route_per_nesting_group(tmp_path: Path) -> None:
+    out = export(tmp_path, build_graph())
+    dana = out.grants_of("Dia Root")["Dana Example"]
+    # via is a shortest path; paths hold one shortest route per group that nests the holder.
+    assert dana["via"] == ["Dia Root", "Dia A", "Dia Shared"]
+    assert dana["extra"]["paths"] == "Dia Root > Dia A > Dia Shared; Dia Root > Dia B > Dia Shared"
+    assert "nesting_cycles" not in out.resources["Dia Root"]["extra"]
+    assert out.resources["Dia Root"]["complete"] is True
+
+
+@needs_pwsh
+def test_a_cycle_across_branches_is_reported(tmp_path: Path) -> None:
+    out = export(tmp_path, build_graph(", (Dn 'Dia B' 'Groups')"))
+    cycles = out.resources["Dia Root"]["extra"]["nesting_cycles"]
+    # Dia B > Dia Shared > Dia B: neither group is an ancestor of the other in the tree.
+    assert "Dia Root > Dia B > Dia Shared (also reaches back to Dia B)" in cycles
+    assert "Dia Root > Dia A > Dia Shared > Dia B (also reaches back to Dia Shared)" in cycles
+    dana = out.grants_of("Dia Root")["Dana Example"]
+    assert dana["via"] == ["Dia Root", "Dia A", "Dia Shared"]
+    assert dana["extra"]["paths"] == "Dia Root > Dia A > Dia Shared; Dia Root > Dia B > Dia Shared"
+    # Dia B is a direct member of the root and also nested below Dia Shared.
+    dia_b = out.grants_of("Dia Root")["Dia B"]
+    assert dia_b["via"] == []
+    assert dia_b["extra"]["paths"] == "Dia Root > Dia A > Dia Shared; direct"
+
+
+UNREADABLE_SID = """
+$script:Members[(Dn 'Domain Admins' 'Groups')] = @((Dn 'Avery Example'), (Dn 'Tier0 Admins' 'Groups'))
+($script:Dir | Where-Object { $_.dn -eq (Dn 'Domain Admins' 'Groups') }).more['managedby'] = (Dn 'Blake Example')
+$Group = @('Domain Admins')
+"""
+
+
+@needs_pwsh
+def test_an_unreadable_nested_group_sid_makes_every_expanded_root_incomplete(
+    tmp_path: Path,
+) -> None:
+    lost = "($script:Dir | Where-Object { $_.dn -eq (Dn 'Tier0 Admins' 'Groups') }).sid = ''\n"
+    out = export(tmp_path, UNREADABLE_SID + lost + "$Group = @('Domain Admins', 'Tier0 Admins')")
+    for root in ("Domain Admins", "Tier0 Admins"):
+        assert out.resources[root]["complete"] is False
+    assert any(
+        g["what"] == "primary group members of Tier0 Admins" and "objectSid" in g["reason"]
+        for g in out.gaps
+    )
+    # Builtin groups have no primary members by design: that is not a gap.
+    empty = "$script:Members['CN=Administrators,CN=Builtin,DC=corp,DC=example'] = @()\n"
+    builtin = export(tmp_path, empty + "$Group = @('S-1-5-32-544')")
+    assert builtin.resources["Administrators"]["complete"] is True
+    assert not [g for g in builtin.gaps if "primary" in g["what"]]
+
+
+def snapshot_of(tmp_path: Path, name: str, out: Export, label: str) -> Snapshot:
+    path = tmp_path / f"{name}.jsonl"
+    path.write_bytes(out.raw)
+    return read_inputs([path], label=label)
+
+
+@needs_pwsh
+@pytest.mark.parametrize("readable", [False, True])
+def test_a_nested_group_with_an_unreadable_sid_is_unknown_not_removed(
+    tmp_path: Path,
+    readable: bool,  # noqa: FBT001 - a test parameter
+) -> None:
+    before_dir = tmp_path / "b"
+    after_dir = tmp_path / "a"
+    before_dir.mkdir()
+    after_dir.mkdir()
+    before = export(before_dir, UNREADABLE_SID)
+    evan = before.grants_of("Domain Admins")["Evan Example"]
+    assert evan["extra"] == {"through": "primary group"}
+    if readable:
+        # Control: Evan really moved to another primary group, and every read succeeded.
+        change = "($script:Dir | Where-Object { $_.dn -eq (Dn 'Evan Example') }).more['primarygroupid'] = 513\n"
+    else:
+        change = (
+            "($script:Dir | Where-Object { $_.dn -eq (Dn 'Tier0 Admins' 'Groups') }).sid = ''\n"
+        )
+    after = export(after_dir, UNREADABLE_SID + change)
+    assert after.resources["Domain Admins"]["complete"] is readable
+    assert "Evan Example" not in after.grants_of("Domain Admins")
+
+    first = snapshot_of(tmp_path, "before", before, "before")
+    campaign = build(
+        first, name="Q4", created_at="2020-01-01T00:00:00Z", due="2099-01-01", rule="owner"
+    )
+    reviewer = next(r.key for r in campaign.reviewers if r.name == "Blake Example")
+    record = read_decisions(
+        campaign,
+        [("m.xlsx", b"")],
+        read=reader(
+            {"m.xlsx": returned(campaign, reviewer, {"Evan Example|Domain Admins": "Remove"})}
+        ),
+        created_at="2020-01-02T00:00:00Z",
+    )
+    outcome = verify(campaign, record, snapshot_of(tmp_path, "after", after, "after"))
+    checks = [c for c in outcome.checks if "Evan Example" in c.reason or c.result != "keep"]
+    results = {c.result for c in checks}
+    assert results == ({"removed"} if readable else {"unknown"})
 
 
 @needs_pwsh

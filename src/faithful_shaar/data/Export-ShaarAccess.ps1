@@ -546,16 +546,29 @@ function Get-MemberDns($Info, $Record) {
             return , $dns
         }
         foreach ($value in $row[$key]) { $dns.Add([string] $value) }
-        if ($key -eq 'member') { return , $dns }
+        if ($key -eq 'member') {
+            # Unranged values are the whole attribute, but only to a request from 0.
+            if ($start -ne 0) {
+                Add-Gap $what ('the server answered with an unranged member list to a request from ' + $start)
+                $Record.Complete = $false
+            }
+            return , $dns
+        }
         if ($key -notmatch '^member;range=([0-9]+)-([0-9]+|\*)$') {
             Add-Gap $what ('the server answered with an unexpected range, ' + $key)
             $Record.Complete = $false
             return , $dns
         }
+        # The lower bound must be the one asked for, also on the last range (N-*).
         $from = [int64]::Parse($Matches[1], $Invariant)
+        if ($from -ne $start) {
+            Add-Gap $what ('the server answered with an unexpected range, ' + $key + ', after ' + $start)
+            $Record.Complete = $false
+            return , $dns
+        }
         if ($Matches[2] -eq '*') { return , $dns }
         $to = [int64]::Parse($Matches[2], $Invariant)
-        if ($from -ne $start -or $to -lt $start) {
+        if ($to -lt $start) {
             Add-Gap $what ('the server answered with an unexpected range, ' + $key + ', after ' + $start)
             $Record.Complete = $false
             return , $dns
@@ -571,12 +584,28 @@ function Get-PrimaryGroupMembers($Info, $Record) {
     # Accounts whose primaryGroupID is this group's RID are not in "member".
     $found = New-Object System.Collections.Generic.List[object]
     if ($Info.Kind -ne 'group' -or -not $script:DomainSid) { return @() }
+    $what = 'primary group members of ' + $Info.Name
+    if ($Info.NoSid) {
+        # Without the SID there is no RID to search for: that read cannot be done, and
+        # saying nothing would let accounts that have this group as primary group
+        # look removed.
+        Add-Gap $what 'the group has no readable objectSid, so the accounts that have it as their primary group were not looked up'
+        $Record.Complete = $false
+        return @()
+    }
+    # A builtin group (S-1-5-32-*) or a group of another domain has no primary group
+    # members in this domain, by design: not a gap.
     if (-not $Info.Id.StartsWith($script:DomainSid + '-', [System.StringComparison]::OrdinalIgnoreCase)) { return @() }
     $rid = $Info.Id.Substring($Info.Id.LastIndexOf('-') + 1)
+    if ($rid -notmatch '^[0-9]+$') {
+        Add-Gap $what ('the relative id of ' + $Info.Id + ' could not be read, so the accounts that have it as their primary group were not looked up')
+        $Record.Complete = $false
+        return @()
+    }
     try {
         $rows = @(Search-Directory $script:DomainDn ('(primaryGroupID=' + $rid + ')') $ObjectProperties 'Subtree')
     } catch {
-        Add-Gap ('primary group members of ' + $Info.Name) $_.Exception.Message
+        Add-Gap $what $_.Exception.Message
         $Record.Complete = $false
         return @()
     }
@@ -644,38 +673,97 @@ function Add-Path($Grants, $Member, [string[]] $Via) {
     if ($shorter) { $grant.Via = $Via }
 }
 
+function Get-ComponentIds($Adjacency) {
+    # Strongly connected components of a directed graph (Tarjan, without recursion).
+    # $Adjacency is a list with, for each node number, the list of node numbers it points
+    # to. Returns one component number per node; two nodes share a number exactly when
+    # each can reach the other.
+    $n = $Adjacency.Count
+    $index = New-Object int[] $n
+    $low = New-Object int[] $n
+    $next = New-Object int[] $n
+    $component = New-Object int[] $n
+    $onStack = New-Object bool[] $n
+    for ($i = 0; $i -lt $n; $i++) { $index[$i] = -1; $component[$i] = -1 }
+    $counter = 0
+    $components = 0
+    $stack = New-Object 'System.Collections.Generic.Stack[int]'
+    $calls = New-Object 'System.Collections.Generic.Stack[int]'
+    for ($start = 0; $start -lt $n; $start++) {
+        if ($index[$start] -ge 0) { continue }
+        $index[$start] = $counter; $low[$start] = $counter; $counter++
+        $stack.Push($start); $onStack[$start] = $true
+        $calls.Push($start)
+        while ($calls.Count -gt 0) {
+            $v = $calls.Peek()
+            if ($next[$v] -lt $Adjacency[$v].Count) {
+                $w = $Adjacency[$v][$next[$v]]
+                $next[$v]++
+                if ($index[$w] -lt 0) {
+                    $index[$w] = $counter; $low[$w] = $counter; $counter++
+                    $stack.Push($w); $onStack[$w] = $true
+                    $calls.Push($w)
+                } elseif ($onStack[$w]) {
+                    $low[$v] = [Math]::Min($low[$v], $index[$w])
+                }
+            } else {
+                [void] $calls.Pop()
+                if ($low[$v] -eq $index[$v]) {
+                    do {
+                        $w = $stack.Pop()
+                        $onStack[$w] = $false
+                        $component[$w] = $components
+                    } while ($w -ne $v)
+                    $components++
+                }
+                if ($calls.Count -gt 0) {
+                    $parent = $calls.Peek()
+                    $low[$parent] = [Math]::Min($low[$parent], $low[$v])
+                }
+            }
+        }
+    }
+    , $component
+}
+
 function Expand-Group($Root) {
-    # Breadth first through the nested groups, each group once. A group met again is a
-    # cycle when it is one of its own ancestors. Returns @{ Grants; Complete; Cycles }.
+    # Breadth first through the nested groups, each group read once, building the graph
+    # of the nesting that was discovered. Then, from that graph:
+    #   - via of a grant is a shortest path (ties go to the path that sorts first);
+    #   - the paths of a grant are one shortest route to each direct holding group, per
+    #     group that nests it: for each group the account is a direct member of, and
+    #     each group that nests that group, the shortest route to the nesting group and
+    #     then the holder. Not every route: that count can grow exponentially;
+    #   - a cycle is reported for every membership edge to a group already seen that
+    #     lies on a cycle, whether the group is an ancestor on the path or not.
+    # Returns @{ Grants; Complete; Cycles }.
     $result = @{
         Grants = (New-Object 'System.Collections.Generic.Dictionary[string,object]' -ArgumentList ([System.StringComparer]::Ordinal))
         Complete = $true
         Cycles = (New-Object System.Collections.Generic.List[string])
     }
     $visited = New-Object 'System.Collections.Generic.Dictionary[string,object]' -ArgumentList ([System.StringComparer]::OrdinalIgnoreCase)
+    $nodes = New-Object System.Collections.Generic.List[object]
+    $edges = New-Object System.Collections.Generic.List[object]
     $queue = New-Object 'System.Collections.Generic.Queue[object]'
-    $first = @{ Info = $Root; Parent = $null; Chain = @($Root.Name) }
+    $first = @{ Info = $Root; Parent = $null; Chain = @($Root.Name); ChainDns = @($Root.Dn); Number = 0; Record = $null
+        Parents = (New-Object System.Collections.Generic.List[object]); Nested = (New-Object System.Collections.Generic.List[int]) }
     $visited[$Root.Dn] = $first
+    $nodes.Add($first)
     $queue.Enqueue($first)
     while ($queue.Count -gt 0) {
         $node = $queue.Dequeue()
         $record = Read-Group $node.Info
+        $node.Record = $record
         if (-not $record.Complete) { $result.Complete = $false }
-        [string[]] $via = @()
-        if ($null -ne $node.Parent) { $via = [string[]] $node.Chain }
         foreach ($member in $record.Members) {
-            Add-Path $result.Grants $member $via
             $info = $member.Info
             if ($info.Kind -ne 'group' -or $info.Unresolved -or -not $info.Dn) { continue }
             if ($visited.ContainsKey($info.Dn)) {
-                $ancestor = $node
-                while ($null -ne $ancestor) {
-                    if ([string]::Equals($ancestor.Info.Dn, $info.Dn, [System.StringComparison]::OrdinalIgnoreCase)) {
-                        $result.Cycles.Add((@($node.Chain) + $info.Name) -join ' > ')
-                        break
-                    }
-                    $ancestor = $ancestor.Parent
-                }
+                $target = $visited[$info.Dn]
+                $target.Parents.Add($node)
+                $node.Nested.Add($target.Number)
+                $edges.Add(@{ From = $node; To = $target; Tree = $false })
                 continue
             }
             if ($visited.Count -ge $MaxNestedGroups) {
@@ -683,9 +771,48 @@ function Expand-Group($Root) {
                 $result.Complete = $false
                 continue
             }
-            $child = @{ Info = $info; Parent = $node; Chain = (@($node.Chain) + $info.Name) }
+            $child = @{ Info = $info; Parent = $node; Chain = (@($node.Chain) + $info.Name); ChainDns = (@($node.ChainDns) + $info.Dn); Number = $nodes.Count; Record = $null
+                Parents = (New-Object System.Collections.Generic.List[object]); Nested = (New-Object System.Collections.Generic.List[int]) }
+            $child.Parents.Add($node)
+            $node.Nested.Add($child.Number)
             $visited[$info.Dn] = $child
+            $nodes.Add($child)
             $queue.Enqueue($child)
+            $edges.Add(@{ From = $node; To = $child; Tree = $true })
+        }
+    }
+    # Grants: every node has been read, so every group that nests it is known.
+    foreach ($node in $nodes) {
+        $routes = New-Object System.Collections.Generic.List[object]
+        if ($null -eq $node.Parent) {
+            $routes.Add(@{ Via = [string[]] @(); Dns = @($node.Info.Dn) })
+        } else {
+            foreach ($parent in $node.Parents) {
+                # A group that is itself below this one closes a cycle: not a route to it.
+                if ($parent.ChainDns -contains $node.Info.Dn) { continue }
+                $routes.Add(@{ Via = [string[]] @($parent.Chain + $node.Info.Name); Dns = @($parent.ChainDns + $node.Info.Dn) })
+            }
+        }
+        foreach ($member in $node.Record.Members) {
+            foreach ($route in $routes) {
+                # A group already on the route is a cycle, not another way to hold access.
+                # The exported group itself is kept: it is shown as a member through its cycle.
+                if ($member.Info.Kind -eq 'group' -and $member.Info.Dn -and $member.Info.Dn -ne $Root.Dn -and ($route.Dns -contains $member.Info.Dn)) { continue }
+                Add-Path $result.Grants $member ([string[]] $route.Via)
+            }
+        }
+    }
+    # Cycles: an edge to a group already discovered that can get back to the group the
+    # edge starts from (the same strongly connected component).
+    if ($edges.Count -gt 0) {
+        $adjacency = New-Object System.Collections.Generic.List[object]
+        foreach ($node in $nodes) { $adjacency.Add($node.Nested) }
+        $component = Get-ComponentIds $adjacency
+        foreach ($edge in $edges) {
+            if ($edge.Tree -or $component[$edge.From.Number] -ne $component[$edge.To.Number]) { continue }
+            $text = (@($edge.From.Chain) + $edge.To.Info.Name) -join ' > '
+            if (-not ($edge.From.ChainDns -contains $edge.To.Info.Dn)) { $text += ' (also reaches back to ' + $edge.From.Info.Name + ')' }
+            $result.Cycles.Add($text)
         }
     }
     $result
