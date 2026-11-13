@@ -537,13 +537,16 @@ def write_packet_with_notes(packet: Packet) -> tuple[bytes, list[str]]:
     )
     stamp = (when.year, when.month, when.day, when.hour, when.minute, when.second)
     buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+    # Parts are stored, not compressed: deflate output depends on the zlib build, so a
+    # compressed packet would differ between platforms. Stored parts give the same bytes
+    # everywhere, and every spreadsheet program reads them.
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as archive:
         for name, content in parts:
             info = zipfile.ZipInfo(name, date_time=stamp)
-            info.compress_type = zipfile.ZIP_DEFLATED
+            info.compress_type = zipfile.ZIP_STORED
             info.create_system = 3
             info.external_attr = _FIXED_ZIP_ATTR
-            archive.writestr(info, content, compresslevel=9)
+            archive.writestr(info, content)
     return buffer.getvalue(), cleaner.notes
 
 

@@ -12,7 +12,7 @@
   "data": {
     "campaign_digest": "2a682d7d049bd2d42efc54557e666acf4a280a503e2e4037b8355c68e9d8a3f3",
     "campaign_id": "C61b04c11174dbf64",
-    "decisions_digest": "5df92e057c7354464587c1e477bb3a94b88bfaad623544bf850bc2a8a100d1d3",
+    "decisions_digest": "941ef1ee2d1e680f1d8de68fb96f40ede76be180a0d2e450c74df4fbd32cab29",
     "packets": [
       {
         "file": "returned-01-Casey-Owner-da089e.xlsx",
@@ -20,7 +20,7 @@
         "reported_by": "shaar",
         "reported_modified": "2026-11-02T09:00:00Z",
         "reviewer": "Casey Owner",
-        "sha256": "a0b9e08f27e6b775c137b4d8d1ad4ea33a6bdc7293c1a8ec3605ec0257cf677b",
+        "sha256": "bf2995585369bd94b424d5cb05667a6e6af12786a975217e2e101a42c1342f07",
         "status": "read"
       },
       {
@@ -29,7 +29,7 @@
         "reported_by": "shaar",
         "reported_modified": "2026-11-02T09:00:00Z",
         "reviewer": "Jordan Director",
-        "sha256": "bf273465fe43071370463fbde586e9bd1d6caf7f42a15d21373bcc6461e974ce",
+        "sha256": "739428ccad28e039a0ba365d0447c9717cc4a7df118f78e005e1d65ab2929178",
         "status": "read"
       },
       {
@@ -38,7 +38,7 @@
         "reported_by": "shaar",
         "reported_modified": "2026-11-02T09:00:00Z",
         "reviewer": "Morgan Lead",
-        "sha256": "921ff9bcc0ca8b685355809af7fb29e4a1d51d29d527b8b5652fc1380f91714d",
+        "sha256": "a3302bea5789daccfe0e33d5eed2ffa60a1b82cb393485ef79b3789c25b5d474",
         "status": "read"
       }
     ]

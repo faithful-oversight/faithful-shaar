@@ -75,6 +75,7 @@ jobs:
       - run: uv sync --locked --all-extras
       - run: scripts/check.sh test
         env:
+          SHAAR_REQUIRE_LIVE: "1"
           SHAAR_REQUIRE_PWSH: "1"
 
   docs:

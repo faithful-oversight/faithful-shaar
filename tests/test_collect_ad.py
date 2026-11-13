@@ -25,6 +25,11 @@ from faithful_shaar.collect import ad, names, remote, script, secrets
 from faithful_shaar.collect.remote import Target, collect, parameters, settings
 from faithful_shaar.errors import CollectionError, ShaarError, UsageError
 
+if os.environ.get("SHAAR_REQUIRE_LIVE") == "1":  # pragma: no cover - set in CI
+    # Fail at collection, not skip, when the `ad` extra is missing. Imported by name so
+    # type checking does not need the extra installed.
+    importlib.import_module("pypsrp")
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
@@ -541,6 +546,7 @@ def test_pypsrp_missing_says_how_to_install(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_the_real_client_classes_load() -> None:
+    pytest.importorskip("pypsrp")  # the `ad` extra; CI sets SHAAR_REQUIRE_LIVE=1 to require it
     wsman, pool, shell, running = remote._client()  # noqa: SLF001
     assert (wsman.__name__, pool.__name__, shell.__name__) == (
         "WSMan",

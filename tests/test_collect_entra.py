@@ -26,7 +26,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlsplit
 
-import azure.identity as real_identity
 import pytest
 
 from faithful_shaar import __version__
@@ -519,7 +518,9 @@ def test_the_token_is_remembered_so_it_is_redacted(client: GraphClient, fake: Fa
     assert secrets.redact(f"x {TOKEN} y") == f"x {secrets.REDACTED} y"
 
 
-def test_the_opener_never_follows_redirects() -> None:
+def test_the_opener_never_follows_redirects(monkeypatch: pytest.MonkeyPatch) -> None:
+    # urllib adds its proxy handler only when proxy settings exist; give it one to keep.
+    monkeypatch.setenv("HTTPS_PROXY", "http://192.0.2.10:3128")
     opener: Any = build_real_opener()
     assert any(isinstance(h, NoRedirect) for h in opener.handlers)
     assert any(isinstance(h, urllib.request.ProxyHandler) for h in opener.handlers)
@@ -545,6 +546,7 @@ def test_each_cloud_uses_its_graph_host_scope_and_authority(
     cloud: str, host: str, authority_host: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     assert CLOUDS[cloud].graph_host == host
+    real_identity = pytest.importorskip("azure.identity")  # the `entra` extra
     assert getattr(real_identity.AzureAuthorityHosts, CLOUDS[cloud].authority) == authority_host
 
     fake_graph = FakeGraph()

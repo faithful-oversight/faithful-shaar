@@ -278,7 +278,7 @@ def test_zip_dates_come_from_created_at_and_order_is_fixed() -> None:
         dates = {info.date_time for info in archive.infolist()}
         kinds = {info.compress_type for info in archive.infolist()}
     assert dates == {(2026, 11, 12, 10, 30, 44)}
-    assert kinds == {zipfile.ZIP_DEFLATED}
+    assert kinds == {zipfile.ZIP_STORED}  # deflate output differs between zlib builds
 
 
 def test_different_created_at_changes_the_file_and_epoch_is_clamped() -> None:
@@ -448,12 +448,42 @@ def test_encrypted_entry_flag() -> None:
     rejects(bytes(data), "is encrypted")
 
 
-def test_corrupt_compressed_data() -> None:
-    data = bytearray(write_packet(make_packet()))
-    start = data.index(b"xl/workbook.xml") + len(b"xl/workbook.xml")
+def _deflated(data: bytes) -> bytes:
+    """Return the same workbook with every part compressed, as Excel saves it."""
+    out = io.BytesIO()
+    with (
+        zipfile.ZipFile(io.BytesIO(data)) as source,
+        zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as target,
+    ):
+        for info in source.infolist():
+            target.writestr(info.filename, source.read(info.filename))
+    return out.getvalue()
+
+
+def _part_start(data: bytes, name: bytes) -> int:
+    """Return where a part's data begins, after its local file header."""
+    header = data.index(b"PK\x03\x04")
+    while True:
+        size = int.from_bytes(data[header + 26 : header + 28], "little")
+        extra = int.from_bytes(data[header + 28 : header + 30], "little")
+        if data[header + 30 : header + 30 + size] == name:
+            return header + 30 + size + extra
+        header = data.index(b"PK\x03\x04", header + 4)
+
+
+def test_a_deflated_workbook_is_read() -> None:
+    returned = read_packet(_deflated(write_packet(make_packet())), "excel.xlsx")
+    assert len(returned.rows) == len(make_packet().rows)
+
+
+@pytest.mark.parametrize("deflate", [True, False])
+def test_corrupt_part_data_is_rejected(*, deflate: bool) -> None:
+    raw = write_packet(make_packet())
+    data = bytearray(_deflated(raw) if deflate else raw)
+    start = _part_start(bytes(data), b"xl/workbook.xml")
     for i in range(start, start + 20):
         data[i] ^= 0xFF
-    rejects(bytes(data), "cannot be decompressed|not safe XML|no workbook")
+    rejects(bytes(data), "cannot be decompressed|not safe XML|no workbook|CRC")
 
 
 def test_unsupported_compression_method() -> None:
