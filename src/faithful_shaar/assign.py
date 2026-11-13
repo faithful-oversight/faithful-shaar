@@ -212,7 +212,8 @@ def by_map(grant: Grant, snapshot: Snapshot, entries: list[MapEntry]) -> Assignm
             )
         if reviewers:
             reviewer = reviewers.pop()
-            if reviewer.key.removeprefix("map:") in principal_names:
+            mine = {reviewer.key.removeprefix("map:"), reviewer.email.strip().casefold()} - {""}
+            if mine & principal_names:
                 return Assignment(
                     None, "the mapped reviewer is the principal, who cannot review their own access"
                 )

@@ -146,6 +146,25 @@ def odata_string(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
+_PATH = re.compile(r"(/[A-Za-z0-9._-]+)+")
+
+
+def _checked(path: str) -> str:
+    """Return a request path only when it is plain segments of safe characters.
+
+    Ids that come from Graph responses are put into paths. Checking the whole path means a
+    response can never steer a request elsewhere with ``..``, a query, a fragment or an
+    escape, whatever an id holds.
+
+    Raises:
+        GraphGap: The path holds anything else.
+    """
+    if not _PATH.fullmatch(path) or any(part in {".", ".."} for part in path.split("/")):
+        msg = "an id from Graph is not a plain identifier, so it was not requested"
+        raise GraphGap(msg)
+    return path
+
+
 class GraphClient:
     """Read JSON from Microsoft Graph v1.0 with a token for one national cloud."""
 
@@ -182,7 +201,7 @@ class GraphClient:
             GraphGap: The request could not be answered; the reason says why.
             CollectionError: Graph rejected the token (HTTP 401) or sign-in failed.
         """
-        url = self.base + path
+        url = self.base + _checked(path)
         if params:
             url += "?" + urlencode(params, quote_via=quote, safe="$,()")
         return self._fetch(url, needs)
@@ -202,8 +221,17 @@ class GraphClient:
         accept ``$top``.
         """
         merged = {**({"$top": PAGE_SIZE} if top else {}), **(params or {})}
+        try:
+            start = _checked(path)
+        except GraphGap as gap:
+            return Pages([], gap.reason)
+        return self._listing(
+            self.base + start + "?" + urlencode(merged, quote_via=quote, safe="$,()"), needs
+        )
+
+    def _listing(self, url: str, needs: str) -> Pages:
+        """Follow a listing's pages from ``url``."""
         items: list[dict[str, Any]] = []
-        url = self.base + path + "?" + urlencode(merged, quote_via=quote, safe="$,()")
         seen: set[str] = set()
         for _ in range(MAX_PAGES):
             seen.add(url)
@@ -275,7 +303,7 @@ class GraphClient:
                 return _Reply(exc.code, exc.headers.get("Retry-After"), exc.read(MAX_ERROR_BYTES))
             finally:
                 exc.close()
-        except (OSError, http.client.HTTPException) as exc:
+        except (OSError, http.client.HTTPException, ValueError) as exc:
             msg = f"the request failed ({type(exc).__name__})"
             raise GraphGap(msg) from None
 

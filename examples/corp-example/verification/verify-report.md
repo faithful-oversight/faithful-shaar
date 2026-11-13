@@ -27,7 +27,7 @@ Each accepted Remove decision, checked against the later export.
 | R11cecb2e3123 | Emery Contractor | Server Operators | member | failed | still present on 2026-11-20, on or after the due date 2026-11-16 | returned-01-Casey-Owner-da089e.xlsx, Review row 3 |
 | R1f6664bcbe2a | Emery Contractor | Payroll App Users | member | unknown | the later export did not read this resource's whole membership | returned-01-Casey-Owner-da089e.xlsx, Review row 2 |
 | R4512f0a10ac0 | Drew Analyst | Payroll App Users | member | unknown | the later export did not read this resource's whole membership | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9 |
-| R7c9006452035 | Blake Sample | Ledger | Viewer | removed | not in the later export, which read the whole membership; the principal itself is not in the later export | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5 |
+| R7c9006452035 | Blake Sample | Ledger | Viewer | removed | not in the later export, which read the whole membership; the principal's key is not in the later export | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5 |
 | Rcf3e823507b7 | Blake Sample | Finance Admins | member | removed | not in the later export, which read the whole membership; the principal is disabled | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 3 |
 
 ## Kept, but gone anyway (1 row)

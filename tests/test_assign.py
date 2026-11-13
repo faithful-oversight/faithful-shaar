@@ -177,3 +177,21 @@ def test_one_person_in_two_systems_is_one_reviewer_and_never_reviews_themselves(
     assert assign(grant(1102, 2001), s, "owner").reviewer == Reviewer(
         "mail:casey.owner@corp.example", "Casey Owner", "casey.owner@corp.example"
     )
+
+
+def test_map_rule_catches_self_review_by_email(tmp_path: Path) -> None:
+    entries = read_map(
+        write(
+            tmp_path,
+            "resource,reviewer_id,reviewer_name,reviewer_email\n"
+            "Finance Admins,r1,Someone,Avery.Example@corp.example\n",
+        )
+    )
+    result = assign(grant(1102, 2001), snap(), "map", entries)
+    assert "cannot review their own access" in result.reason
+
+
+def test_owner_rule_with_a_holder_missing_from_the_input() -> None:
+    result = assign(grant(1999, 2002), snap(), "owner")
+    assert result.reviewer is not None
+    assert result.reviewer.name == "Casey Owner"

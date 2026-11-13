@@ -20,6 +20,7 @@ access on the reviewed resources that was not part of the review.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from faithful_shaar.errors import InputError
@@ -79,9 +80,21 @@ def _check_record(campaign: Campaign, record: DecisionRecord) -> None:
         raise InputError(msg)
 
 
+def _instant(text: str) -> datetime | None:
+    """Return an ISO 8601 time as a UTC instant, or ``None`` when it is not one."""
+    try:
+        moment = datetime.fromisoformat(text.strip())
+    except ValueError:
+        return None
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
+    return moment.astimezone(UTC)
+
+
 def _date(text: str) -> str:
-    """Return the date part of an ISO 8601 time (``YYYY-MM-DD``), or ``""``."""
-    return text[:10] if len(text) >= 10 else ""  # noqa: PLR2004 - YYYY-MM-DD
+    """Return the UTC calendar date of an ISO 8601 time (``YYYY-MM-DD``), or ``""``."""
+    moment = _instant(text)
+    return moment.date().isoformat() if moment else ""
 
 
 def _still_there(campaign: Campaign, as_of: str) -> tuple[str, str]:
@@ -99,6 +112,46 @@ def _still_there(campaign: Campaign, as_of: str) -> tuple[str, str]:
     return "failed", "still present; the campaign has no due date"
 
 
+def _same_person(row: Row, later: Snapshot) -> str:
+    """Return who in the later export holds this access under another key, or ``""``.
+
+    A person can change key between exports, for example when a CSV's id column changes.
+    Their access is then absent under the old key but present under the new one, so the
+    absence is no evidence of a removal.
+    """
+    account = row.display.get("account", "").strip().casefold()
+    entitlement = row.grant_key.rsplit("|", 1)[-1]
+    for grant in later.grants.values():
+        if grant.resource_key != row.resource_key or grant.key.rsplit("|", 1)[-1] != entitlement:
+            continue
+        principal = later.principals.get(grant.principal_key)
+        if principal is None or not account:
+            continue
+        names = {v.strip().casefold() for v in (principal.upn, principal.email, principal.id) if v}
+        if account in names:
+            return principal.name or principal.id
+    return ""
+
+
+def _absent(campaign: Campaign, row: Row, later: Snapshot, when: str) -> tuple[str, str]:
+    """Judge access absent from a fully read resource: removed only with a dated, later read."""
+    taken, started = _instant(when), _instant(campaign.created_at)
+    if taken is None:
+        return "unknown", "the later export does not say when it was read; give --as-of"
+    if started is not None and taken < started:
+        return "unknown", "the later export was read before the campaign began"
+    holder = _same_person(row, later)
+    if holder:
+        return "unknown", f"the same account still holds this access under another key ({holder})"
+    reason = "not in the later export, which read the whole membership"
+    principal = later.principals.get(row.principal_key)
+    if principal is None:
+        reason += "; the principal's key is not in the later export"
+    elif principal.enabled is False:
+        reason += "; the principal is disabled"
+    return "removed", reason
+
+
 def _removal(
     campaign: Campaign, row: Row, later: Snapshot, when: str, systems: set[str]
 ) -> tuple[str, str]:
@@ -106,13 +159,7 @@ def _removal(
     if row.grant_key in later.grants:
         return _still_there(campaign, when)
     if row.resource_key in later.complete_resources:
-        reason = "not in the later export, which read the whole membership"
-        principal = later.principals.get(row.principal_key)
-        if principal is None:
-            reason += "; the principal itself is not in the later export"
-        elif principal.enabled is False:
-            reason += "; the principal is disabled"
-        return "removed", reason
+        return _absent(campaign, row, later, when)
     if system_of(row.resource_key) not in systems:
         return "unknown", "the later export is not of the system this access is on"
     if row.resource_key not in later.resources:
