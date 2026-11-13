@@ -124,7 +124,8 @@ def test_markdown_escaping_breaks_autolinks_and_line_breaks() -> None:
     assert text.count("↵") == 3
 
 
-def test_command_line_quotes_for_the_shell() -> None:
+def test_command_line_quotes_for_the_shell(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("faithful_shaar.outputs.safety.os.name", "posix")
     assert command_line("shaar", "my file", "it's") == "shaar 'my file' 'it'\"'\"'s'"
 
 

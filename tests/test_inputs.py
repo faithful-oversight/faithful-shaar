@@ -139,6 +139,8 @@ def test_not_a_regular_file(tmp_path: Path, kind: str, message: str) -> None:
     if kind == "directory":
         path.mkdir()
     elif kind == "fifo":
+        if not hasattr(os, "mkfifo"):
+            pytest.skip("this platform has no named pipes")
         os.mkfifo(path)
     with pytest.raises(InputError, match=message):
         read_inputs([path], label="x")
