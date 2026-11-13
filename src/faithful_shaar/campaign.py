@@ -252,7 +252,7 @@ def build(  # noqa: PLR0913 - the parts of a campaign
                 reviewer.key,
                 reviewer.name,
                 reviewer.email,
-                f"packets/{index:02d}-{_slug(reviewer.name, reviewer.key)}.xlsx",
+                f"packet-{index:02d}-{_slug(reviewer.name, reviewer.key)}.xlsx",
                 packet_digest([row.row_check for row in mine]),
                 len(mine),
             )

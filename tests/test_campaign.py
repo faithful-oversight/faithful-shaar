@@ -28,7 +28,7 @@ def test_rows_are_assigned_ordered_and_digested() -> None:
     ]
     assert all(r.row_check == row_check(camp.id, r.row_id, r.grant_key, r.display) for r in rows)
     assert camp.reviewers[0].packet_digest == cmod.packet_digest([r.row_check for r in rows])
-    assert camp.reviewers[0].packet.startswith("packets/01-Morgan-Lead-")
+    assert camp.reviewers[0].packet.startswith("packet-01-Morgan-Lead-")
     assert {u.reason for u in camp.unassigned} == {"the input names no manager for this principal"}
     assert len(camp.unassigned) == 2
 
