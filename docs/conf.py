@@ -40,6 +40,12 @@ html_theme_options = {
 
 NAVIGATION = {
     "index": [
+        "usage",
+        "campaigns",
+        "verification",
+        "collecting",
+        "formats",
+        "output",
         "limitations",
         "architecture",
         "threat-model",
@@ -50,6 +56,10 @@ NAVIGATION = {
         "0001-record-architecture-decisions",
         "0002-python-core",
         "0003-documentation-site",
+        "0004-export-format",
+        "0005-collectors",
+        "0006-campaign-integrity",
+        "0007-packet-workbooks",
     ],
 }
 """Page order for the site navigation, keyed by the page that lists them."""

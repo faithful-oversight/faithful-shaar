@@ -55,3 +55,6 @@ PowerShell
 TOML
 CHANGELOG
 [Mm]isspelled
+remoting
+openpyxl
+pypsrp
