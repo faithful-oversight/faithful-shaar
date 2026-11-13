@@ -26,6 +26,7 @@ from tests.core_fixtures import (
 )
 
 AFTER = "2026-11-10T12:00:00Z"  # after the campaign began, before it was due
+TENANT = "00000000-0000-4000-8000-0000000000f0"
 DECIDE = {
     "Avery Example|Finance Admins": "Remove",
     "Blake Sample|Finance Admins": "Keep",
@@ -94,8 +95,8 @@ def test_unknown_without_evidence() -> None:
     other = snapshot([], [], [], label="after")
     other.systems = {"entra"}
     other.resources = {
-        keys.entra("00000000-0000-4000-8000-000000000001"): Resource(
-            keys.entra("00000000-0000-4000-8000-000000000001"), "entra", "x", "Entra group"
+        keys.entra(TENANT, "00000000-0000-4000-8000-000000000001"): Resource(
+            keys.entra(TENANT, "00000000-0000-4000-8000-000000000001"), "entra", "x", "Entra group"
         )
     }
     assert "not of the system" in verify(camp, record, other).checks[0].reason

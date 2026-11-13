@@ -76,6 +76,8 @@ class _Reader:
     size: int = 0
     records: int = 0
     loss: bool = False
+    tenant: str = ""
+    domain: str = ""
     trailer_seen: bool = False
     trailer_ok: bool = False
     everything: Any = field(default_factory=hashlib.sha256)
@@ -167,9 +169,10 @@ class _Reader:
     def identity(self, raw: str, *, role: bool = False) -> tuple[str, str]:
         """Return the key for a raw source id and a note when the key is weaker."""
         if self.system == "entra":
-            return (keys.entra_role(raw) if role else keys.entra(raw)), ""
+            make = keys.entra_role if role else keys.entra
+            return make(self.tenant, raw), ""
         try:
-            return keys.sid(raw), ""
+            return keys.sid(raw, self.domain), ""
         except ValueError:
             return keys.dn(raw), "has no SID, so it is matched by distinguished name"
 
@@ -332,9 +335,22 @@ class _Reader:
         for name in ("scope", "collector"):
             if name in head:
                 context[f"{name}[{self.name}]"] = _text(head[name])
-        for name in ("tenant", "domain"):
+        for name in ("tenant", "domain", "cloud"):
             if name in head:
                 context[f"{name}[{self.name}]"] = _text(head[name])
+        # Keys are tied to their directory: the tenant for Entra ID, the domain for the
+        # well-known SIDs every domain shares. Without it, nothing here is read in full.
+        self.tenant = _text(head.get("tenant", "")) if self.system == "entra" else ""
+        self.domain = _text(head.get("domain", "")) if self.system == "ad" else ""
+        if self.system == "entra" and keys.tenant(self.tenant) == keys.UNKNOWN:
+            self.problem(
+                source, "header names no tenant id, so this export proves no complete read"
+            )
+            self.loss = True
+        if self.system == "ad" and not self.domain.strip():
+            self.problem(
+                source, "header names no domain, so well-known groups cannot be tied to one"
+            )
 
     def classify(self, line: bytes | None) -> None:
         """Handle one body line (everything after the header)."""
@@ -373,7 +389,10 @@ class _Reader:
             self.problem(source, "record has more than one member; skipped")
             self.loss = True
         else:
+            # A record this reader does not know may have held access, so a skipped one
+            # means no membership here can be shown to be complete.
             self.problem(source, f"unknown record type {next(iter(obj), '')[:40]!r}; skipped")
+            self.loss = True
 
     def trailer(self, obj: dict[str, Any], source: Source) -> None:
         self.trailer_seen = True

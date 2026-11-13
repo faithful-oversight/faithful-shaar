@@ -24,7 +24,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from faithful_shaar.errors import InputError
-from faithful_shaar.keys import system_of
+from faithful_shaar.keys import entitlement_of, system_of
 
 if TYPE_CHECKING:
     from faithful_shaar.campaign import Campaign, Row
@@ -120,9 +120,9 @@ def _same_person(row: Row, later: Snapshot) -> str:
     absence is no evidence of a removal.
     """
     account = row.display.get("account", "").strip().casefold()
-    entitlement = row.grant_key.rsplit("|", 1)[-1]
+    entitlement = entitlement_of(row.grant_key)
     for grant in later.grants.values():
-        if grant.resource_key != row.resource_key or grant.key.rsplit("|", 1)[-1] != entitlement:
+        if grant.resource_key != row.resource_key or entitlement_of(grant.key) != entitlement:
             continue
         principal = later.principals.get(grant.principal_key)
         if principal is None or not account:
@@ -197,7 +197,10 @@ def verify(
         present = row.grant_key in later.grants
         complete = row.resource_key in later.complete_resources
         if decision.decision == "Remove":
-            result, reason = _removal(campaign, row, later, when, systems)
+            # Each resource is judged by when its own inputs read it, not by another
+            # input's time; --as-of, when given, is the operator's statement for all.
+            read_at = as_of or later.resource_times.get(row.resource_key, later.collected_at)
+            result, reason = _removal(campaign, row, later, read_at, systems)
             checks.append(Check(row_id, row.grant_key, result, reason, decision.citation))
         elif decision.decision == "Keep" and not present and complete:
             kept_but_gone.append(

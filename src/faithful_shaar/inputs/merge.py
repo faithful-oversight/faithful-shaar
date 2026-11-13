@@ -6,13 +6,14 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from faithful_shaar import keys
 from faithful_shaar.inputs.combine import (
     add_grant,
     differing_principal_fields,
     differing_resource_fields,
     parse_time,
 )
-from faithful_shaar.model import Problem, Snapshot
+from faithful_shaar.model import Problem, Snapshot, Source
 
 _FLOOR = datetime.min.replace(tzinfo=UTC)
 
@@ -21,16 +22,15 @@ def earliest(snapshots: list[Snapshot]) -> str:
     """Return the earliest ``collected_at`` of the inputs, or ``""`` when one is unknown.
 
     The earliest, not the latest: a later verification may only claim evidence as recent
-    as the oldest input it rests on. An export without a valid time makes the answer
-    unknown (``""``). A CSV without a time (the map gave none) makes no claim and is
-    left out.
+    as the oldest input it rests on. Any input without a valid time, a CSV whose map
+    gives none included, makes the answer unknown (``""``): one input's time says
+    nothing about when another was read.
     """
     stamps = []
     for snapshot in snapshots:
-        if snapshot.collected_at:
-            stamps.append(snapshot.collected_at)
-        elif snapshot.inputs[0].kind != "csv":
+        if not snapshot.collected_at:
             return ""
+        stamps.append(snapshot.collected_at)
     return min(stamps, key=lambda s: parse_time(s) or _FLOOR, default="")
 
 
@@ -75,5 +75,17 @@ def merge(label: str, snapshots: list[Snapshot]) -> Snapshot:
         for key in out.resources
         if all(key in s.complete_resources for s in snapshots if key in s.resources)
     }
+    for key in out.resources:
+        out.resource_times[key] = earliest([s for s in snapshots if key in s.resources])
+    unscoped = sorted(key for key in out.complete_resources if keys.unscoped(key))
+    if unscoped:
+        out.complete_resources -= set(unscoped)
+        out.problems.append(
+            Problem(
+                Source(out.inputs[0].name if out.inputs else label),
+                f"{len(unscoped)} resources could not be tied to their domain or tenant, so "
+                "none of them is treated as read in full",
+            )
+        )
     out.collected_at = earliest(snapshots)
     return out

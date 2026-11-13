@@ -2,37 +2,37 @@
   "files": [
     {
       "name": "campaign.json",
-      "sha256": "12d4b21f41009be098d0a784ef11aa0a04087b60e8d4619343e8941bf6c83ec2",
-      "size": 13722
+      "sha256": "7206a15844c0d2e14e63abeb616f50e0f0486410b3576a85e1690f22c6e0adb1",
+      "size": 14388
     },
     {
       "name": "packet-01-Casey-Owner-da089e.xlsx",
-      "sha256": "86a50ab005b050733ff1f8e33ab169f5647aa015d7f2bae23fbeee8adeeec3b1",
+      "sha256": "c914bf709c34cd23fce1d00ec134ff5ff4384c455073768f14f7ede01ee89efd",
       "size": 14218
     },
     {
       "name": "packet-02-Jordan-Director-24304a.xlsx",
-      "sha256": "adf6be8092d5811a11aa209fb1e9a589ee331c5dceb2dabc62d2e67afba9d7c7",
+      "sha256": "0078cb227a9d05b36b678e8a8be35034cf2c38d08a6bc615da889a6da8b40da6",
       "size": 14210
     },
     {
       "name": "packet-03-Morgan-Lead-e16dc6.xlsx",
-      "sha256": "a028448f7dc68435897f39e64aae5a0bce8279dc56f04d30c4809f22f0d9497e",
+      "sha256": "1d31961cd19f0601b194ad134f568e23fa5f09a83e44007a02a0247bdf103955",
       "size": 20751
     },
     {
       "name": "campaign-report.json",
-      "sha256": "28e244990f65c6fe229be4f7344de0975fd724fc444372ac1646ae7eebb2d4c9",
+      "sha256": "13239d8cfa727bfd1fa4cd14a06e488da2fec1445a43307f8c1d7e4a60167e1e",
       "size": 7700
     },
     {
       "name": "campaign-report.md",
-      "sha256": "e1f9cb2c79576ebbd2806864a0ec00d34ebf2d2f1c2d0657edfea5e9bbcee464",
+      "sha256": "c044357e2950216c407b5d18a0feb0e3280a207f56ad3736588b5c71d64a71a6",
       "size": 4507
     },
     {
       "name": "campaign-report.html",
-      "sha256": "7ad4247da832e6934a74ab06fc6e51547b9f7d6bbd98738fd2d372c05573d9b9",
+      "sha256": "4a6fd65a5acd9af78b48958a2fb822d28dd97e975f8a1b0c0e498631e9b27e00",
       "size": 9594
     },
     {
@@ -42,7 +42,7 @@
     },
     {
       "name": "rows.csv",
-      "sha256": "4b8d028a8daeeff5fe0ba24d99441bf8659abf715e27837a9194c208450a1641",
+      "sha256": "fe8322f553e6715f77ac3a83ce7888fbde51cce39cb7d957484e8bd49fdc0708",
       "size": 1849
     }
   ],

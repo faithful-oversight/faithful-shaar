@@ -51,7 +51,7 @@ expect 1 "$tool" campaign "$before/ad.jsonl" "$before/entra.jsonl" "$before/ledg
   -o "$work/campaign"
 expect 1 "$tool" decisions "$demo/campaign" "$demo"/returned/*.xlsx -o "$work/decisions"
 expect 1 "$tool" verify "$demo/campaign" "$work/decisions" "$demo/after/ad.jsonl" \
-  "$demo/after/entra.jsonl" "$demo/after/ledger.csv" --map "$before/ledger-map.toml" \
+  "$demo/after/entra.jsonl" "$demo/after/ledger.csv" --map "$demo/after/ledger-map.toml" \
   -o "$work/verification"
 
 # Every folder has its reports, each non-empty, and a manifest listing every other file.

@@ -208,16 +208,24 @@ def test_an_export_without_a_valid_time_makes_the_merge_unknown(tmp_path: Path) 
     assert read_inputs([good, bad], label="x").collected_at == ""
 
 
-def test_a_csv_without_a_time_makes_no_claim_but_one_with_a_time_counts(tmp_path: Path) -> None:
+def test_a_csv_without_a_time_cannot_borrow_one(tmp_path: Path) -> None:
     exported = write(tmp_path, "a.jsonl", export_bytes(records()))
     table = write(tmp_path, "b.csv", ledger_csv())
     snap = read_inputs([exported, table], label="x", preset="generic", resource=None)
-    assert snap.collected_at == "2026-11-01T12:00:00Z"
-    assert earliest([snap]) == snap.collected_at
+    # the read as a whole is undated: one of its inputs says nothing about when it was taken
+    assert snap.collected_at == ""
+    assert earliest([snap]) == ""
+    # each resource keeps the time of the inputs that hold it, so the export's own time stands
+    # and the CSV's resources have none
+    assert snap.resource_times[f"ad:sid:{ADMINS}"] == "2026-11-01T12:00:00Z"
+    csv_keys = [k for k in snap.resources if k.startswith("csv:")]
+    assert csv_keys
+    assert all(snap.resource_times[k] == "" for k in csv_keys)
     with_time = tmp_path / "t.toml"
     with_time.write_text('system = "hr"\ncollected_at = "2026-10-01T00:00:00Z"\n', encoding="utf-8")
     snap = read_inputs([exported, table], label="x", preset="generic", csv_map=with_time)
     assert snap.collected_at == "2026-10-01T00:00:00Z"
+    assert snap.resource_times[f"ad:sid:{ADMINS}"] == "2026-11-01T12:00:00Z"
     only_csv = read_inputs([table], label="x", preset="generic")
     assert only_csv.collected_at == ""
 
@@ -306,7 +314,12 @@ def test_problems_from_every_input_are_kept_in_order(tmp_path: Path) -> None:
     first = write(tmp_path, "one.jsonl", export_bytes([{"mystery": 1}]))
     second = write(tmp_path, "two.jsonl", export_bytes([{"mystery": 2}]))
     snap = read_inputs([first, second], label="x")
-    assert [str(p.source) for p in snap.problems] == ["one.jsonl, line 2", "two.jsonl, line 2"]
+    assert [str(p.source) for p in snap.problems] == [
+        "one.jsonl, line 2",
+        "one.jsonl",
+        "two.jsonl, line 2",
+        "two.jsonl",
+    ]
 
 
 def test_merge_of_nothing_in_particular() -> None:

@@ -9,7 +9,7 @@
   },
   "data": {
     "as_of": "2026-11-20T22:00:00Z",
-    "campaign_digest": "2a682d7d049bd2d42efc54557e666acf4a280a503e2e4037b8355c68e9d8a3f3",
+    "campaign_digest": "c551ffff5ed70e50f08ce940bc2eb99489386b367a81ab609bc587e871d94637",
     "campaign_id": "C61b04c11174dbf64"
   },
   "facts": {
@@ -77,24 +77,6 @@
         "row_id": "R11cecb2e3123"
       },
       {
-        "access": "member",
-        "citation": "returned-01-Casey-Owner-da089e.xlsx, Review row 2",
-        "principal": "Emery Contractor",
-        "reason": "the later export did not read this resource's whole membership",
-        "resource": "Payroll App Users",
-        "result": "unknown",
-        "row_id": "R1f6664bcbe2a"
-      },
-      {
-        "access": "member",
-        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9",
-        "principal": "Drew Analyst",
-        "reason": "the later export did not read this resource's whole membership",
-        "resource": "Payroll App Users",
-        "result": "unknown",
-        "row_id": "R4512f0a10ac0"
-      },
-      {
         "access": "Viewer",
         "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5",
         "principal": "Blake Sample",
@@ -105,12 +87,30 @@
       },
       {
         "access": "member",
+        "citation": "returned-01-Casey-Owner-da089e.xlsx, Review row 2",
+        "principal": "Emery Contractor",
+        "reason": "the later export did not read this resource's whole membership",
+        "resource": "Payroll App Users",
+        "result": "unknown",
+        "row_id": "R7e2286fe57e8"
+      },
+      {
+        "access": "member",
         "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 3",
         "principal": "Blake Sample",
         "reason": "not in the later export, which read the whole membership; the principal is disabled",
         "resource": "Finance Admins",
         "result": "removed",
         "row_id": "Rcf3e823507b7"
+      },
+      {
+        "access": "member",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9",
+        "principal": "Drew Analyst",
+        "reason": "the later export did not read this resource's whole membership",
+        "resource": "Payroll App Users",
+        "result": "unknown",
+        "row_id": "Re38173dfa1b5"
       }
     ]
   },

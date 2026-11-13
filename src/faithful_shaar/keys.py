@@ -1,15 +1,24 @@
 # SPDX-FileCopyrightText: 2026 Faithful Oversight, LLC
 # SPDX-License-Identifier: Apache-2.0
-"""Stable keys that identify principals, resources and grants across exports.
+r"""Stable keys that identify principals, resources and grants across exports.
 
 A key is ``system:kind:value``. The system and kind are lower case; the value is
 normalized for its kind so that two exports of the same thing give the same key:
 
-- ``ad:sid:S-1-5-21-...``: a Windows security identifier, upper case (SIDs ignore case).
+- ``ad:sid:S-1-5-21-...``: a domain's security identifier, upper case (SIDs ignore case).
+  A domain SID is unique everywhere. A well-known SID such as ``S-1-5-32-544``
+  (BUILTIN\Administrators) is the same in every domain, so its key names the domain:
+  ``ad:sid:S-1-5-32-544@corp.example``.
 - ``ad:dn:cn=...``: a distinguished name, case-folded. Used only when no SID is known.
-- ``entra:id:<object id>``: an Entra ID object id, lower case.
-- ``entra:role:<role definition id>``: an Entra ID directory role, lower case.
+- ``entra:<tenant>:id:<object id>`` and ``entra:<tenant>:role:<role definition id>``: an
+  Entra ID object or directory role, in its tenant. Built-in role ids are the same in
+  every tenant, so a key without its tenant would let one tenant's evidence stand for
+  another's.
 - ``csv:<system>:<id>``: an identifier from a CSV, case-folded and trimmed.
+
+When the domain or tenant is not known, the key says ``?`` in its place
+(:data:`UNKNOWN`), and :func:`unscoped` reports it: such a resource is never treated as
+read in full, because its evidence cannot be tied to one directory.
 
 Matching across exports uses keys only, never display names, unless a CSV offers nothing
 else (then the CSV reader records that the match is by name).
@@ -20,16 +29,25 @@ from __future__ import annotations
 import re
 
 _SID = re.compile(r"S-1-\d+(-\d+)+", re.IGNORECASE)
+_DOMAIN_SID = re.compile(r"S-1-5-21-\d+-\d+-\d+(-\d+)?", re.IGNORECASE)
+_GUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+UNKNOWN = "?"
 _SYSTEM = re.compile(r"[a-z0-9][a-z0-9._-]{0,39}")
 
 
-def sid(value: str) -> str:
-    """Return the key of a Windows SID, or raise :class:`ValueError` when it is not one."""
+def sid(value: str, domain: str = "") -> str:
+    """Return the key of a Windows SID, or raise :class:`ValueError` when it is not one.
+
+    ``domain`` names the domain the SID was read in. It is part of the key only for a SID
+    that is not a domain SID, such as ``S-1-5-32-544``, which every domain has.
+    """
     text = value.strip()
     if not _SID.fullmatch(text):
         msg = f"{value[:80]!r} is not a SID"
         raise ValueError(msg)
-    return f"ad:sid:{text.upper()}"
+    if _DOMAIN_SID.fullmatch(text):
+        return f"ad:sid:{text.upper()}"
+    return f"ad:sid:{text.upper()}@{domain.strip().casefold() or UNKNOWN}"
 
 
 def dn(value: str) -> str:
@@ -37,14 +55,28 @@ def dn(value: str) -> str:
     return f"ad:dn:{value.strip().casefold()}"
 
 
-def entra(value: str) -> str:
-    """Return the key of an Entra ID object id."""
-    return f"entra:id:{value.strip().lower()}"
+def tenant(value: str) -> str:
+    """Return a tenant as keys use it: its id in lower case, or :data:`UNKNOWN`.
+
+    Only a tenant id (a GUID) identifies a tenant; a domain name can move between tenants.
+    """
+    text = value.strip().lower()
+    return text if _GUID.fullmatch(text) else UNKNOWN
 
 
-def entra_role(value: str) -> str:
-    """Return the key of an Entra ID directory role definition."""
-    return f"entra:role:{value.strip().lower()}"
+def entra(tenant_id: str, value: str) -> str:
+    """Return the key of an Entra ID object id in a tenant."""
+    return f"entra:{tenant(tenant_id)}:id:{value.strip().lower()}"
+
+
+def entra_role(tenant_id: str, value: str) -> str:
+    """Return the key of an Entra ID directory role definition in a tenant."""
+    return f"entra:{tenant(tenant_id)}:role:{value.strip().lower()}"
+
+
+def unscoped(key: str) -> bool:
+    """Say whether a key could not be tied to its domain or tenant."""
+    return key.endswith(f"@{UNKNOWN}") or key.startswith(f"entra:{UNKNOWN}:")
 
 
 def system_name(value: str) -> str:
@@ -69,9 +101,23 @@ def csv(system: str, value: str) -> str:
     return f"csv:{system_name(system)}:{value.strip().casefold()}"
 
 
+def _part(text: str) -> str:
+    return text.replace("%", "%25").replace("|", "%7C")
+
+
 def grant(resource_key: str, principal_key: str, entitlement: str) -> str:
-    """Return a grant's key: its resource, its principal and its entitlement."""
-    return f"{resource_key}|{principal_key}|{entitlement.strip().casefold()}"
+    """Return a grant's key: its resource, its principal and its entitlement.
+
+    Each part has ``%`` and ``|`` escaped, so two different grants never share a key,
+    whatever their identifiers hold.
+    """
+    parts = (resource_key, principal_key, entitlement.strip().casefold())
+    return "|".join(_part(p) for p in parts)
+
+
+def entitlement_of(grant_key: str) -> str:
+    """Return the entitlement part of a grant key, as :func:`grant` wrote it."""
+    return grant_key.rsplit("|", 1)[-1]
 
 
 def system_of(key: str) -> str:

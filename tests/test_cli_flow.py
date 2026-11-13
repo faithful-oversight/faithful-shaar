@@ -104,7 +104,7 @@ def test_decisions_and_verification(sample: Path, tmp_path: Path) -> None:
             str(after / "entra.jsonl"),
             str(after / "ledger.csv"),
             "--map",
-            str(sample / "before" / "ledger-map.toml"),
+            str(sample / "after" / "ledger-map.toml"),
             "-o",
             str(verified),
         ]

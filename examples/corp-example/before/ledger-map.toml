@@ -1,7 +1,9 @@
-# Column map for the Ledger finance application's user export.
+# Column map for the Ledger finance application's user export. A CSV does not say when
+# it was exported, so each export's map gives the time; evidence is only as recent as it.
 system = "ledger"
 resource = "Ledger"
 resource_kind = "application"
+collected_at = "2026-11-01T22:00:00Z"
 
 [columns]
 principal_id = "Email"

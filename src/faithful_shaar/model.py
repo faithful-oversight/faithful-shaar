@@ -111,7 +111,9 @@ class Snapshot:
     ``complete_resources`` holds the keys of resources whose whole membership was read.
     Only for those can the absence of a grant be taken as evidence that it does not exist.
     ``systems`` names each system read the way :func:`faithful_shaar.keys.system_of` does:
-    ``ad``, ``entra`` or ``csv:<system>``.
+    ``ad``, ``entra`` or ``csv:<system>``. ``resource_times`` says when each resource was
+    read: the earliest time of the inputs that hold it, or ``""`` when any of them does
+    not say. Evidence about a resource is only as recent as the inputs that read it.
     """
 
     label: str
@@ -121,6 +123,7 @@ class Snapshot:
     resources: dict[str, Resource] = field(default_factory=dict)
     grants: dict[str, Grant] = field(default_factory=dict)
     complete_resources: set[str] = field(default_factory=set)
+    resource_times: dict[str, str] = field(default_factory=dict)
     problems: list[Problem] = field(default_factory=list)
     inputs: list[InputFile] = field(default_factory=list)
     context: dict[str, str] = field(default_factory=dict)

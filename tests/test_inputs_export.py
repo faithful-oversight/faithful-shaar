@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from faithful_shaar.model import Snapshot
 
 ADMINS = sid(512)
+TENANT = guid(0)
 AVERY = sid(1104)
 BLAIR = sid(1105)
 
@@ -91,10 +92,11 @@ def test_reads_an_entra_export_with_roles() -> None:
     ]
     snap = read(export_bytes(records, system="entra"))
     assert snap.problems == []
-    assert f"entra:id:{guid(1)}" in snap.principals
-    assert f"entra:role:{role}" in snap.resources
-    assert f"entra:id:{guid(3)}" in snap.resources
-    assert f"entra:role:{role}|entra:id:{guid(1)}|global administrator" in snap.grants
+    assert f"entra:{TENANT}:id:{guid(1)}" in snap.principals
+    assert f"entra:{TENANT}:role:{role}" in snap.resources
+    assert f"entra:{TENANT}:id:{guid(3)}" in snap.resources
+    role_key, avery_key = f"entra:{TENANT}:role:{role}", f"entra:{TENANT}:id:{guid(1)}"
+    assert f"{role_key}|{avery_key}|global administrator" in snap.grants
     assert snap.systems == {"entra"}
     assert snap.context["tenant[ad.jsonl]"] == guid(0)
 
@@ -194,7 +196,10 @@ def test_duplicate_principal_and_resource_ids() -> None:
 def test_unknown_record_type_is_a_problem_not_a_crash() -> None:
     snap = read(export_bytes([{"future": {"a": 1}}, principal(AVERY), resource(ADMINS)]))
     assert any("unknown record type 'future'" in r and "line 2" in r for r in reasons(snap))
-    assert snap.complete_resources == {f"ad:sid:{ADMINS}"}
+    # a record this reader does not know may have held a member: nothing is complete
+    assert snap.complete_resources == set()
+    known = read(export_bytes([principal(AVERY), resource(ADMINS)]))
+    assert known.complete_resources == {f"ad:sid:{ADMINS}"}
     snap = read(export_bytes([{}]))
     assert any("unknown record type ''" in r for r in reasons(snap))
 
@@ -412,7 +417,7 @@ def test_entra_grant_before_role_record_resolves_the_role_key() -> None:
             system="entra",
         )
     )
-    assert next(iter(snap.grants.values())).resource_key == f"entra:role:{role}"
+    assert next(iter(snap.grants.values())).resource_key == f"entra:{TENANT}:role:{role}"
     assert any("principal with no record" in r for r in reasons(snap))
     assert not any("resource with no record" in r for r in reasons(snap))
 

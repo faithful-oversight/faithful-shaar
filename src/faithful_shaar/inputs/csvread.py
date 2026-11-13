@@ -276,9 +276,9 @@ class _Reader:
         style = self.cmap.id_style
         try:
             if by_id and style == "sid":
-                return _Ident(keys.sid(raw), raw, name or raw, "ad")
+                return _Ident(keys.sid(raw, self.cmap.domain), raw, name or raw, "ad")
             if by_id and style == "entra":
-                return _Ident(keys.entra(raw), raw, name or raw, "entra")
+                return _Ident(keys.entra(self.cmap.tenant, raw), raw, name or raw, "entra")
             if by_id:
                 return _Ident(keys.csv(system, raw), raw, name or raw, f"csv:{system}")
             return _Ident(keys.csv(system, name), name, name, f"csv:{system}")
@@ -465,10 +465,19 @@ class _Reader:
                     "some rows could not be read, so no resource is treated as complete",
                 )
             )
+        unscoped = any(keys.unscoped(k) for k in [*snap.principals, *snap.resources])
+        if unscoped:
+            snap.problems.append(
+                Problem(
+                    Source(self.name),
+                    "some ids are not tied to a tenant or domain (set tenant or domain in "
+                    "the map), so no resource is treated as complete",
+                )
+            )
         snap.collected_at = self.cmap.collected_at
         snap.systems.update(p.system for p in snap.principals.values())
         snap.systems.update(r.system for r in snap.resources.values())
-        if self.cmap.complete and not self.loss:
+        if self.cmap.complete and not self.loss and not unscoped:
             snap.complete_resources = set(snap.resources) - self.incomplete
 
 

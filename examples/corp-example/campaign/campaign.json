@@ -5,11 +5,11 @@
     "ad:sid:S-1-5-21-1000-1000-1000-2002",
     "ad:sid:S-1-5-21-1000-1000-1000-2003",
     "csv:ledger:ledger",
-    "entra:id:00000000-0000-4000-8000-000000003001",
-    "entra:role:62e90394-69f5-4237-9190-012177145e10"
+    "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001",
+    "entra:00000000-0000-4000-8000-000000000000:role:62e90394-69f5-4237-9190-012177145e10"
   ],
   "created_at": "2026-11-02T09:00:00Z",
-  "digest": "2a682d7d049bd2d42efc54557e666acf4a280a503e2e4037b8355c68e9d8a3f3",
+  "digest": "c551ffff5ed70e50f08ce940bc2eb99489386b367a81ab609bc587e871d94637",
   "due": "2026-11-16",
   "id": "C61b04c11174dbf64",
   "inputs": [
@@ -40,7 +40,7 @@
       "key": "mail:casey.owner@corp.example",
       "name": "Casey Owner",
       "packet": "packet-01-Casey-Owner-da089e.xlsx",
-      "packet_digest": "69ffff8722f011343dbac9356f5e65fc5061b0a90640f0d1c942bdd601e74862",
+      "packet_digest": "5ca74c602de85b57f628112cbe442a4f361871526405dcfc44bf0601ff386224",
       "rows": 2
     },
     {
@@ -48,7 +48,7 @@
       "key": "mail:jordan.director@corp.example",
       "name": "Jordan Director",
       "packet": "packet-02-Jordan-Director-24304a.xlsx",
-      "packet_digest": "8ac1303fef3b1cab6cb4716efdf68940ed418fbdf4af44908f53ee44d074300d",
+      "packet_digest": "56ff6b6d9000c6aa9114707acecd14c72cb0ee0b688d43154c3f0d6bf93df509",
       "rows": 2
     },
     {
@@ -56,7 +56,7 @@
       "key": "mail:morgan.lead@corp.example",
       "name": "Morgan Lead",
       "packet": "packet-03-Morgan-Lead-e16dc6.xlsx",
-      "packet_digest": "28408e44968a26fe85c52a61ca656f8c95279d7abd7987d6a403b7722e037cfc",
+      "packet_digest": "1977fc8cbad36877b556568fc2e7270af981e6762e701e72b2a4ef82e3bd4740",
       "rows": 9
     }
   ],
@@ -73,12 +73,12 @@
         "user": "Emery Contractor",
         "via": "Direct"
       },
-      "grant_key": "entra:id:00000000-0000-4000-8000-000000003001|entra:id:00000000-0000-4000-8000-000000000007|member",
-      "principal_key": "entra:id:00000000-0000-4000-8000-000000000007",
-      "resource_key": "entra:id:00000000-0000-4000-8000-000000003001",
+      "grant_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001|entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000007|member",
+      "principal_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000007",
+      "resource_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001",
       "reviewer_key": "mail:casey.owner@corp.example",
-      "row_check": "6ac9dd03b910b6afc04628296b42c11d74103e033efa161979a9fa5d3c87e7b3",
-      "row_id": "R1f6664bcbe2a",
+      "row_check": "0837fcd22d41d51f46eae9c7e302ade1254350248bdf3cd0ff2cc9db191de42e",
+      "row_id": "R7e2286fe57e8",
       "source": "entra.jsonl, line 14"
     },
     {
@@ -113,12 +113,12 @@
         "user": "Morgan Lead",
         "via": "Direct"
       },
-      "grant_key": "entra:role:62e90394-69f5-4237-9190-012177145e10|entra:id:00000000-0000-4000-8000-000000000002|global administrator",
-      "principal_key": "entra:id:00000000-0000-4000-8000-000000000002",
-      "resource_key": "entra:role:62e90394-69f5-4237-9190-012177145e10",
+      "grant_key": "entra:00000000-0000-4000-8000-000000000000:role:62e90394-69f5-4237-9190-012177145e10|entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000002|global administrator",
+      "principal_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000002",
+      "resource_key": "entra:00000000-0000-4000-8000-000000000000:role:62e90394-69f5-4237-9190-012177145e10",
       "reviewer_key": "mail:jordan.director@corp.example",
-      "row_check": "87761158de70f48964367bedd69cdda9ec11368cf4364eb863771830d9ace668",
-      "row_id": "R9281ee88382f",
+      "row_check": "0462a7a3c4e0955f7979762be212067880466e3ec1349d094f2bf5653f7989d1",
+      "row_id": "Rd57718e25b3c",
       "source": "entra.jsonl, line 11"
     },
     {
@@ -273,12 +273,12 @@
         "user": "Avery Example",
         "via": "Direct"
       },
-      "grant_key": "entra:id:00000000-0000-4000-8000-000000003001|entra:id:00000000-0000-4000-8000-000000000003|member",
-      "principal_key": "entra:id:00000000-0000-4000-8000-000000000003",
-      "resource_key": "entra:id:00000000-0000-4000-8000-000000003001",
+      "grant_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001|entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000003|member",
+      "principal_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000003",
+      "resource_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001",
       "reviewer_key": "mail:morgan.lead@corp.example",
-      "row_check": "2eff43d223360163f7a4c90a5dfd723b077cd77cb33ef203d5065b5274b0f83f",
-      "row_id": "Ree674961366f",
+      "row_check": "473b04dc22ba4e2d6121b97f73fef745d2ad9d5248d87158d7c4c2c99311e044",
+      "row_id": "R69e878188490",
       "source": "entra.jsonl, line 12"
     },
     {
@@ -293,12 +293,12 @@
         "user": "Drew Analyst",
         "via": "Direct"
       },
-      "grant_key": "entra:id:00000000-0000-4000-8000-000000003001|entra:id:00000000-0000-4000-8000-000000000006|member",
-      "principal_key": "entra:id:00000000-0000-4000-8000-000000000006",
-      "resource_key": "entra:id:00000000-0000-4000-8000-000000003001",
+      "grant_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001|entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000006|member",
+      "principal_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000006",
+      "resource_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001",
       "reviewer_key": "mail:morgan.lead@corp.example",
-      "row_check": "d4066edd57ab52b48518d7c952980f6da815395b909e4193173e645d679ab2b3",
-      "row_id": "R4512f0a10ac0",
+      "row_check": "02439c44d63f5f705a0b2fa57212eb5ce2ec98585d8f68757e85a5ec43feebb9",
+      "row_id": "Re38173dfa1b5",
       "source": "entra.jsonl, line 13"
     },
     {

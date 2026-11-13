@@ -42,7 +42,7 @@ def produce(root: Path) -> list[int]:
                 str(root / "decisions"),
                 *after,
                 "--map",
-                str(root / "before" / "ledger-map.toml"),
+                str(root / "after" / "ledger-map.toml"),
                 "-o",
                 str(root / "verification"),
             ]

@@ -19,6 +19,8 @@ complete = true               # false: no resource in this file counts as comple
 collected_at = "2026-11-01T00:00:00Z"   # when the CSV was exported, if known
 optional = false              # true: mapped columns missing from the file are ignored
 id_style = "csv"              # csv | sid | entra: how an id column becomes a key
+domain = "corp.example"       # id_style sid: the domain well-known SIDs belong to
+tenant = "00000000-0000-4000-8000-000000000000"  # id_style entra: the tenant id
 
 [columns]                     # field = "header in the file"
 principal_id = "SamAccountName"
@@ -88,6 +90,8 @@ _TOP_KEYS = frozenset(
         "collected_at",
         "optional",
         "id_style",
+        "domain",
+        "tenant",
         "columns",
         "values",
         "principal_kinds",
@@ -149,6 +153,8 @@ class CsvMap:
     resource: str = ""
     resource_kind: str = ""
     id_style: str = "csv"
+    domain: str = ""
+    tenant: str = ""
     encoding: str = ""
     delimiter: str = ""
     owner_separator: str = ";"
@@ -287,7 +293,18 @@ def _choices(data: Mapping[str, Any]) -> dict[str, Any]:
     if stamp and parse_time(stamp) is None:
         msg = "'collected_at' must be ISO 8601 with Z or an offset"
         raise _fail(msg)
-    return {"id_style": style, "resource_kind": kind, "collected_at": stamp}
+    domain = _typed(data, "domain", str, "").strip()
+    tenant = _typed(data, "tenant", str, "").strip()
+    if tenant and keys.tenant(tenant) == keys.UNKNOWN:
+        msg = "'tenant' must be the tenant id (a GUID), not a domain name"
+        raise _fail(msg)
+    return {
+        "id_style": style,
+        "resource_kind": kind,
+        "collected_at": stamp,
+        "domain": domain,
+        "tenant": tenant,
+    }
 
 
 def build_map(data: Mapping[str, Any]) -> CsvMap:

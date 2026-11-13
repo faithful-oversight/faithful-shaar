@@ -160,7 +160,7 @@ def test_one_person_in_two_systems_is_one_reviewer_and_never_reviews_themselves(
     from faithful_shaar.model import Principal  # noqa: PLC0415
 
     casey_entra = Principal(
-        keys.entra("00000000-0000-4000-8000-000000000005"),
+        keys.entra("00000000-0000-4000-8000-0000000000f0", "00000000-0000-4000-8000-000000000005"),
         "entra",
         "x",
         "Casey Owner",

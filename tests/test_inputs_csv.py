@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import io
 import re
 from typing import TYPE_CHECKING, Any
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
     from faithful_shaar.model import Snapshot
 
 AVERY = "AEXAMPLE"
+TENANT = guid(0)
 BLAIR = "BEXAMPLE"
 
 
@@ -699,15 +701,22 @@ def test_entra_members_preset_with_a_fixed_resource() -> None:
     ]
     cmap = load_map(None, "entra-members", "Finance Approvers")
     assert cmap is not None
+    unscoped = read(csv_bytes(headers, rows), cmap)
+    # without a tenant the ids could belong to any directory: nothing is complete
+    assert f"entra:?:id:{guid(1)}" in unscoped.principals
+    assert unscoped.complete_resources == set()
+    assert any("tenant or domain" in p.reason for p in unscoped.problems)
+    cmap = dataclasses.replace(cmap, tenant=TENANT)
     snap = read(csv_bytes(headers, rows), cmap)
-    avery = snap.principals[f"entra:id:{guid(1)}"]
+    assert snap.complete_resources == {"csv:entra-members:finance approvers"}
+    avery = snap.principals[f"entra:{TENANT}:id:{guid(1)}"]
     assert (avery.system, avery.upn, avery.enabled, avery.extra) == (
         "entra",
         "avery@corp.example",
         True,
         {"userType": "Member"},
     )
-    assert snap.principals[f"entra:id:{guid(2)}"].enabled is False
+    assert snap.principals[f"entra:{TENANT}:id:{guid(2)}"].enabled is False
     group = snap.resources["csv:entra-members:finance approvers"]
     assert (group.name, group.kind, group.system) == (
         "Finance Approvers",

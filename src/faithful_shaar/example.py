@@ -195,10 +195,12 @@ def entra_export(*, after: bool) -> bytes:
 
 
 LEDGER_MAP = """\
-# Column map for the Ledger finance application's user export.
+# Column map for the Ledger finance application's user export. A CSV does not say when
+# it was exported, so each export's map gives the time; evidence is only as recent as it.
 system = "ledger"
 resource = "Ledger"
 resource_kind = "application"
+collected_at = "{at}"
 
 [columns]
 principal_id = "Email"
@@ -297,12 +299,13 @@ def build() -> dict[str, dict[str, bytes]]:
         "ad.jsonl": ad_export(after=False),
         "entra.jsonl": entra_export(after=False),
         "ledger.csv": ledger_csv(after=False),
-        "ledger-map.toml": LEDGER_MAP.encode("utf-8"),
+        "ledger-map.toml": LEDGER_MAP.format(at=BEFORE_AT).encode("utf-8"),
     }
     after = {
         "ad.jsonl": ad_export(after=True),
         "entra.jsonl": entra_export(after=True),
         "ledger.csv": ledger_csv(after=True),
+        "ledger-map.toml": LEDGER_MAP.format(at=AFTER_AT).encode("utf-8"),
     }
     with tempfile.TemporaryDirectory(prefix="shaar-example-") as scratch:
         folder = Path(scratch)
@@ -371,7 +374,7 @@ def write(directory: Path, *, force: bool) -> str:
             f"{root}/after/entra.jsonl",
             f"{root}/after/ledger.csv",
             "--map",
-            f"{root}/before/ledger-map.toml",
+            f"{root}/after/ledger-map.toml",
             "-o",
             f"{root}/verification",
         ),
