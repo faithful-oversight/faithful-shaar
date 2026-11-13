@@ -1,0 +1,133 @@
+# SPDX-FileCopyrightText: 2026 Faithful Oversight, LLC
+# SPDX-License-Identifier: Apache-2.0
+"""Tests for the escaping of invisible characters."""
+
+from __future__ import annotations
+
+import unicodedata
+
+import pytest
+
+from faithful_shaar.outputs.safety import (
+    command_line,
+    csv_cell,
+    escape_markdown,
+    neutralize_formula,
+    terminal,
+    visible,
+)
+
+BMP_INVISIBLE = [
+    0x00, 0x08, 0x0B, 0x0C, 0x1B, 0x7F, 0x85, 0x9F,  # controls
+    0x00AD, 0x034F, 0x061C, 0x115F, 0x1160, 0x180E,  # soft hyphen, fillers
+    0x200B, 0x200C, 0x200D, 0x200E, 0x200F, 0x2028, 0x2029,  # zero width, separators
+    0x202A, 0x202E, 0x2060, 0x2066, 0x2069,  # bidirectional, word joiner
+    0x3164, 0xFE00, 0xFE0F, 0xFEFF, 0xFFA0,  # fillers, variation selectors, BOM
+    0xFFF9, 0xFFFB,  # interlinear annotation
+]  # fmt: skip
+OUTSIDE_THE_BMP = [0xE0000, 0xE0001, 0xE0020, 0xE0041, 0xE007F, 0xE0100, 0xE01EF, 0x1D173, 0x110BD]
+
+
+@pytest.mark.parametrize("code", BMP_INVISIBLE)
+def test_invisible_characters_in_the_bmp_are_escaped_with_four_digits(code: int) -> None:
+    assert visible(f"a{chr(code)}b") == f"a\\u{code:04x}b"
+
+
+@pytest.mark.parametrize("code", OUTSIDE_THE_BMP)
+def test_invisible_characters_outside_the_bmp_use_eight_digits(code: int) -> None:
+    assert visible(f"a{chr(code)}b") == f"a\\U{code:08x}b"
+
+
+def test_lone_surrogates_are_escaped() -> None:
+    assert visible("a\udc80b") == "a\\udc80b"
+
+
+@pytest.mark.parametrize("text", ["plain text", "tab\there", "line\nbreak\r\n", "", " ~"])
+def test_ascii_text_tabs_and_line_breaks_pass_through(text: str) -> None:
+    assert visible(text) == text
+
+
+ORDINARY = [
+    "na" + chr(0xEF) + "ve " + chr(0xFC) + "ber",  # accented Latin
+    chr(0x65E5) + chr(0x672C),  # CJK
+    chr(0x41F) + chr(0x440),  # Cyrillic
+    chr(0x1F600),  # an emoji without joiners
+    "a" + chr(0xA0) + "b",  # no-break space is visible spacing
+]
+
+
+@pytest.mark.parametrize("text", ORDINARY)
+def test_ordinary_non_ascii_text_passes_through(text: str) -> None:
+    assert visible(text) == text
+
+
+def test_every_format_character_and_separator_is_escaped() -> None:
+    missed = [
+        hex(code)
+        for code in range(0x110000)
+        if unicodedata.category(chr(code)) in {"Cf", "Zl", "Zp"} and visible(chr(code)) == chr(code)
+    ]
+    assert missed == []
+
+
+def test_escapes_are_unambiguous_next_to_hex_digits() -> None:
+    assert visible("\U000e0041" + "42") == "\\U000e004142"
+    assert visible(chr(0x200B) + "42") == "\\u200b42"
+
+
+def test_terminal_text_cannot_return_the_cursor_or_hide_in_tabs() -> None:
+    assert terminal("evil\rshaar: 0 problems\tx\nnext") == "evil\\rshaar: 0 problems\\tx\nnext"
+
+
+# Formula neutralizing, Markdown escaping, command lines ---------------------------------
+
+
+@pytest.mark.parametrize(
+    "trigger", ["=", "+", "-", "@", "\t", "\r", "\n", "\uff1d", "\uff0b", "\uff0d", "\uff20"]
+)
+def test_every_formula_trigger_gets_an_apostrophe(trigger: str) -> None:
+    assert neutralize_formula(f"{trigger}SUM(A1)") == f"'{trigger}SUM(A1)"
+
+
+def test_text_that_is_not_a_formula_is_unchanged_and_neutralizing_is_stable() -> None:
+    assert neutralize_formula("Avery Example") == "Avery Example"
+    assert neutralize_formula("a=b") == "a=b"
+    assert neutralize_formula("") == ""
+    once = neutralize_formula("=1+1")
+    assert once.startswith("'=")
+
+
+def test_csv_cell_escapes_invisible_characters_before_checking_for_formulas() -> None:
+    assert csv_cell("=cmd|' /C calc'!A0") == "'=cmd|' /C calc'!A0"
+    assert csv_cell("a\u202eb") == "a\\u202eb"
+    assert csv_cell("\u200b=1") == "\\u200b=1"
+
+
+def test_markdown_escaping_stops_structure_links_and_html() -> None:
+    text = escape_markdown("# not | a *heading* [x](http://a.example) <b>&amp; `code` ~~s~~ _u_ \\")
+    assert "\\|" in text
+    assert "\\[x\\]\\(" not in text  # parentheses alone are harmless once brackets are escaped
+    assert "\\[x\\]" in text
+    assert "\\<b\\>" in text
+    assert "\\&amp;" in text
+    assert "\\`code\\`" in text
+    assert "\\~\\~" in text
+
+
+def test_markdown_escaping_breaks_autolinks_and_line_breaks() -> None:
+    text = escape_markdown("http://a.example www.a.example avery@corp.example\nnext\r\nlast\rend")
+    assert "://⁠" in text
+    assert "www.⁠" in text
+    assert "@⁠" in text
+    assert "\n" not in text
+    assert "\r" not in text
+    assert text.count("↵") == 3
+
+
+def test_command_line_quotes_for_the_shell() -> None:
+    assert command_line("shaar", "my file", "it's") == "shaar 'my file' 'it'\"'\"'s'"
+
+
+def test_command_line_quotes_for_windows(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("faithful_shaar.outputs.safety.os.name", "nt")
+    assert command_line("shaar", "my file") == 'shaar "my file"'
