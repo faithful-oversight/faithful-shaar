@@ -41,7 +41,7 @@ Each record line holds exactly one member: `principal`, `resource`, `grant`, or 
 | `grant` | `principal_id`, `resource_id`, `entitlement` (all required), `via` (the names of the nested groups the access came through, empty when direct), `extra`. |
 | `gap` | `what` and `reason`: something the collector could not read. It becomes a problem. |
 
-A grant is one principal's entitlement on one resource. Group membership has the entitlement `member`. A directory role has the role's name. Two paths to the same access are one grant: `via` is the shortest path, and `extra.paths` lists every path, joined with `; `.
+A grant is one principal's entitlement on one resource. Group membership has the entitlement `member`. A directory role has the role's name. Two paths to the same access are one grant: `via` is the shortest path, and `extra.paths` lists every path, joined with a semicolon and a space.
 
 A `complete` of `false` means the resource's membership was cut short: a paging failure, a failed range read, access denied, or throttling.
 
@@ -139,7 +139,7 @@ grant = []
 
 | Key | Meaning |
 | --- | --- |
-| `preset` | Start from a built-in map. The `--preset` option wins over this key. The file's other settings override the preset's, and its tables merge key by key. |
+| `preset` | Start from a built-in map. The `--preset` option wins over this key. The file's other settings override those of the preset, and its tables merge key by key. |
 | `system` | The system name for keys. Needed unless the file has a `system` column. |
 | `resource` | One fixed resource for the file, matched by name. The `resource_id` and `resource_name` columns are then ignored. `--resource` sets this. |
 | `resource_kind` | The kind used when there is no `resource_kind` column or its value is unknown. Default `other`. |
@@ -161,7 +161,7 @@ The fields for `[columns]` are `principal_id`, `principal_name`, `principal_kind
 Rules that apply to every CSV:
 
 - The map must name a `principal_id` or a `principal_name` column that is in the file. Without an id column, principals are matched by name, which is weaker, and a problem says so.
-- There must be a resource: a fixed `resource`, or a `resource_id` or `resource_name` column. Without a resource id, the resource is matched by name, and a problem says so. A fixed resource always gives this problem.
+- There must be a resource: a fixed `resource`, or a `resource_id` or `resource_name` column. With a `resource_name` column and no `resource_id`, the resource is matched by name, and a problem says so. A fixed resource gives no problem: you name it, and the same name keys it in every export.
 - There must be a system: a `system` column or `system = ...` in the map.
 - A blank entitlement means `member`.
 - `manager_id` and each entry of `owner_ids` are written the way principal ids are, so they match principals.

@@ -17,7 +17,7 @@ shaar [--version] COMMAND [options]
 
 Run `shaar COMMAND --help` for the options of any command. Running `shaar` with no command prints the help and exits with code `2`.
 
-## campaign
+## `campaign`
 
 ```shell
 shaar campaign INPUT... -o DIR --name NAME --reviewers {manager,owner,map} [options]
@@ -44,7 +44,7 @@ Keep the campaign folder. `shaar decisions` and `shaar verify` need `campaign.js
 
 A reviewer who has an email address gets one packet, even when that person appears in several systems. See [Campaigns](campaigns.md#one-reviewer-per-person).
 
-## decisions
+## `decisions`
 
 ```shell
 shaar decisions CAMPAIGN PACKET... -o DIR [--require-comment DECISION] [--force]
@@ -62,7 +62,7 @@ Two packets must not share a file name, because every decision cites its packet 
 
 The command writes `decisions.json`, `removals.csv`, `attention.csv`, `decisions.csv`, the decisions report in JSON, Markdown, and HTML, and `manifest.json`. See [Reports and output](output.md#decisions).
 
-## verify
+## `verify`
 
 ```shell
 shaar verify CAMPAIGN DECISIONS LATER... -o DIR [options]
@@ -80,7 +80,7 @@ shaar verify CAMPAIGN DECISIONS LATER... -o DIR [options]
 
 shaar refuses a decision record that does not belong to the campaign as written, with exit code `3`. The command writes `removals.csv`, `kept_but_gone.csv`, `new_since_review.csv`, the verification report in JSON, Markdown, and HTML, and `manifest.json`. See [Verification](verification.md).
 
-## exporter
+## `exporter`
 
 ```shell
 shaar exporter DIR [--force]
@@ -88,7 +88,7 @@ shaar exporter DIR [--force]
 
 Writes `Export-ShaarAccess.ps1` into `DIR`, creating the folder if needed, and prints the command that runs it. It replaces an existing script only with `--force`. See [Collecting](collecting.md#the-exporter-script).
 
-## collect ad
+## `collect ad`
 
 ```shell
 shaar collect ad --host HOST (--group GROUP... | --search-base DN | --privileged) -o FILE [options]
@@ -114,7 +114,7 @@ Runs the exporter on a domain controller over PowerShell remoting and writes its
 
 Give at least one of `--group`, `--search-base`, and `--privileged`. `--username` and `--secret` go together: give both, or leave both out to use the current Kerberos ticket. `--auth ntlm` always needs both. These pairings exit with code `2`. A bad `--host` or `--username`, and `--ca-file` with `--transport http`, exit with code `3`.
 
-## collect entra
+## `collect entra`
 
 ```shell
 shaar collect entra --tenant TENANT --client-id ID \
@@ -142,7 +142,7 @@ Reads Entra ID through Microsoft Graph with GET requests only and writes a shaar
 
 Give exactly one of `--certificate`, `--client-secret`, and `--device-code`, and at least one of `--group`, `--all-security-groups`, `--roles`, and `--pim`. Missing choices exit with code `2`. A missing extra, a refused sign-in, an unreadable certificate or secret, or an existing output file exits with code `3`. A part Graph would not return does not stop the run: it is printed as a `not read:` line and recorded in the file.
 
-## schema
+## `schema`
 
 ```shell
 shaar schema {campaign-report-v1|decisions-report-v1|verify-report-v1|manifest-v1}
@@ -150,7 +150,7 @@ shaar schema {campaign-report-v1|decisions-report-v1|verify-report-v1|manifest-v
 
 Prints a JSON Schema for the installed version, with no network access. See [Reports and output](output.md#json-schemas).
 
-## example
+## `example`
 
 ```shell
 shaar example DIR [--force]
@@ -209,4 +209,4 @@ shaar sets no access rules on Windows. Check the folder's permissions there.
 shaar verify campaign decisions after/ad.jsonl -o verification || test $? -eq 1
 ```
 
-Treat exit code `1` as "read the report", and codes `2`, `3`, and `4` as failures. Collect on a schedule by giving `shaar collect` a secret reference that your scheduler fills in, for example `--secret env:SHAAR_PASSWORD`. Never put a password on the command line.
+Treat exit code `1` as `read the report`, and codes `2`, `3`, and `4` as failures. Collect on a schedule by giving `shaar collect` a secret reference that your scheduler fills in, for example `--secret env:SHAAR_PASSWORD`. Never put a password on the command line.

@@ -84,7 +84,7 @@ Each reviewer gets one `.xlsx` file named `packet-NN-NAME-HASH.xlsx`, where `NN`
 | Row ID | Hidden. `R` and 12 hex digits that identify the entry in this campaign. |
 | Row check | Hidden. The SHA-256 [row check](#row-checks-and-digests). |
 
-The header row is frozen and has a filter. Every cell holds plain text: shaar writes no formulas. Characters that XML 1.0 forbids become U+FFFD, and a cell longer than Excel's limit of 32,767 characters is cut and ends with `[truncated]`. Those cells no longer match the campaign byte for byte, so shaar compares the cell text it would have written, not the source text.
+The header row is frozen and has a filter. Every cell holds plain text: shaar writes no formulas. Characters that XML 1.0 forbids become U+FFFD, and a cell longer than the Excel limit of 32,767 characters is cut and ends with `[truncated]`. Those cells no longer match the campaign byte for byte, so shaar compares the cell text it would have written, not the source text.
 
 ### The About sheet
 
@@ -112,7 +112,7 @@ A packet's zip entries are written in a fixed order with the campaign's creation
 
 The campaign id is `C` and 16 hex digits over the name, the creation time, and the digests of the inputs. A row id is `R` and 12 hex digits over the campaign id and the grant key.
 
-These digests detect accidents and casual edits. They are plain, unkeyed SHA-256 values, not signatures. Anyone who has a campaign's files can recompute them. So can anyone who has one packet and knows another reviewer's rows: they can build a packet that decides those rows, and shaar will accept it and attribute it to the assigned reviewer. Control who receives packets and who runs `shaar decisions`, and keep the returned files. See the [threat model](threat-model.md) and [decision record 6](adr/0006-campaign-integrity.md).
+These digests detect accidents and casual edits. They are plain, unkeyed SHA-256 values, not signatures. Anyone who has a campaign's files can recompute them. Anyone who has one packet and knows another reviewer's rows can do the same: they can build a packet that decides those rows, and shaar will accept it and attribute it to the assigned reviewer. Control who receives packets and who runs `shaar decisions`, and keep the returned files. See the [threat model](threat-model.md) and [decision record 6](adr/0006-campaign-integrity.md).
 
 ## What makes a decision count
 
@@ -143,15 +143,15 @@ A row that is not one of the packet's own rows is a **stray**: its Row ID is not
 
 ### Unsure
 
-`Unsure` is an accepted answer. It is recorded as what the reviewer said, but it is not a decision. The entry is listed under Needs attention with "follow up for Keep or Remove", and the record is not complete while any Unsure remains. Unsure never produces a removal.
+`Unsure` is an accepted answer. It is recorded as what the reviewer said, but it is not a decision. The entry is listed under Needs attention with `follow up for Keep or Remove`, and the record is not complete while any Unsure remains. Unsure never produces a removal.
 
 ### The reviewer of record
 
-The reviewer shown for a decision is the one the campaign assigned to that packet, identified through the packet digest. The author and modified time that a workbook reports about itself (`lastModifiedBy`, `modified`) are claims that anyone can set. shaar records them next to the file's own SHA-256 as "reported by the file", and never uses them to identify anyone.
+The reviewer shown for a decision is the one the campaign assigned to that packet, identified through the packet digest. The author and modified time that a workbook reports about itself (`lastModifiedBy`, `modified`) are claims that anyone can set. shaar records them next to the file's own SHA-256 as `reported by the file`, and never uses them to identify anyone.
 
 ### Comments
 
-The About sheet tells reviewers to add a comment for every Remove, but nothing enforces it unless you set `--require-comment Remove`. Use `--require-comment Remove --require-comment Unsure` to demand it for both.
+The About sheet asks reviewers to explain each Remove in a comment, but nothing enforces it unless you set `--require-comment Remove`. Use `--require-comment Remove --require-comment Unsure` to demand it for both.
 
 ### What shaar writes
 

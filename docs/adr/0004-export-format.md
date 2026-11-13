@@ -19,7 +19,7 @@ Options considered:
 
 - **A CSV.** It cannot carry nesting, the completeness of a resource, or gaps, and it has no trailer.
 - **One JSON document.** The reader must hold it whole, and a document cut short is not valid JSON, so everything in it is lost.
-- **The format of each source.** Two parsers and two models, with no common way to say "not read".
+- **The format of each source.** Two parsers and two models, with no common way to say `not read`.
 - **JSON Lines with a header, records, and a trailer.** Each line stands alone, so a cut file still yields every complete line.
 
 ## Decision

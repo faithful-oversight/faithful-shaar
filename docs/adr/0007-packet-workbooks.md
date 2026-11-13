@@ -18,10 +18,10 @@ Options considered:
 ## Decision
 
 - Write the workbook by hand with `zipfile` and XML text: two sheets (Review and About), styles, a drop-down list for Decision, a frozen header with a filter, hidden `Row ID` and `Row check` columns, and sheet protection with only the Decision and Comment cells unlocked.
-- Write every cell as an inline string, never a formula. Characters that XML 1.0 forbids become U+FFFD, and a cell longer than Excel's limit is cut and marked.
+- Write every cell as an inline string, never a formula. Characters that XML 1.0 forbids become U+FFFD, and a cell longer than the Excel limit is cut and marked.
 - Make the bytes reproducible: a fixed zip order, entry dates and document properties taken from the campaign's creation time, and a fixed compression level. `SOURCE_DATE_EPOCH` fixes the time.
 - Write a hardened reader. It finds sheets through the workbook and its relationships, never by file name. It reads shared strings, inline strings, numbers, and booleans, joins rich text runs, and finds the header row by `Row ID`, so moved columns and rows in any order still read. It reports a formula cell and uses its saved value. It refuses encrypted and OLE files, and enforces limits on entries, expanded size, expansion ratio, and rows. It parses XML with a wrapper that refuses a `DOCTYPE` and limits depth.
-- Test the writer and reader with LibreOffice and openpyxl round trips (when present), and with a hand-made fixture in Excel's shared-string form that always runs.
+- Test the writer and reader with LibreOffice and openpyxl round trips (when present), and with a hand-made fixture in the Excel shared-string form that always runs.
 
 ## Consequences
 

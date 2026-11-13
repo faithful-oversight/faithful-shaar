@@ -28,13 +28,13 @@ The order of the checks matters. A grant that is still present is `pending` or `
 An absent grant is `removed` only when all of these hold. Otherwise it is `unknown`, with the reason.
 
 1. **A complete read.** The later input read the resource's whole membership. See [what complete means](formats.md#what-complete-means).
-2. **A time.** The later input has a time: the `collected_at` of its export, or the `--as-of` you give. Without one the reason is "the later export does not say when it was read; give --as-of".
-3. **Not before the campaign.** The time is not before the campaign's `created_at`. Otherwise the reason is "the later export was read before the campaign began", because an older export cannot show a removal that followed the review.
+2. **A time.** The later input has a time: the `collected_at` of its export, or the `--as-of` you give. Without one the reason is `the later export does not say when it was read; give --as-of`.
+3. **Not before the campaign.** The time is not before the campaign's `created_at`. Otherwise the reason is `the later export was read before the campaign began`, because an older export cannot show a removal that followed the review.
 4. **The same account is not still there.** Nobody else in the later input holds the same entitlement on the same resource with a UPN, email, or id equal to the row's Account. A person can change key between exports, for example when a CSV's id column changes. Their access is then absent under the old key but present under the new one. The reason is "the same account still holds this access under another key" and names the holder.
 
 ### Complete resources only
 
-A group that was cut short, for example by a paging failure or a denied read, looks emptier than it is. If shaar called every missing grant removed, a partial export would "verify" removals that never happened. So a missing grant counts as removed only when the later input says it read the whole resource. See [what complete means](formats.md#what-complete-means). A CSV is complete unless its map says otherwise, so a filtered CSV can make an absence look like a removal. shaar cannot detect that.
+A group that was cut short, for example by a paging failure or a denied read, looks emptier than it is. If shaar called every missing grant removed, a partial export would "verify" removals that never happened. A missing grant therefore counts as removed only when the later input says it read the whole resource. See [what complete means](formats.md#what-complete-means). A CSV is complete unless its map says otherwise, so a filtered CSV can make an absence look like a removal. shaar cannot detect that.
 
 When the later input is of another system than the access, such as an Entra export for an AD group, the result is `unknown`, never `removed`.
 

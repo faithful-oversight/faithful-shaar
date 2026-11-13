@@ -106,7 +106,7 @@ Invisible and reordering characters (controls, zero-width characters, bidirectio
 
 ## Markdown report
 
-Every value is escaped, so it cannot forge a heading, a link, a table, or an HTML tag. Line breaks in a value become a visible arrow. A word joiner (U+2060) is added after `@`, `://`, and `www.`, so a viewer does not turn an email address or URL in the data into a link. So an email address in the Markdown report has an invisible character after its `@`. The joiner is in the Markdown only: the JSON and CSV keep the exact text, and the HTML escapes values instead.
+Every value is escaped, so it cannot forge a heading, a link, a table, or an HTML tag. Line breaks in a value become a visible arrow. A word joiner (U+2060) is added after `@`, `://`, and `www.`, so a viewer does not turn an email address or URL in the data into a link. As a result, an email address in the Markdown report has an invisible character after its `@`. The joiner is in the Markdown only: the JSON and CSV keep the exact text, and the HTML escapes values instead.
 
 ## HTML report
 

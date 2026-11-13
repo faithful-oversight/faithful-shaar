@@ -100,7 +100,7 @@ pipx install "faithful-shaar[ad]"
 ### Prerequisites
 
 - A WinRM listener on the controller that your computer can reach: port 5986 for HTTPS, or 5985 for HTTP with message encryption. shaar does not create or change a listener.
-- For HTTPS, a controller certificate that chains to a root you trust and names the `--host` DNS name. Give your internal CA's PEM file to `--ca-file` when the system does not already trust it.
+- For HTTPS, a controller certificate that chains to a root you trust and names the `--host` DNS name. Give the PEM file of your internal CA to `--ca-file` when the system does not already trust it.
 - An account that may open a PowerShell remoting session on the controller (by default, a member of Administrators or Remote Management Users) and may read the groups. Whether a just-enough-administration endpoint can be narrowed to this script has not been tested.
 
 On Linux and macOS, Kerberos needs support that the `ad` extra does not install: the `kerberos` extra of `pypsrp` and the system Kerberos libraries. This has not been tested.
