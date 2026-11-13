@@ -895,8 +895,8 @@ def test_unreadable_direct_members_leave_the_path_unknown_and_the_group_incomple
     resource = kinds(export, "resource")[0]
     assert resource["complete"] is False
     assert resource["owner_ids"] == []
-    whats = sorted(g["what"] for g in kinds(export, "gap"))
-    assert whats == [
+    labels = sorted(g["what"] for g in kinds(export, "gap"))
+    assert labels == [
         f"direct members of group G ({oid(1)})",
         f"owners of group G ({oid(1)})",
     ]
@@ -1090,9 +1090,9 @@ def test_manager_lookups_stop_after_too_many_failures(
     for n in range(11, 16):
         fake.add(f"/users/{oid(n)}", Reply(403))
     export = run(client, entra.Scope(groups=(oid(1),)))
-    whats = [g["what"] for g in kinds(export, "gap")]
-    assert whats.count("managers") == 1
-    assert len(whats) == 3
+    labels = [g["what"] for g in kinds(export, "gap")]
+    assert labels.count("managers") == 1
+    assert len(labels) == 3
     assert len([p for p in fake.paths() if p.startswith("/users/")]) == 2
 
 
