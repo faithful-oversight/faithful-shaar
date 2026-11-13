@@ -138,7 +138,9 @@ def verify(
     when = as_of or later.collected_at
     rows = {row.row_id: row for row in campaign.rows}
     decided = {d.row_id: d for d in record.rows if d.state == "accepted"}
-    systems = {system_of(key) for key in later.complete_resources | set(later.resources)}
+    systems = set(later.systems) | {
+        system_of(key) for key in later.complete_resources | set(later.resources)
+    }
     checks: list[Check] = []
     kept_but_gone: list[Note] = []
     for row_id, decision in sorted(decided.items()):
