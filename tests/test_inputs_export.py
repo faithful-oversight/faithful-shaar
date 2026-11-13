@@ -486,3 +486,14 @@ def test_a_well_known_sid_without_a_domain_is_never_complete(tmp_path: Path) -> 
     assert "ad:sid:S-1-5-32-544@?" in snap.resources
     assert snap.complete_resources == set()
     assert any("tenant or domain" in p.reason or "domain" in p.reason for p in snap.problems)
+
+
+@pytest.mark.parametrize("role_first", [False, True])
+def test_one_raw_id_as_two_resources_is_complete_nowhere(*, role_first: bool) -> None:
+    group = guid(900)
+    both = [resource(group, "G"), resource(group, "G", kind="role")]
+    records = [principal(guid(1)), *(both[::-1] if role_first else both), grant(guid(1), group)]
+    snap = read(export_bytes(records, system="entra"))
+    assert snap.complete_resources == set()
+    assert any("also given as another resource" in r for r in reasons(snap))
+    assert len(snap.grants) == 1

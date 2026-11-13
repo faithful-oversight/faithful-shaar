@@ -66,6 +66,7 @@ Nothing is thrown away silently. Each of these is a problem in the report:
 - A line that is not a JSON object, an unknown record type, or a line with more than one member. The affected lines are skipped, and no resource is complete.
 - A grant with a missing field or a malformed `via`. The grant is skipped and only its resource is marked not complete.
 - A duplicate principal or resource id. The first is kept, and a duplicate resource is not complete.
+- One resource id given as two resources, such as a group and a role. A grant naming that id could belong to either, so it stays with the first record, and neither resource is complete.
 - A grant whose principal or resource has no record. The grant is kept with a stub record (`extra.stub` is `true`), because hiding access that exists would be worse than showing it without details. A stub resource is never complete.
 
 ### What complete means
@@ -102,7 +103,7 @@ A system name is 1 to 40 characters: lower-case letters, digits, `.`, `_`, and `
 
 A CSV needs a column map, given with `--map FILE.toml`, a built-in preset with `--preset NAME`, or both. shaar decodes the file by its byte order mark (UTF-8, UTF-16 little or big endian), else as strict UTF-8. A file that cannot be decoded, or holds NUL characters, is refused. Set `encoding` in the map for any other encoding. The delimiter is the one of `,`, `;`, tab, and `|` that splits the header line most, unless the map sets it.
 
-A CSV is read as text. Cells that look like formulas are data, and shaar never evaluates them. A row with more cells than the header, or that lacks a needed id, is skipped with a problem, and its resource is then not complete. A file is limited to 256 MiB and 2,000,000 data rows.
+A CSV is read as text. Cells that look like formulas are data, and shaar never evaluates them. A row with more cells than the header, or that lacks a needed id, is skipped with a problem, and its resource is then not complete. Quoting is read strictly: a quoted cell may span lines, but a quote that is never closed, or text right after a closing quote, is a problem, and then no resource in the file is complete, because the rows after it may have been swallowed. A file is limited to 256 MiB and 2,000,000 data rows.
 
 ### The column map
 

@@ -86,6 +86,7 @@ class _Reader:
     resource_keys: dict[str, str] = field(default_factory=dict)
     complete: set[str] = field(default_factory=set)
     incomplete_ids: set[str] = field(default_factory=set)
+    ambiguous: set[str] = field(default_factory=set)
     pending: list[_PendingGrant] = field(default_factory=list)
 
     # -- plumbing -------------------------------------------------------------------
@@ -243,7 +244,16 @@ class _Reader:
             source=source,
             extra=self.extras(record, source, "resource"),
         )
-        self.resource_keys[raw.casefold()] = key
+        earlier = self.resource_keys.setdefault(raw.casefold(), key)
+        if earlier != key:
+            # One raw id as two resources (a group and a role, say): a grant naming that id
+            # could belong to either, so neither is read in full.
+            self.problem(
+                source,
+                f"resource id {raw!r} is also given as another resource ({earlier}); "
+                "its grants cannot be placed, so neither is treated as complete",
+            )
+            self.ambiguous.update({earlier, key})
         if key in self.snapshot.resources:
             first = self.snapshot.resources[key].source
             self.problem(source, f"duplicate resource id {raw!r}; kept the one at {first}")
@@ -487,7 +497,7 @@ class _Reader:
                 "some lines could not be read, so no resource is treated as complete",
             )
         if self.trailer_ok and not self.loss:
-            lost = {self.resource_keys.get(i) for i in self.incomplete_ids}
+            lost = {self.resource_keys.get(i) for i in self.incomplete_ids} | self.ambiguous
             snap.complete_resources = {k for k in self.complete if k not in lost}
 
 

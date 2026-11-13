@@ -263,3 +263,231 @@ def test_f13_a_forced_rebuild_leaves_no_packet_of_the_earlier_run(
     argv = campaign_argv(sample, out, "--reviewers", "manager", "--force")
     assert main(argv) == ExitCode.FINDINGS
     assert sorted(p.name for p in out.glob("packet-*.xlsx")) == earlier
+
+
+# --- Routine round 1 (R1-R3) --------------------------------------------------------
+
+CAMPAIGN_EPOCH = "1793577600"  # 2026-11-02T00:00:00Z
+REVIEWER_MAP = (
+    "resource,reviewer_id,reviewer_name,reviewer_email\n"
+    "Finance Admins,rita,Rita Reviewer,rita@corp.example\n"
+)
+
+
+def full_review(  # noqa: PLR0913 - the parts of one review
+    tmp: Path,
+    before: list[Path],
+    after: list[Path],
+    remove: list[str],
+    *,
+    before_args: tuple[str, ...] = (),
+    after_args: tuple[str, ...] = (),
+) -> dict[str, str]:
+    """Campaign from ``before``, Remove for each user in ``remove``, verify on ``after``."""
+    from faithful_shaar import campaign as cmod  # noqa: PLC0415
+
+    reviewer_map = tmp / "reviewers.csv"
+    reviewer_map.write_text(REVIEWER_MAP, "utf-8")
+    camp = tmp / "campaign"
+    argv = [
+        "campaign",
+        *map(str, before),
+        *before_args,
+        "--name",
+        "Round one",
+        "--due",
+        "2026-11-30",
+        "--reviewers",
+        "map",
+        "--reviewer-map",
+        str(reviewer_map),
+        "-o",
+        str(camp),
+    ]
+    assert main(argv) == ExitCode.OK
+    made = cmod.load((camp / "campaign.json").read_bytes())
+    chosen = {(r.display["user"], r.display["resource"]): ("Keep", "") for r in made.rows}
+    for row in made.rows:
+        if row.display["user"] in remove:
+            chosen[(row.display["user"], row.display["resource"])] = ("Remove", "Gone")
+    returned = tmp / "returned"
+    returned.mkdir()
+    for name, data in example.fill_packets(made, chosen).items():
+        (returned / name).write_bytes(data)
+    out = tmp / "decisions"
+    packets = sorted(map(str, returned.glob("*.xlsx")))
+    assert main(["decisions", str(camp), *packets, "-o", str(out)]) == ExitCode.OK
+    verified = tmp / "verification"
+    argv = ["verify", str(camp), str(out), *map(str, after), *after_args, "-o", str(verified)]
+    assert main(argv) in {ExitCode.OK, ExitCode.FINDINGS}
+    data = json.loads((verified / "verify-report.json").read_text("utf-8"))
+    return {row["principal"]: row["result"] for row in data["sections"]["removals"]}
+
+
+def csv_map(tmp: Path, name: str, at: str) -> Path:
+    path = tmp / name
+    path.write_text(
+        f'system = "app"\nresource = "Finance Admins"\ncollected_at = "{at}"\n'
+        '[columns]\nprincipal_id = "user"\n',
+        "utf-8",
+    )
+    return path
+
+
+@pytest.mark.parametrize(
+    ("later", "result"),
+    [
+        # a stray quote before charlie, never closed: alice's row must not vanish unseen
+        ('user\nbob\n"charlie\nalice\n', "unknown"),
+        # text after a closing quote
+        ('user\nbob\n"charlie"x\n', "unknown"),
+        # a valid quoted cell over two lines still reads, and alice is really gone
+        ('user,note\nbob,"two\nlines"\ncharlie,x\n', "removed"),
+    ],
+)
+def test_r1_malformed_csv_quoting_never_proves_a_removal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, later: str, result: str
+) -> None:
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", CAMPAIGN_EPOCH)
+    first = tmp_path / "before.csv"
+    first.write_text("user\nbob\ncharlie\nalice\n", "utf-8")
+    second = tmp_path / "after.csv"
+    second.write_bytes(later.encode("utf-8"))  # bytes: keep LF line ends on Windows
+    results = full_review(
+        tmp_path,
+        [first],
+        [second],
+        ["alice"],
+        before_args=("--map", str(csv_map(tmp_path, "b.toml", "2026-11-01T00:00:00Z"))),
+        after_args=("--map", str(csv_map(tmp_path, "a.toml", "2026-11-20T00:00:00Z"))),
+    )
+    assert results == {"alice": result}
+
+
+def entra_bytes(records: list[dict[str, Any]], at: str) -> bytes:
+    from tests.fixtures_access import export_bytes  # noqa: PLC0415
+
+    return export_bytes(records, system="entra", header={"collected_at": at})
+
+
+@pytest.mark.parametrize("role_first", [False, True])
+def test_r3_one_raw_id_as_two_resources_proves_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, role_first: bool
+) -> None:
+    from tests.fixtures_access import grant, guid, principal, resource  # noqa: PLC0415
+
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", CAMPAIGN_EPOCH)
+    group, alice = guid(900), guid(1)
+    people = [principal(alice, "alice"), principal(guid(2), "bob")]
+    first = tmp_path / "before.jsonl"
+    first.write_bytes(
+        entra_bytes(
+            [
+                *people,
+                resource(group, "Finance Admins"),
+                grant(alice, group),
+                grant(guid(2), group),
+            ],
+            "2026-11-01T00:00:00Z",
+        )
+    )
+    both = [resource(group, "Finance Admins"), resource(group, "Finance Admins", kind="role")]
+    later = [
+        *people,
+        *(both[::-1] if role_first else both),
+        grant(alice, group),
+        grant(guid(2), group),
+    ]
+    second = tmp_path / "after.jsonl"
+    second.write_bytes(entra_bytes(later, "2026-11-20T00:00:00Z"))
+    results = full_review(tmp_path, [first], [second], ["alice"])
+    # The grant goes to whichever record came first: still there (pending), or under the
+    # role, where the group is not read in full (unknown). Never removed.
+    assert results == {"alice": "unknown" if role_first else "pending"}
+
+
+@pytest.mark.parametrize(
+    "rows",
+    [
+        # GPT's example: one id, the second row naming Avery, who holds the finance access
+        [
+            "finance,owner,Finance Reviewer,finance@corp.example",
+            "payroll,owner,Avery Reviewer,avery@corp.example",
+        ],
+        # the same in reverse order
+        [
+            "payroll,owner,Avery Reviewer,avery@corp.example",
+            "finance,owner,Finance Reviewer,finance@corp.example",
+        ],
+        # unrelated people sharing an id
+        [
+            "finance,owner,Casey One,casey@corp.example",
+            "payroll,owner,Dana Two,dana@corp.example",
+        ],
+        # one with an email, one without
+        ["finance,owner,Casey One,casey@corp.example", "payroll,owner,Casey One,"],
+    ],
+)
+def test_r2_one_reviewer_id_for_two_people_is_refused(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], rows: list[str]
+) -> None:
+    table = tmp_path / "access.csv"
+    table.write_text(
+        "system,principal_id,email,resource_id\n"
+        "app,avery,avery@corp.example,finance\n"
+        "app,blake,blake@corp.example,payroll\n",
+        "utf-8",
+    )
+    reviewer_map = tmp_path / "map.csv"
+    reviewer_map.write_text(
+        "resource,reviewer_id,reviewer_name,reviewer_email\n" + "\n".join(rows) + "\n", "utf-8"
+    )
+    out = tmp_path / "c"
+    argv = [
+        "campaign",
+        str(table),
+        "--preset",
+        "generic",
+        "--name",
+        "Ids",
+        "--due",
+        "2026-12-01",
+        "--reviewers",
+        "map",
+        "--reviewer-map",
+        str(reviewer_map),
+        "-o",
+        str(out),
+    ]
+    assert main(argv) == ExitCode.INPUT_ERROR
+    assert "rows 2 and 3 give reviewer_id 'owner'" in capsys.readouterr().err
+    assert not out.exists() or not any(out.iterdir())
+
+
+def test_r2_the_same_person_on_several_rows_is_fine(tmp_path: Path) -> None:
+    from faithful_shaar.assign import read_map  # noqa: PLC0415
+
+    reviewer_map = tmp_path / "map.csv"
+    reviewer_map.write_text(
+        "resource,reviewer_id,reviewer_name,reviewer_email\n"
+        "finance,owner,Finance  Reviewer,Finance@corp.example\n"
+        "payroll,OWNER,finance reviewer,finance@corp.example\n",
+        "utf-8",
+    )
+    assert len({e.reviewer.key for e in read_map(reviewer_map)}) == 1
+
+
+def test_r2_build_refuses_one_key_with_two_emails(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A guard behind the map check: no rule may put two people's rows in one packet.
+    from faithful_shaar import campaign as cmod  # noqa: PLC0415
+    from faithful_shaar.assign import Assignment, Reviewer  # noqa: PLC0415
+    from faithful_shaar.errors import InputError  # noqa: PLC0415
+    from tests.core_fixtures import standard  # noqa: PLC0415
+
+    snap, _ = standard()
+    people = iter(
+        [Reviewer("k", "One", "one@corp.example"), Reviewer("k", "Two", "two@corp.example")] * 9
+    )
+    monkeypatch.setattr(cmod, "assign", lambda *_a, **_k: Assignment(next(people)))
+    with pytest.raises(InputError, match="is both"):
+        cmod.build(snap, name="x", created_at="2026-11-01T00:00:00Z", due="", rule="manager")

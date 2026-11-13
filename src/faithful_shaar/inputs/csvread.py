@@ -95,7 +95,7 @@ def sniff(text: str, forced: str, name: str) -> str:
     if forced:
         return forced
     try:
-        counts = {d: len(next(csv.reader([first], delimiter=d))) for d in DELIMITERS}
+        counts = {d: len(next(csv.reader([first], delimiter=d, strict=True))) for d in DELIMITERS}
     except csv.Error as exc:
         msg = f"{name} header cannot be read: {exc}"
         raise InputError(msg) from exc
@@ -426,7 +426,9 @@ class _Reader:
     # -- whole file -----------------------------------------------------------------
 
     def run(self, text: str, delimiter: str) -> None:
-        reader = csv.reader(io.StringIO(text, newline=""), delimiter=delimiter)
+        # strict: a quote that is never closed, or text after a closing quote, is an error
+        # rather than a cell that silently swallows the rows after it.
+        reader = csv.reader(io.StringIO(text, newline=""), delimiter=delimiter, strict=True)
         records = _records(reader)
         header: list[str] | None = None
         data_rows = 0

@@ -57,7 +57,7 @@ from faithful_shaar import campaign, example
 made = campaign.load(pathlib.Path(sys.argv[1], "campaign.json").read_bytes())
 out = pathlib.Path(sys.argv[2])
 out.mkdir()
-for name, data in example._returned(made).items():
+for name, data in example.fill_packets(made).items():
     (out / name).write_bytes(data)
 assert sorted(out.glob("*.xlsx")), "no packets were filled in"
 PY

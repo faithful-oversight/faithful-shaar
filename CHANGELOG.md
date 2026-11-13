@@ -49,3 +49,8 @@ First release.
   - With `--force`, files from the earlier run that the new run does not write are taken away.
   - A reviewer map field too long for CSV, a non-text `encoding` in a column map, and a workbook with an undecodable entry name are input errors, not internal errors.
   - The AD exporter marks a group incomplete when a nested group's primary-group members cannot be read, lists one route per holding group and nesting group in `extra.paths`, reports every nesting cycle, and checks the lower bound of the last ranged member read.
+- Findings from the independent recheck (routine round 1), fixed before release:
+  - CSV quoting is read strictly. An unclosed quote, or text after a closing quote, makes the file incomplete instead of hiding the rows after it inside one cell.
+  - A reviewer map `reviewer_id` that appears with two names or two emails is refused, so one packet never mixes two people's entries or lets someone review their own access.
+  - One export resource id given as two resources (a group and a role) leaves both incomplete instead of moving its grants to one of them.
+  - The reviewer map header check is linear. The AD exporter writes the total cycle count beside the first five cycles and marks how many more there were. PowerShell telemetry is turned off in tests, the syntax check, and CI.

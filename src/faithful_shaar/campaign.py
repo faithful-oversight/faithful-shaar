@@ -238,7 +238,15 @@ def build(  # noqa: PLR0913 - the parts of a campaign
                 )
             )
             continue
-        reviewers[result.reviewer.key] = result.reviewer
+        known = reviewers.setdefault(result.reviewer.key, result.reviewer)
+        if known.email.strip().casefold() != result.reviewer.email.strip().casefold():
+            # Never reached through the reviewer map, which refuses this; a guard so a
+            # packet's rows always belong to the one person it is sent to.
+            msg = (
+                f"reviewer {result.reviewer.key} is both {known.email or 'no email'} and "
+                f"{result.reviewer.email or 'no email'}"
+            )
+            raise InputError(msg)
         placed.append((grant, result.reviewer, display))
     placed.sort(
         key=lambda item: (

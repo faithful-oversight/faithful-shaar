@@ -281,7 +281,8 @@ def run_pwsh(
         encoding="utf-8",
         timeout=300,
         check=False,
-        env={**os.environ, **(env or {})},
+        # Opt out of PowerShell's start-up telemetry: a test run should not phone home.
+        env={**os.environ, "POWERSHELL_TELEMETRY_OPTOUT": "1", **(env or {})},
     )
 
 
@@ -430,6 +431,27 @@ def test_ranged_retrieval_reads_every_range_and_nested_groups_with_a_cycle(tmp_p
     assert loop["Loop A"]["via"] == ["Loop A", "Loop B"]
     assert "Loop A > Loop B > Loop A" in out.resources["Loop A"]["extra"]["nesting_cycles"]
     assert out.resources["Loop A"]["complete"] is True
+
+
+@needs_pwsh
+def test_more_than_five_cycles_are_counted_and_marked(tmp_path: Path) -> None:
+    # A hub with six spokes, each nesting the hub again: six cycles, five written out.
+    setup = """
+G 'Hub' 3000
+foreach ($i in 1..6) { G ('Spoke ' + $i) (3000 + $i) }
+$script:Members[(Dn 'Hub' 'Groups')] = @(1..6 | ForEach-Object { Dn ('Spoke ' + $_) 'Groups' })
+foreach ($i in 1..6) { $script:Members[(Dn ('Spoke ' + $i) 'Groups')] = @((Dn 'Hub' 'Groups')) }
+$Group = @('Hub')
+"""
+    out = export(tmp_path, setup)
+    extra = out.resources["Hub"]["extra"]
+    assert extra["nesting_cycle_count"] == "6"
+    assert extra["nesting_cycles"].count(" > ") >= 5
+    assert extra["nesting_cycles"].endswith("; and 1 more")
+    assert out.resources["Hub"]["complete"] is True
+    loop = export(tmp_path, "$Group = @('Loop A')").resources["Loop A"]["extra"]
+    assert loop["nesting_cycle_count"] == "1"
+    assert "more" not in loop["nesting_cycles"]
 
 
 @needs_pwsh

@@ -39,7 +39,7 @@ Finance Admins,ayala.reviewer,Ayala Reviewer,ayala.reviewer@corp.example
 - The file must be UTF-8. A byte order mark is accepted. A row without a reviewer id or without a resource and principal is an error.
 - A column may appear only once, with case and spaces ignored, and every row must have as many cells as the header. Otherwise which reviewer was meant cannot be known: shaar stops with exit code `3` and writes nothing.
 
-The map's reviewer is identified by `reviewer_id`, with case ignored. Use one id for each person.
+The map's reviewer is identified by `reviewer_id`, with case ignored. Use one id for each person, with the same name and email on every row: a `reviewer_id` that appears with two names or two emails would send two people's entries to one packet, so shaar stops with exit code `3`, names both rows, and writes nothing.
 
 ### One reviewer per person
 

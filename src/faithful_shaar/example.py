@@ -248,15 +248,20 @@ DECISIONS: dict[tuple[str, str], tuple[str, str]] = {
 }
 
 
-def _returned(campaign: cmod.Campaign) -> dict[str, bytes]:
-    """The packets as reviewers returned them, decisions filled in."""
+def fill_packets(
+    campaign: cmod.Campaign,
+    decisions: dict[tuple[str, str], tuple[str, str]] | None = None,
+) -> dict[str, bytes]:
+    """The packets as reviewers returned them, decisions filled in.
+
+    ``decisions`` maps (user, resource) as the packet shows them to (decision, comment).
+    """
+    chosen = DECISIONS if decisions is None else decisions
     files = {}
     for reviewer in campaign.reviewers:
         rows = []
         for row in campaign.rows_for(reviewer.key):
-            decision, comment = DECISIONS.get(
-                (row.display["user"], row.display["resource"]), ("", "")
-            )
+            decision, comment = chosen.get((row.display["user"], row.display["resource"]), ("", ""))
             rows.append(
                 PacketRow(
                     row_id=row.row_id,
@@ -328,7 +333,7 @@ def build() -> dict[str, dict[str, bytes]]:
     return {
         "before": before,
         "campaign": campaign_files,
-        "returned": _returned(built),
+        "returned": fill_packets(built),
         "after": after,
     }
 
@@ -382,4 +387,4 @@ def write(directory: Path, *, force: bool) -> str:
     return "\n".join(f"  {step}" for step in steps)
 
 
-__all__ = ["build", "write"]
+__all__ = ["build", "fill_packets", "write"]

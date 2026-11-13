@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import csv
 import io
+from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -150,7 +151,8 @@ def _map_table(name: str, text: str) -> tuple[list[str], list[list[str]]]:
         msg = f"the reviewer map {name} cannot be read as CSV: {exc}"
         raise InputError(msg) from None
     header = [name.strip().casefold() for name in records[0]] if records else []
-    repeated = sorted({name for name in header if name and header.count(name) > 1})
+    counts = Counter(name for name in header if name)
+    repeated = sorted(name for name, count in counts.items() if count > 1)
     if repeated:
         # Two reviewer_id (or resource ...) columns: which one was meant cannot be known.
         msg = f"the reviewer map {name} has more than one {repeated[0]!r} column"
@@ -164,6 +166,24 @@ def _map_table(name: str, text: str) -> tuple[list[str], list[list[str]]]:
         )
         raise InputError(msg)
     return header, records[1:]
+
+
+def _check_same_person(
+    name: str, reviewer: Reviewer, line: int, seen: dict[str, tuple[Reviewer, int]]
+) -> None:
+    """Refuse a reviewer id that names two people: one packet would go to only one of them."""
+    first, first_line = seen.setdefault(reviewer.key, (reviewer, line))
+    same_email = first.email.strip().casefold() == reviewer.email.strip().casefold()
+    same_name = (
+        " ".join(first.name.split()).casefold() == " ".join(reviewer.name.split()).casefold()
+    )
+    if not (same_email and same_name):
+        msg = (
+            f"the reviewer map {name}: rows {first_line} and {line} give reviewer_id "
+            f"{reviewer.key.removeprefix('map:')!r} different names or emails; use one id "
+            "for each person, with the same name and email on every row"
+        )
+        raise InputError(msg)
 
 
 def read_map(path: Path) -> list[MapEntry]:
@@ -186,6 +206,7 @@ def read_map(path: Path) -> list[MapEntry]:
         msg = f"the reviewer map {path.name} is not UTF-8 text"
         raise InputError(msg) from None
     header, records = _map_table(path.name, text)
+    seen: dict[str, tuple[Reviewer, int]] = {}
     entries = []
     for line, cells in enumerate(records, start=2):
         if not cells:
@@ -209,6 +230,7 @@ def read_map(path: Path) -> list[MapEntry]:
             values.get("reviewer_name") or reviewer_id,
             values.get("reviewer_email", ""),
         )
+        _check_same_person(path.name, reviewer, line, seen)
         entries.append(
             MapEntry(
                 values.get("resource", "").casefold(),

@@ -53,7 +53,7 @@ check_powershell() {
     # -Command does not pass extra arguments to the command as $args, so the path goes
     # through the environment.
     # shellcheck disable=SC2016 # $errors and $env: are PowerShell syntax
-    PS_PARSE_PATH="$script" pwsh -NoProfile -NonInteractive -Command '
+    POWERSHELL_TELEMETRY_OPTOUT=1 PS_PARSE_PATH="$script" pwsh -NoProfile -NonInteractive -Command '
       $errors = $null
       $path = (Resolve-Path -LiteralPath $env:PS_PARSE_PATH).Path
       [void][System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$null, [ref]$errors)

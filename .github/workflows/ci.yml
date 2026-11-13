@@ -19,6 +19,7 @@ concurrency:
 
 env:
   UV_LOCKED: "1"
+  POWERSHELL_TELEMETRY_OPTOUT: "1"
 
 jobs:
   static:

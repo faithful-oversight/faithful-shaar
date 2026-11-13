@@ -1038,7 +1038,11 @@ function Build-Records($Roots) {
         $result = $expansion.Result
         $extra = @{ distinguished_name = $root.Dn; sam_account_name = $root.Sam }
         if ($result.Cycles.Count -gt 0) {
-            $extra['nesting_cycles'] = (@($result.Cycles | Select-Object -First 5) -join '; ')
+            # At most five are written out; the count says how many there were in all.
+            $shown = @($result.Cycles | Select-Object -First 5) -join '; '
+            if ($result.Cycles.Count -gt 5) { $shown += ('; and ' + ($result.Cycles.Count - 5) + ' more') }
+            $extra['nesting_cycles'] = $shown
+            $extra['nesting_cycle_count'] = [string] $result.Cycles.Count
         }
         $resourceLines.Add([pscustomobject] @{ Key = $root.Id; Line = ('{"resource":{"id":' + (ConvertTo-JsonText $root.Id) +
                     ',"name":' + (ConvertTo-JsonText $root.Name) + ',"kind":"group"' +
