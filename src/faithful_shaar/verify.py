@@ -11,7 +11,9 @@ For every accepted Remove decision the result is one of:
 - ``failed``: the grant is still there on or after the due date (or the campaign has no
   due date).
 - ``unknown``: the later export cannot show it: the resource is missing from the export,
-  its membership was not read in full, or the export is of another system.
+  its membership was not read in full, the export is of another system, or it has no
+  entitlement column (every grant in it reads as ``member``) and the removal is of another
+  entitlement.
 
 Two further lists are information, not failures: kept access that has gone anyway, and
 access on the reviewed resources that was not part of the review.
@@ -152,6 +154,13 @@ def _absent(campaign: Campaign, row: Row, later: Snapshot, when: str) -> tuple[s
         return "unknown", "the later export does not say when it was read; give --as-of"
     if started is not None and taken < started:
         return "unknown", "the later export was read before the campaign began"
+    if entitlement_of(row.grant_key) != "member" and system_of(row.resource_key) in (
+        later.entitlement_blind
+    ):
+        return "unknown", (
+            "the later export has no entitlement column, so every grant in it reads as "
+            "'member' and it cannot show that this entitlement was removed"
+        )
     holder = _same_person(row, later)
     if holder:
         return "unknown", f"the same account still holds this access under another key ({holder})"

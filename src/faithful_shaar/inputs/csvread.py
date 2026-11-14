@@ -7,7 +7,12 @@ treated as complete unless the map says ``complete = false``, a row had to be sk
 or the file could not be read to its end. Cells are text: nothing in them is evaluated,
 whatever it looks like (``=SUM(...)``, ``@x``, ``+1``).
 
-A blank (or unmapped) entitlement means ``member``.
+A blank entitlement cell means ``member``. A row that is shorter than the header is not
+padded: it is skipped as a problem (it may have been cut off), and so is a file whose last
+line is not ended by a line break. When the map has an entitlement column that the file
+lacks, the missing column is a problem if the map file lists it, and in every case the
+snapshot is marked entitlement-blind so ``verify`` never reads the absence of an
+entitlement as a removal.
 
 Row numbers are 1-based file line numbers, the header counting as row 1 (a row that
 spans several lines is cited by its first line).
@@ -153,6 +158,7 @@ class _Reader:
     extra_cols: dict[str, dict[str, int]] = field(default_factory=dict)
     width: int = 0
     loss: bool = False
+    blind: bool = False
     incomplete: set[str] = field(default_factory=set)
     tallies: dict[tuple[str, str], _Tally] = field(default_factory=dict)
 
@@ -180,6 +186,7 @@ class _Reader:
         ):
             self.extra_cols[group] = self.find({n: n for n in names}, index, repeated)
         self.check_columns(number)
+        self.check_mapped(number)
 
     def find(
         self, wanted: Mapping[str, str], index: dict[str, int], repeated: set[str]
@@ -219,6 +226,24 @@ class _Reader:
         if not cmap.resource and "resource_id" not in cols:
             reason = "no resource id: the resource is matched by name, which is weaker"
             self.snapshot.problems.append(Problem(source, reason))
+
+    def check_mapped(self, number: int) -> None:
+        """Record every column the map file asked for that the file does not have."""
+        cmap = self.cmap
+        source = Source(self.name, f"row {number}")
+        covered = {"principal_id", "resource_id", "resource_name"}  # check_columns speaks to these
+        for label, header in cmap.columns.items():
+            if label in self.cols or label in covered or label not in cmap.explicit:
+                continue
+            reason = f"column {header!r} (mapped to {label}) is not in the file"
+            if label == "entitlement":
+                reason += "; every grant is read as 'member', so no resource is treated as complete"
+                self.loss = True
+            self.snapshot.problems.append(Problem(source, reason))
+        # Whether or not the map file asked for it, grants read from a file with no
+        # entitlement column are all `member`: nothing there can show another entitlement
+        # was removed.
+        self.blind = "entitlement" in cmap.columns and "entitlement" not in self.cols
 
     # -- rows -----------------------------------------------------------------------
 
@@ -263,14 +288,14 @@ class _Reader:
             self.snapshot.problems.append(Problem(item.source, reason + "; kept the first"))
 
     def split(self, cells: list[str]) -> _Row:
-        if len(cells) > self.width:
+        if len(cells) != self.width:
             msg = f"it has {len(cells)} cells but the header has {self.width}"
+            if len(cells) < self.width:
+                msg += "; it may have been cut off"
             raise _Skip(msg)
-        values = {f: cells[i].strip() if i < len(cells) else "" for f, i in self.cols.items()}
+        values = {f: cells[i].strip() for f, i in self.cols.items()}
         extras = {
-            group: {
-                n: cells[i].strip() for n, i in cols.items() if i < len(cells) and cells[i].strip()
-            }
+            group: {n: cells[i].strip() for n, i in cols.items() if cells[i].strip()}
             for group, cols in self.extra_cols.items()
         }
         return _Row(values, extras)
@@ -455,6 +480,15 @@ class _Reader:
         if header is None:
             msg = f"{self.name} has no header row"
             raise InputError(msg)
+        if data_rows and not text.endswith(("\n", "\r")):
+            self.snapshot.problems.append(
+                Problem(
+                    Source(self.name, f"row {reader.line_num}"),
+                    "the file does not end with a line break, so its last row may have been "
+                    "cut off; add the line break once you know the export is whole",
+                )
+            )
+            self.loss = True
 
     def fail_row(self, number: int, error: csv.Error, *, in_header: bool) -> None:
         if in_header:
@@ -487,6 +521,8 @@ class _Reader:
                 )
             )
         snap.collected_at = self.cmap.collected_at
+        if self.blind:
+            snap.entitlement_blind = {r.system for r in snap.resources.values()}
         snap.systems.update(p.system for p in snap.principals.values())
         snap.systems.update(r.system for r in snap.resources.values())
         if self.cmap.complete and not self.loss and not unscoped:

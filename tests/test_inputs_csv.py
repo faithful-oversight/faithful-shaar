@@ -475,11 +475,16 @@ def test_row_with_too_many_cells() -> None:
     assert snap.complete_resources == set()
 
 
-def test_short_rows_are_padded_and_caught_by_required_values() -> None:
+def test_short_rows_are_skipped_and_leave_no_resource_complete() -> None:
+    # SHAAR-C02: a short row may be a cut-off transfer; it is never padded with blanks.
     data = b"principal_id,resource_id,entitlement\nA,R,Admin\nB\n"
     snap = read(data)
-    assert any("row 3: row skipped: resource_id is empty" in r for r in reasons(snap))
+    assert any(
+        "row 3: row skipped: it has 1 cells but the header has 3; it may have been cut off" in r
+        for r in reasons(snap)
+    )
     assert len(snap.grants) == 1
+    assert snap.complete_resources == set()
 
 
 def test_by_name_matching_has_one_problem_each() -> None:
@@ -753,7 +758,7 @@ def test_extra_columns() -> None:
     assert snap.resources["csv:hr-app:ledger-admin"].extra == {}
     assert next(iter(snap.grants.values())).extra == {"Ticket": "T-1"}
     short = read(
-        csv_bytes(headers[:-1], [generic_row(**ok_row())]),
+        csv_bytes(headers[:-1], [[*generic_row(**ok_row()), "Finance", ""]]),
         generic(optional=True, extra={"grant": ["Ticket"]}),
     )
     assert short.principals

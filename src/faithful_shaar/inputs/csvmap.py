@@ -17,7 +17,8 @@ owner_separator = ";"
 via_separator = ">"
 complete = true               # false: no resource in this file counts as complete
 collected_at = "2026-11-01T00:00:00Z"   # when the CSV was exported, if known
-optional = false              # true: mapped columns missing from the file are ignored
+optional = false              # true: a mapped column missing from the file is not an error;
+                              # one this file lists under [columns] is a recorded problem
 id_style = "csv"              # csv | sid | entra: how an id column becomes a key
 domain = "corp.example"       # id_style sid: the domain well-known SIDs belong to
 tenant = "00000000-0000-4000-8000-000000000000"  # id_style entra: the tenant id
@@ -168,6 +169,10 @@ class CsvMap:
     complete: bool = True
     collected_at: str = ""
     optional: bool = False
+    explicit: frozenset[str] = frozenset()
+    """The fields the map file itself names under ``[columns]``, as opposed to the ones a
+    preset supplies. A preset's column that a file lacks is ordinary; a column the person
+    who wrote the map asked for, and the file lacks, is a problem."""
 
 
 def _fail(message: str) -> InputError:
@@ -308,8 +313,11 @@ def _choices(data: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_map(data: Mapping[str, Any]) -> CsvMap:
-    """Validate map data (from TOML or a preset) and return the map."""
+def build_map(data: Mapping[str, Any], explicit: frozenset[str] = frozenset()) -> CsvMap:
+    """Validate map data (from TOML or a preset) and return the map.
+
+    ``explicit`` names the column fields the map file itself lists (see :class:`CsvMap`).
+    """
     unknown = set(data) - _TOP_KEYS
     if unknown:
         msg = f"unknown setting(s): {', '.join(sorted(map(str, unknown)))}"
@@ -328,6 +336,7 @@ def build_map(data: Mapping[str, Any]) -> CsvMap:
         extra_principal=extras["principal"],
         extra_resource=extras["resource"],
         extra_grant=extras["grant"],
+        explicit=explicit,
         **_scalars(data),
         **_choices(data),
     )
@@ -384,4 +393,6 @@ def load_map(path: Path | None, preset: str | None, resource: str | None) -> Csv
             data[key] = value
     if resource:
         data["resource"] = resource
-    return build_map(data)
+    listed = file_data.get("columns")
+    explicit = frozenset(str(k) for k in listed) if isinstance(listed, dict) else frozenset()
+    return build_map(data, explicit)

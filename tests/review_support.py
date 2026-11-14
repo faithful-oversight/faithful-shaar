@@ -102,12 +102,19 @@ def decide(root: Path, *packets: Path, out: str = "camp", to: str = "dec") -> in
     return main(["decisions", str(root / out), *map(str, packets), "-o", str(root / to)])
 
 
-def verify(root: Path, later: Path, *, out: str = "camp", dec: str = "dec", to: str = "ver") -> int:
-    ledger_map(root, "amap.toml", AFTER_AT)
+def verify(
+    root: Path,
+    later: Path,
+    *,
+    dec: str = "dec",
+    to: str = "ver",
+    extra: str = "",
+) -> int:
+    ledger_map(root, "amap.toml", AFTER_AT, extra)
     return main(
         [
             "verify",
-            str(root / out),
+            str(root / "camp"),
             str(root / dec),
             str(later),
             "--map",

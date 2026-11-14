@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from faithful_shaar.cli import ExitCode
+from faithful_shaar.cli import ExitCode, main
 from tests import review_support as rs
 
 if TYPE_CHECKING:
@@ -110,3 +110,117 @@ def test_c11_a_campaign_with_no_entries_is_not_a_clean_success(tmp_path: Path) -
     assert rs.decide(tmp_path, rs.write(tmp_path / "x.xlsx", b"x")) == ExitCode.FINDINGS
     later = rs.write(tmp_path / "after.csv", rs.HEADER)
     assert rs.verify(tmp_path, later) == ExitCode.FINDINGS
+
+
+# SHAAR-C02 ------------------------------------------------------------------------------
+
+ALICE_BOB = "Alice A,alice@corp.example,Yes,Admin\nBob B,bob@corp.example,Yes,Viewer\n"
+
+
+def removal_results(root: Path) -> list[str]:
+    said = rs.report(root, "ver", "verify")
+    return [str(r["result"]) for r in said["sections"]["removals"]]
+
+
+def test_c02_a_renamed_entitlement_column_makes_removals_unknown(tmp_path: Path) -> None:
+    assert rs.start(tmp_path, ALICE_BOB) == ExitCode.OK
+    assert rs.decide(tmp_path, rs.answer(tmp_path, "Remove")) == ExitCode.OK
+    # Nobody lost access, but the later export calls the column "Position", not "Role".
+    later = rs.write(
+        tmp_path / "after.csv",
+        "Full name,Email,Active,Position\n"
+        "Alice A,alice@corp.example,Yes,Admin\nBob B,bob@corp.example,Yes,Viewer\n",
+    )
+    assert rs.verify(tmp_path, later) == ExitCode.INPUT_ERROR  # a map without `optional`
+    assert rs.verify(tmp_path, later, extra="optional = true") == ExitCode.FINDINGS
+    assert removal_results(tmp_path) == ["unknown", "unknown"]
+    said = rs.report(tmp_path, "ver", "verify")
+    assert any("'Role' (mapped to entitlement) is not in the file" in r for r in problems(said))
+
+
+def verify_generic(root: Path, later: Path) -> int:
+    """Verify with a map that names no columns, so the generic preset supplies them all."""
+    rs.write(
+        root / "gmap.toml",
+        'preset = "generic"\nsystem = "ledger"\nresource = "Ledger"\n'
+        f'collected_at = "{rs.AFTER_AT}"\n',
+    )
+    return main(
+        [
+            "verify",
+            str(root / "camp"),
+            str(root / "dec"),
+            str(later),
+            "--map",
+            str(root / "gmap.toml"),
+            "-o",
+            str(root / "ver"),
+        ]
+    )
+
+
+def test_c02_a_preset_entitlement_column_that_is_absent_cannot_show_a_removal(
+    tmp_path: Path,
+) -> None:
+    assert rs.start(tmp_path, ALICE_BOB) == ExitCode.OK
+    assert rs.decide(tmp_path, rs.answer(tmp_path, "Remove")) == ExitCode.OK
+    later = rs.write(
+        tmp_path / "after.csv",
+        "principal_id,principal_name,email,role\n"
+        "alice@corp.example,Alice A,alice@corp.example,Admin\n"
+        "bob@corp.example,Bob B,bob@corp.example,Viewer\n",
+    )
+    assert verify_generic(tmp_path, later) == ExitCode.FINDINGS
+    assert removal_results(tmp_path) == ["unknown", "unknown"]
+    said = rs.report(tmp_path, "ver", "verify")
+    assert all("no entitlement column" in r["reason"] for r in said["sections"]["removals"])
+
+
+def test_c02_a_member_removal_is_still_verified_by_an_export_without_entitlements(
+    tmp_path: Path,
+) -> None:
+    assert rs.start(tmp_path, "Bob B,bob@corp.example,Yes,\n") == ExitCode.OK  # blank = member
+    assert rs.decide(tmp_path, rs.answer(tmp_path, "Remove")) == ExitCode.OK
+    later = rs.write(
+        tmp_path / "after.csv", "principal_id,principal_name\nzed@corp.example,Zed Z\n"
+    )
+    assert verify_generic(tmp_path, later) == ExitCode.OK
+    assert removal_results(tmp_path) == ["removed"]  # a plain member's absence is real
+
+
+def test_c02_a_cut_off_last_row_is_a_problem_and_never_a_removal(tmp_path: Path) -> None:
+    assert rs.start(tmp_path, rs.ROWS) == ExitCode.OK
+    assert rs.decide(tmp_path, rs.answer(tmp_path, "Remove")) == ExitCode.OK
+    later = rs.write(
+        tmp_path / "after.csv",
+        "Full name,Email,Active,Role\nZed Z,zed@corp.example,Yes,Viewer\n"
+        "Carol C,carol@corp.example",
+    )
+    assert rs.verify(tmp_path, later) == ExitCode.FINDINGS
+    assert removal_results(tmp_path) == ["unknown", "unknown", "unknown"]
+    assert any(
+        "it has 2 cells but the header has 4" in r
+        for r in problems(rs.report(tmp_path, "ver", "verify"))
+    )
+
+
+def test_c02_a_last_line_without_a_line_break_makes_the_read_not_complete(
+    tmp_path: Path,
+) -> None:
+    # Cut off exactly after a comma: the row is the right width, but the file is not whole.
+    assert rs.start(tmp_path, rs.ROWS) == ExitCode.OK
+    assert rs.decide(tmp_path, rs.answer(tmp_path, "Remove")) == ExitCode.OK
+    later = rs.write(
+        tmp_path / "after.csv",
+        "Full name,Email,Active,Role\nZed Z,zed@corp.example,Yes,Viewer\n"
+        "Carol C,carol@corp.example,Yes,",
+    )
+    assert rs.verify(tmp_path, later) == ExitCode.FINDINGS
+    assert removal_results(tmp_path) == ["unknown", "unknown", "unknown"]
+    said = rs.report(tmp_path, "ver", "verify")
+    assert any("does not end with a line break" in r for r in problems(said))
+
+
+def test_c02_a_blank_entitlement_cell_is_still_member(tmp_path: Path) -> None:
+    assert rs.start(tmp_path, "Bob B,bob@corp.example,Yes,\n") == ExitCode.OK
+    assert [r.display["access"] for r in rs.load(tmp_path).rows] == ["member"]

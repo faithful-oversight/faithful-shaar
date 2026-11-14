@@ -114,6 +114,9 @@ class Snapshot:
     ``ad``, ``entra`` or ``csv:<system>``. ``resource_times`` says when each resource was
     read: the earliest time of the inputs that hold it, or ``""`` when any of them does
     not say. Evidence about a resource is only as recent as the inputs that read it.
+    ``entitlement_blind`` names the systems (as for ``systems``) of resources read from a CSV
+    whose map has an entitlement column that the file does not have: every grant there reads
+    as ``member``, so the absence of any other entitlement shows nothing.
     """
 
     label: str
@@ -127,3 +130,4 @@ class Snapshot:
     problems: list[Problem] = field(default_factory=list)
     inputs: list[InputFile] = field(default_factory=list)
     context: dict[str, str] = field(default_factory=dict)
+    entitlement_blind: set[str] = field(default_factory=set)
