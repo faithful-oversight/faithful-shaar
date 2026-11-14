@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING
 
 from faithful_shaar import decide
 from faithful_shaar.errors import InputError
-from faithful_shaar.keys import entitlement_of, system_of
+from faithful_shaar.keys import entitlement_of, fold, system_of
 
 if TYPE_CHECKING:
     from faithful_shaar.campaign import Campaign, Row
@@ -133,7 +133,7 @@ def _same_person(row: Row, later: Snapshot) -> str:
     Their access is then absent under the old key but present under the new one, so the
     absence is no evidence of a removal.
     """
-    account = row.display.get("account", "").strip().casefold()
+    account = fold(row.display.get("account", "").strip())
     entitlement = entitlement_of(row.grant_key)
     for grant in later.grants.values():
         if grant.resource_key != row.resource_key or entitlement_of(grant.key) != entitlement:
@@ -141,7 +141,7 @@ def _same_person(row: Row, later: Snapshot) -> str:
         principal = later.principals.get(grant.principal_key)
         if principal is None or not account:
             continue
-        names = {v.strip().casefold() for v in (principal.upn, principal.email, principal.id) if v}
+        names = {fold(v.strip()) for v in (principal.upn, principal.email, principal.id) if v}
         if account in names:
             return principal.name or principal.id
     return ""

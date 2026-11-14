@@ -8,8 +8,10 @@ because the findings were all gaps between stages that unit tests of one stage c
 
 from __future__ import annotations
 
+import unicodedata
 from typing import TYPE_CHECKING
 
+from faithful_shaar import keys
 from faithful_shaar.cli import ExitCode, main
 from tests import review_support as rs
 
@@ -224,3 +226,104 @@ def test_c02_a_last_line_without_a_line_break_makes_the_read_not_complete(
 def test_c02_a_blank_entitlement_cell_is_still_member(tmp_path: Path) -> None:
     assert rs.start(tmp_path, "Bob B,bob@corp.example,Yes,\n") == ExitCode.OK
     assert [r.display["access"] for r in rs.load(tmp_path).rows] == ["member"]
+
+
+# SHAAR-C04 ------------------------------------------------------------------------------
+
+NFC = "josé@corp.example"
+NFD = unicodedata.normalize("NFD", NFC)
+FULLWIDTH = "ｊｏｓé@corp.example"
+
+
+def test_c04_fold_compares_forms_and_keeps_confusables_apart() -> None:
+    assert NFC != NFD
+    assert keys.fold(NFC) == keys.fold(NFD) == keys.fold(FULLWIDTH)
+    assert keys.fold("JOSÉ") == keys.fold(unicodedata.normalize("NFD", "josé"))
+    assert keys.fold("ﬁle") == "file"  # a ligature
+    assert keys.fold(chr(0x430)) != keys.fold("a")  # Cyrillic a is a different letter
+    assert keys.csv("ledger", NFC) == keys.csv("ledger", NFD)
+    assert keys.dn(f"CN={NFC}") == keys.dn(f"CN={NFD}")
+    assert keys.grant("r", "p", "Résumé") == keys.grant(
+        "r", "p", unicodedata.normalize("NFD", "Résumé")
+    )
+
+
+def test_c04_a_changed_unicode_form_is_not_a_removal(tmp_path: Path) -> None:
+    row = "José Núñez,{},Yes,Admin\n"
+    assert rs.start(tmp_path, row.format(NFC)) == ExitCode.OK
+    assert rs.decide(tmp_path, rs.answer(tmp_path, "Remove")) == ExitCode.OK
+    # The same person with the same access, the address written in another form.
+    later = rs.write(tmp_path / "after.csv", rs.HEADER + row.format(NFD) + rs.OTHER)
+    assert rs.verify(tmp_path, later) == ExitCode.FINDINGS
+    results = rs.report(tmp_path, "ver", "verify")["sections"]["removals"]
+    assert [r["result"] for r in results] == ["failed"]  # still present, never "removed"
+
+
+def test_c04_exact_values_are_kept_in_the_packet_and_the_record(tmp_path: Path) -> None:
+    assert rs.start(tmp_path, f"José Núñez,{NFD},Yes,Admin\n") == ExitCode.OK
+    (built_row,) = rs.load(tmp_path).rows
+    assert built_row.display["account"] == NFD
+    assert built_row.display["user"] == "José Núñez"
+
+
+def test_c04_one_reviewer_in_two_forms_gets_one_packet(tmp_path: Path) -> None:
+    rows = "Ann A,ann@corp.example,Yes,Viewer\nBen B,ben@corp.example,Yes,Viewer\n"
+    rs.write(tmp_path / "before.csv", rs.HEADER + rows)
+    rs.ledger_map(tmp_path, "map.toml", rs.BEFORE_AT)
+    rs.write(
+        tmp_path / "rmap2.csv",
+        "principal,reviewer_id,reviewer_name,reviewer_email\n"
+        f"ann@corp.example,r1,Zoë Reviewer,{unicodedata.normalize('NFC', 'zoë@corp.example')}\n"
+        f"ben@corp.example,r1,Zoë Reviewer,{unicodedata.normalize('NFD', 'zoë@corp.example')}\n",
+    )
+    code = main(
+        [
+            "campaign",
+            str(tmp_path / "before.csv"),
+            "--map",
+            str(tmp_path / "map.toml"),
+            "--name",
+            "T",
+            "--reviewers",
+            "map",
+            "--reviewer-map",
+            str(tmp_path / "rmap2.csv"),
+            "-o",
+            str(tmp_path / "camp"),
+        ]
+    )
+    assert code == ExitCode.OK
+    assert len(rs.load(tmp_path).reviewers) == 1
+
+
+def test_c04_an_owner_cannot_review_their_own_access_in_another_form(tmp_path: Path) -> None:
+    # Ann's own address is NFD in the export and NFC in the reviewer map.
+    rs.write(
+        tmp_path / "before.csv",
+        rs.HEADER + f"Zoë Z,{unicodedata.normalize('NFD', 'zoë@corp.example')},Yes,Viewer\n",
+    )
+    rs.ledger_map(tmp_path, "map.toml", rs.BEFORE_AT)
+    rs.write(
+        tmp_path / "rmap.csv",
+        "resource,reviewer_id,reviewer_name,reviewer_email\n"
+        f"Ledger,{unicodedata.normalize('NFC', 'zoë@corp.example')},Zoë Z,\n",
+    )
+    code = main(
+        [
+            "campaign",
+            str(tmp_path / "before.csv"),
+            "--map",
+            str(tmp_path / "map.toml"),
+            "--name",
+            "T",
+            "--reviewers",
+            "map",
+            "--reviewer-map",
+            str(tmp_path / "rmap.csv"),
+            "-o",
+            str(tmp_path / "camp"),
+        ]
+    )
+    assert code == ExitCode.FINDINGS
+    (unassigned,) = rs.load(tmp_path).unassigned
+    assert "cannot review their own access" in unassigned.reason

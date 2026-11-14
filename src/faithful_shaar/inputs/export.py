@@ -244,7 +244,7 @@ class _Reader:
             source=source,
             extra=self.extras(record, source, "resource"),
         )
-        earlier = self.resource_keys.setdefault(raw.casefold(), key)
+        earlier = self.resource_keys.setdefault(keys.fold(raw), key)
         if earlier != key:
             # One raw id as two resources (a group and a role, say): a grant naming that id
             # could belong to either, so neither is read in full.
@@ -264,12 +264,12 @@ class _Reader:
             self.complete.add(key)
         else:
             self.complete.discard(key)
-            self.incomplete_ids.add(raw.casefold())
+            self.incomplete_ids.add(keys.fold(raw))
 
     def drop_grant(self, source: Source, reason: str, resource_id: str) -> None:
         self.problem(source, f"grant skipped: {reason}")
         if resource_id:
-            self.incomplete_ids.add(resource_id.casefold())
+            self.incomplete_ids.add(keys.fold(resource_id))
         else:
             self.loss = True
 
@@ -455,10 +455,10 @@ class _Reader:
 
     def resolve_resource(self, pending: _PendingGrant) -> str:
         snap = self.snapshot
-        key = self.resource_keys.get(pending.resource_id.casefold())
+        key = self.resource_keys.get(keys.fold(pending.resource_id))
         if key is None:
             key, _ = self.identity(pending.resource_id)
-            self.resource_keys[pending.resource_id.casefold()] = key
+            self.resource_keys[keys.fold(pending.resource_id)] = key
             snap.resources[key] = Resource(
                 key=key,
                 system=self.system,

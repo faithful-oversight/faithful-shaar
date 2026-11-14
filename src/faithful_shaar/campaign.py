@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 from faithful_shaar.assign import MapEntry, assign
 from faithful_shaar.errors import InputError
 from faithful_shaar.formats.xlsx import cell_text
+from faithful_shaar.keys import fold
 from faithful_shaar.model import InputFile, Problem, Source
 
 if TYPE_CHECKING:
@@ -239,7 +240,7 @@ def build(  # noqa: PLR0913 - the parts of a campaign
             )
             continue
         known = reviewers.setdefault(result.reviewer.key, result.reviewer)
-        if known.email.strip().casefold() != result.reviewer.email.strip().casefold():
+        if fold(known.email.strip()) != fold(result.reviewer.email.strip()):
             # Never reached through the reviewer map, which refuses this; a guard so a
             # packet's rows always belong to the one person it is sent to.
             msg = (

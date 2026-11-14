@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from faithful_shaar.errors import InputError
+from faithful_shaar.keys import fold
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -72,7 +73,7 @@ class MapEntry:
 
 def _reviewer(principal: Principal) -> Reviewer:
     email = principal.email.strip()
-    key = f"mail:{email.casefold()}" if email else principal.key
+    key = f"mail:{fold(email)}" if email else principal.key
     return Reviewer(key, principal.name or principal.id, email)
 
 
@@ -82,20 +83,18 @@ def _same_person(one: Principal, other: Principal | None) -> bool:
         return False
     if one.key == other.key:
         return True
-    return (
-        bool(one.email.strip()) and one.email.strip().casefold() == other.email.strip().casefold()
-    )
+    return bool(one.email.strip()) and fold(one.email.strip()) == fold(other.email.strip())
 
 
 def _names(principal: Principal) -> set[str]:
     """Every text that may name a principal in a reviewer map, case-folded."""
     found = {principal.key, principal.id, principal.name, principal.upn, principal.email}
-    return {value.strip().casefold() for value in found if value.strip()}
+    return {fold(value.strip()) for value in found if value.strip()}
 
 
 def _resource_names(resource: Resource) -> set[str]:
     found = {resource.key, resource.id, resource.name}
-    return {value.strip().casefold() for value in found if value.strip()}
+    return {fold(value.strip()) for value in found if value.strip()}
 
 
 def by_manager(grant: Grant, snapshot: Snapshot) -> Assignment:
@@ -150,7 +149,7 @@ def _map_table(name: str, text: str) -> tuple[list[str], list[list[str]]]:
     except csv.Error as exc:
         msg = f"the reviewer map {name} cannot be read as CSV: {exc}"
         raise InputError(msg) from None
-    header = [name.strip().casefold() for name in records[0]] if records else []
+    header = [fold(name.strip()) for name in records[0]] if records else []
     counts = Counter(name for name in header if name)
     repeated = sorted(name for name, count in counts.items() if count > 1)
     if repeated:
@@ -173,10 +172,8 @@ def _check_same_person(
 ) -> None:
     """Refuse a reviewer id that names two people: one packet would go to only one of them."""
     first, first_line = seen.setdefault(reviewer.key, (reviewer, line))
-    same_email = first.email.strip().casefold() == reviewer.email.strip().casefold()
-    same_name = (
-        " ".join(first.name.split()).casefold() == " ".join(reviewer.name.split()).casefold()
-    )
+    same_email = fold(first.email.strip()) == fold(reviewer.email.strip())
+    same_name = fold(" ".join(first.name.split())) == fold(" ".join(reviewer.name.split()))
     if not (same_email and same_name):
         msg = (
             f"the reviewer map {name}: rows {first_line} and {line} give reviewer_id "
@@ -226,15 +223,15 @@ def read_map(path: Path) -> list[MapEntry]:
             )
             raise InputError(msg)
         reviewer = Reviewer(
-            f"map:{reviewer_id.casefold()}",
+            f"map:{fold(reviewer_id)}",
             values.get("reviewer_name") or reviewer_id,
             values.get("reviewer_email", ""),
         )
         _check_same_person(path.name, reviewer, line, seen)
         entries.append(
             MapEntry(
-                values.get("resource", "").casefold(),
-                values.get("principal", "").casefold(),
+                fold(values.get("resource", "")),
+                fold(values.get("principal", "")),
                 reviewer,
                 line,
             )
@@ -258,7 +255,7 @@ def by_map(grant: Grant, snapshot: Snapshot, entries: list[MapEntry]) -> Assignm
             )
         if reviewers:
             reviewer = reviewers.pop()
-            mine = {reviewer.key.removeprefix("map:"), reviewer.email.strip().casefold()} - {""}
+            mine = {reviewer.key.removeprefix("map:"), fold(reviewer.email.strip())} - {""}
             if mine & principal_names:
                 return Assignment(
                     None, "the mapped reviewer is the principal, who cannot review their own access"

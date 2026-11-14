@@ -199,7 +199,7 @@ def _words(data: Mapping[str, Any], key: str, default: tuple[str, ...]) -> tuple
     if not isinstance(value, list) or not all(isinstance(v, str) and v.strip() for v in value):
         msg = f"{key!r} must be a list of non-empty text"
         raise _fail(msg)
-    return tuple(v.strip().casefold() for v in value)
+    return tuple(keys.fold(v.strip()) for v in value)
 
 
 def _columns(data: Mapping[str, Any]) -> dict[str, str]:
@@ -220,7 +220,7 @@ def _kinds(data: Mapping[str, Any]) -> dict[str, str]:
         if kind not in PRINCIPAL_KINDS:
             msg = f"principal_kinds {alias!r} must map to one of {', '.join(PRINCIPAL_KINDS)}"
             raise _fail(msg)
-    return {str(alias).strip().casefold(): kind for alias, kind in table.items()}
+    return {keys.fold(str(alias).strip()): kind for alias, kind in table.items()}
 
 
 def _extras(data: Mapping[str, Any]) -> dict[str, tuple[str, ...]]:

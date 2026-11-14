@@ -168,7 +168,7 @@ class _Reader:
         index: dict[str, int] = {}
         repeated: set[str] = set()
         for position, cell in enumerate(header):
-            key = cell.strip().casefold()
+            key = keys.fold(cell.strip())
             if key in index:
                 repeated.add(key)
             elif key:
@@ -193,7 +193,7 @@ class _Reader:
     ) -> dict[str, int]:
         found: dict[str, int] = {}
         for label, header in wanted.items():
-            key = header.casefold()
+            key = keys.fold(header)
             if key in repeated:
                 msg = f"{self.name} has more than one column named {header!r}"
                 raise InputError(msg)
@@ -355,7 +355,7 @@ class _Reader:
         return self.ident(raw, raw, system, by_id="principal_id" in self.cols).key
 
     def kind(self, raw: str, source: Source) -> str:
-        text = raw.casefold()
+        text = keys.fold(raw)
         if not text:
             return "unknown"
         if text in self.cmap.principal_kinds:
@@ -366,7 +366,7 @@ class _Reader:
         return "unknown"
 
     def enabled(self, raw: str, source: Source) -> bool | None:
-        text = raw.casefold()
+        text = keys.fold(raw)
         if not text:
             return None
         if text in self.cmap.enabled_true:
@@ -415,7 +415,7 @@ class _Reader:
 
     def make_resource(self, row: _Row, ident: _Ident, system: str, source: Source) -> Resource:
         values = row.values
-        raw_kind = values.get("resource_kind", "").casefold()
+        raw_kind = keys.fold(values.get("resource_kind", ""))
         default = self.cmap.resource_kind or "other"
         if raw_kind in RESOURCE_KINDS:
             kind = raw_kind
