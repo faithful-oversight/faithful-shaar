@@ -1200,7 +1200,7 @@ def test_each_scope_is_its_own_grant_in_active_and_eligible_roles(
     assert all(g["extra"] == {} for g in kinds(export, "grant"))
 
 
-@pytest.mark.parametrize("scope", [None, "", 7])
+@pytest.mark.parametrize("scope", [None, "", 7, " ", "\t", " / "])
 def test_an_assignment_without_a_scope_is_a_gap_and_its_role_is_incomplete(
     client: GraphClient, fake: FakeGraph, scope: Any
 ) -> None:
@@ -2134,3 +2134,29 @@ def test_a_url_the_library_rejects_becomes_a_gap(
     monkeypatch.setattr(client._opener, "open", refuse)  # noqa: SLF001
     with pytest.raises(GraphGap, match=r"the request failed \(ValueError\)"):
         client.get("/groups/abc")
+
+
+@pytest.mark.parametrize(
+    ("later", "result"), [("/", "pending"), (" ", "unknown"), ("\t", "unknown")]
+)
+def test_a_blank_scope_never_proves_a_whole_directory_grant_removed(  # noqa: PLR0913, PLR0917 - fixtures
+    client: GraphClient,
+    fake: FakeGraph,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    later: str,
+    result: str,
+) -> None:
+    # collector -> export -> parser -> campaign -> decisions -> verify
+    from tests.test_review_regressions import full_review  # noqa: PLC0415
+
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1794441600")  # 2026-11-12T00:00:00Z
+    names = value({"id": ROLE_ADMIN, "displayName": "Finance Admins"})
+    files = []
+    for name, scope in (("before", "/"), ("after", later)):
+        role_listing(fake, names, assignment(scope=scope))
+        path = tmp_path / f"{name}.jsonl"
+        path.write_bytes(entra.render(run(client, entra.Scope(roles=True))))
+        files.append(path)
+    results = full_review(tmp_path, [files[0]], [files[1]], [oid(11)])
+    assert list(results.values()) == [result]

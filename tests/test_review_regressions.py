@@ -491,3 +491,66 @@ def test_r2_build_refuses_one_key_with_two_emails(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(cmod, "assign", lambda *_a, **_k: Assignment(next(people)))
     with pytest.raises(InputError, match="is both"):
         cmod.build(snap, name="x", created_at="2026-11-01T00:00:00Z", due="", rule="manager")
+
+
+# --- Routine round 2 (S1) -----------------------------------------------------------
+
+
+def quoted_csv(delimiter: str, *, quote_all: bool) -> bytes:
+    import csv  # noqa: PLC0415
+
+    buffer = io.StringIO(newline="")
+    if quote_all:
+        writer = csv.writer(buffer, delimiter=delimiter, quoting=csv.QUOTE_ALL, lineterminator="\n")
+    else:
+        writer = csv.writer(buffer, delimiter=delimiter, lineterminator="\n")
+    writer.writerows([["user", "resource"], ["alice", "admins"]])
+    return buffer.getvalue().encode("utf-8")
+
+
+@pytest.mark.parametrize("delimiter", [",", ";", "\t", "|"])
+@pytest.mark.parametrize("how", ["quoted, inferred", "plain, inferred", "quoted, given"])
+def test_s1_a_quoted_header_is_read_with_any_supported_delimiter(
+    tmp_path: Path, delimiter: str, how: str
+) -> None:
+    table = tmp_path / "access.csv"
+    table.write_bytes(quoted_csv(delimiter, quote_all=how.startswith("quoted")))
+    given = f"delimiter = {json.dumps(delimiter)}\n" if how.endswith("given") else ""
+    cmap = tmp_path / "map.toml"
+    cmap.write_text(
+        f'system = "app"\n{given}[columns]\nprincipal_id = "user"\nresource_id = "resource"\n',
+        "utf-8",
+    )
+    reviewer_map = tmp_path / "reviewers.csv"
+    reviewer_map.write_text("resource,reviewer_id,reviewer_name\nadmins,rita,Rita\n", "utf-8")
+    out = tmp_path / "c"
+    argv = [
+        "campaign",
+        str(table),
+        "--map",
+        str(cmap),
+        "--name",
+        "Quoted",
+        "--due",
+        "2026-12-01",
+        "--reviewers",
+        "map",
+        "--reviewer-map",
+        str(reviewer_map),
+        "-o",
+        str(out),
+    ]
+    assert main(argv) == ExitCode.OK
+    data = json.loads((out / "campaign.json").read_text("utf-8"))
+    assert [(r["display"]["user"], r["display"]["resource"]) for r in data["rows"]] == [
+        ("alice", "admins")
+    ]
+    assert len(list(out.glob("packet-*.xlsx"))) == 1
+
+
+def test_s1_a_header_no_delimiter_can_read_is_still_an_input_error() -> None:
+    from faithful_shaar.errors import InputError  # noqa: PLC0415
+    from faithful_shaar.inputs.csvread import sniff  # noqa: PLC0415
+
+    with pytest.raises(InputError, match="header cannot be read"):
+        sniff('"user"x,"resource"\n', "", "bad.csv")

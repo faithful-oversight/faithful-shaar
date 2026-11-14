@@ -54,3 +54,6 @@ First release.
   - A reviewer map `reviewer_id` that appears with two names or two emails is refused, so one packet never mixes two people's entries or lets someone review their own access.
   - One export resource id given as two resources (a group and a role) leaves both incomplete instead of moving its grants to one of them.
   - The reviewer map header check is linear. The AD exporter writes the total cycle count beside the first five cycles and marks how many more there were. PowerShell telemetry is turned off in tests, the syntax check, and CI.
+- Findings from the independent recheck (routine round 2), fixed before release:
+  - Delimiter detection tries each delimiter on its own, so a CSV whose header cells are all quoted is read again with any supported delimiter. Strict quoting stays in force for the chosen delimiter.
+  - An Entra role assignment whose scope is blank or has spaces around it is a gap that makes its role incomplete, instead of a grant on the scope `scope`.

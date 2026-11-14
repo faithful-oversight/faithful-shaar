@@ -101,7 +101,7 @@ A system name is 1 to 40 characters: lower-case letters, digits, `.`, `_`, and `
 
 ## CSV files
 
-A CSV needs a column map, given with `--map FILE.toml`, a built-in preset with `--preset NAME`, or both. shaar decodes the file by its byte order mark (UTF-8, UTF-16 little or big endian), else as strict UTF-8. A file that cannot be decoded, or holds NUL characters, is refused. Set `encoding` in the map for any other encoding. The delimiter is the one of `,`, `;`, tab, and `|` that splits the header line most, unless the map sets it.
+A CSV needs a column map, given with `--map FILE.toml`, a built-in preset with `--preset NAME`, or both. shaar decodes the file by its byte order mark (UTF-8, UTF-16 little or big endian), else as strict UTF-8. A file that cannot be decoded, or holds NUL characters, is refused. Set `encoding` in the map for any other encoding. The delimiter is the one of `,`, `;`, tab, and `|` that splits the header line most, unless the map sets it. A delimiter under which the header is not valid CSV (as `"a","b"` is not under `;`) is passed over; if the header is valid under none, the file is refused.
 
 A CSV is read as text. Cells that look like formulas are data, and shaar never evaluates them. A row with more cells than the header, or that lacks a needed id, is skipped with a problem, and its resource is then not complete. Quoting is read strictly: a quoted cell may span lines, but a quote that is never closed, or text right after a closing quote, is a problem, and then no resource in the file is complete, because the rows after it may have been swallowed. A file is limited to 256 MiB and 2,000,000 data rows.
 

@@ -170,6 +170,16 @@ def _text(obj: dict[str, Any], key: str) -> str:
     return value if isinstance(value, str) else ""
 
 
+def _scope(item: dict[str, Any]) -> str:
+    """Return a role assignment's ``directoryScopeId``, or "" if it is not usable.
+
+    A blank scope, or one with spaces around it, names no scope Graph uses. Read as text it
+    would become the entitlement ``scope`` and stand for a scope it is not, so it is unusable.
+    """
+    value = _text(item, "directoryScopeId")
+    return value if value and value == value.strip() else ""
+
+
 def _lost(pages: Pages) -> int:
     """How many records of a listing could not be used: not objects, or without an id."""
     return pages.dropped + sum(1 for item in pages.items if not _text(item, "id"))
@@ -606,7 +616,7 @@ class _Collector:
                 return "unevaluated"
             if not state:
                 return ""
-        return "current" if _text(item, "directoryScopeId") else "unscoped"
+        return "current" if _scope(item) else "unscoped"
 
     def _role_grant(
         self,
@@ -621,7 +631,7 @@ class _Collector:
         self.add_principal(obj)
         if self.out.principals[principal_id]["kind"] == "group":
             group_holders[principal_id] = self.out.principals[principal_id]["name"] or principal_id
-        scope_id = _text(item, "directoryScopeId")
+        scope_id = _scope(item)
         self.add_grant(
             resource_id, principal_id, "whole directory" if scope_id == "/" else f"scope {scope_id}"
         )

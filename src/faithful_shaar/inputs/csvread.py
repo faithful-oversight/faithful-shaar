@@ -94,12 +94,19 @@ def sniff(text: str, forced: str, name: str) -> str:
         raise InputError(msg)
     if forced:
         return forced
-    try:
-        counts = {d: len(next(csv.reader([first], delimiter=d, strict=True))) for d in DELIMITERS}
-    except csv.Error as exc:
-        msg = f"{name} header cannot be read: {exc}"
-        raise InputError(msg) from exc
-    return max(DELIMITERS, key=lambda d: counts[d])
+    # Each candidate is tried on its own: a quoted header is often not valid CSV under a
+    # wrong delimiter ('"a","b"' with ';'), which rules that delimiter out, not the file.
+    counts: dict[str, int] = {}
+    error: csv.Error | None = None
+    for delimiter in DELIMITERS:
+        try:
+            counts[delimiter] = len(next(csv.reader([first], delimiter=delimiter, strict=True)))
+        except csv.Error as exc:
+            error = exc
+    if not counts:
+        msg = f"{name} header cannot be read: {error}"
+        raise InputError(msg) from error
+    return max(counts, key=lambda d: counts[d])
 
 
 def _records(reader: Any) -> Iterator[tuple[int, list[str] | csv.Error]]:
