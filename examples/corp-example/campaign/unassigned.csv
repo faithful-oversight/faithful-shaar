@@ -1,0 +1,3 @@
+principal,account,resource,access,reason,source
+Jordan Director,jordan.director@corp.example,Ledger,Viewer,the input names no manager for this principal,"ledger.csv, row 2"
+svc-backup (service),svc-backup@corp.example,Server Operators,member,the input names no manager for this principal,"ad.jsonl, line 16"

@@ -55,3 +55,14 @@ PowerShell
 TOML
 CHANGELOG
 [Mm]isspelled
+remoting
+openpyxl
+pypsrp
+SIDs?
+Filip
+unkeyed
+endian
+ADSI
+Kerberos
+JSONL
+DTDs?

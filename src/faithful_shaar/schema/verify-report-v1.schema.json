@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://faithful-oversight.github.io/faithful-shaar/schema/verify-report-v1.schema.json",
+  "title": "shaar verify report",
+  "description": "Version 1 of the JSON report that shaar verify writes. Every section row is an object with exactly the columns listed here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "counts",
+    "data",
+    "facts",
+    "generated_at",
+    "headline",
+    "inputs",
+    "kind",
+    "not_shown",
+    "problems",
+    "schema",
+    "sections",
+    "title",
+    "tool"
+  ],
+  "properties": {
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "data": {
+      "type": "object"
+    },
+    "facts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "generated_at": {
+      "$ref": "#/$defs/time"
+    },
+    "headline": {
+      "type": "string"
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "name",
+          "sha256",
+          "size"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "kind": {
+      "const": "verify"
+    },
+    "not_shown": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0
+    },
+    "problems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "reason"
+        ],
+        "properties": {
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "file",
+              "detail"
+            ],
+            "properties": {
+              "file": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "schema": {
+      "const": "https://faithful-oversight.github.io/faithful-shaar/schema/verify-report-v1.schema.json"
+    },
+    "sections": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "removals",
+        "kept_but_gone",
+        "new_since_review"
+      ],
+      "properties": {
+        "removals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "row_id",
+              "principal",
+              "resource",
+              "access",
+              "result",
+              "reason",
+              "citation"
+            ],
+            "properties": {
+              "row_id": {
+                "$ref": "#/$defs/cell",
+                "title": "Row ID"
+              },
+              "principal": {
+                "$ref": "#/$defs/cell",
+                "title": "User"
+              },
+              "resource": {
+                "$ref": "#/$defs/cell",
+                "title": "Access to"
+              },
+              "access": {
+                "$ref": "#/$defs/cell",
+                "title": "Access"
+              },
+              "result": {
+                "$ref": "#/$defs/cell",
+                "title": "Result"
+              },
+              "reason": {
+                "$ref": "#/$defs/cell",
+                "title": "Reason"
+              },
+              "citation": {
+                "$ref": "#/$defs/cell",
+                "title": "Source"
+              }
+            }
+          }
+        },
+        "kept_but_gone": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "row_id",
+              "principal",
+              "resource",
+              "access",
+              "citation"
+            ],
+            "properties": {
+              "row_id": {
+                "$ref": "#/$defs/cell",
+                "title": "Row ID"
+              },
+              "principal": {
+                "$ref": "#/$defs/cell",
+                "title": "User"
+              },
+              "resource": {
+                "$ref": "#/$defs/cell",
+                "title": "Access to"
+              },
+              "access": {
+                "$ref": "#/$defs/cell",
+                "title": "Access"
+              },
+              "citation": {
+                "$ref": "#/$defs/cell",
+                "title": "Source"
+              }
+            }
+          }
+        },
+        "new_since_review": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "principal",
+              "resource",
+              "access",
+              "citation"
+            ],
+            "properties": {
+              "principal": {
+                "$ref": "#/$defs/cell",
+                "title": "User"
+              },
+              "resource": {
+                "$ref": "#/$defs/cell",
+                "title": "Access to"
+              },
+              "access": {
+                "$ref": "#/$defs/cell",
+                "title": "Access"
+              },
+              "citation": {
+                "$ref": "#/$defs/cell",
+                "title": "Source"
+              }
+            }
+          }
+        }
+      }
+    },
+    "title": {
+      "type": "string"
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "shaar"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "time": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "description": "RFC 3339, UTC, to the second, with a trailing Z."
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "cell": {
+      "anyOf": [
+        {
+          "type": [
+            "string",
+            "integer",
+            "null"
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "description": "Text, a whole number, nothing (null), or a list of text."
+    }
+  }
+}

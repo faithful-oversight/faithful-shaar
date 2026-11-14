@@ -1,0 +1,253 @@
+{
+  "counts": {
+    "Access entries": 13,
+    "Entries with no reviewer": 2,
+    "Problems reading the inputs": 0,
+    "Reviewers": 3
+  },
+  "data": {
+    "campaign_digest": "18ac49946693d4befda6e8a6a7d6a976f13cdfa29616bdce80e9325b0903a8dc",
+    "campaign_id": "C21f06e77d8c77003"
+  },
+  "facts": {
+    "Access read at": "2026-11-01T22:00:00Z",
+    "Campaign": "Q4 2026 access review",
+    "Campaign ID": "C21f06e77d8c77003",
+    "Due": "2026-11-16",
+    "Reviewers chosen by": "manager",
+    "Systems": "ad, csv:ledger, entra"
+  },
+  "generated_at": "2026-11-02T09:00:00Z",
+  "headline": "13 access entries for 3 reviewers. 2 entries have no reviewer.",
+  "inputs": [
+    {
+      "kind": "shaar-export",
+      "name": "ad.jsonl",
+      "sha256": "f248f8e56d8926cf7baf6b489a600d0266df95b241b21f9b27df521dacb68733",
+      "size": 4029
+    },
+    {
+      "kind": "shaar-export",
+      "name": "entra.jsonl",
+      "sha256": "dfe2df70b884bcd6e3c5633ddf34601f073d2dd89cdec19691455798b547b0ff",
+      "size": 3485
+    },
+    {
+      "kind": "csv",
+      "name": "ledger.csv",
+      "sha256": "ee38eb63cd3d672d6b9a45ec978f40dc71037e9834c44be1e6ad44040b4fb115",
+      "size": 478
+    }
+  ],
+  "kind": "campaign",
+  "not_shown": [
+    "Access that no input recorded, such as local accounts or systems that were not exported.",
+    "What a group or role lets its members do: only who holds it.",
+    "Whether any access is appropriate: that is each reviewer's decision."
+  ],
+  "problems": [],
+  "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/campaign-report-v1.schema.json",
+  "sections": {
+    "reviewers": [
+      {
+        "email": "casey.owner@corp.example",
+        "packet": "packet-01-Casey-Owner-da089e.xlsx",
+        "reviewer": "Casey Owner",
+        "rows": 2
+      },
+      {
+        "email": "jordan.director@corp.example",
+        "packet": "packet-02-Jordan-Director-24304a.xlsx",
+        "reviewer": "Jordan Director",
+        "rows": 2
+      },
+      {
+        "email": "morgan.lead@corp.example",
+        "packet": "packet-03-Morgan-Lead-e16dc6.xlsx",
+        "reviewer": "Morgan Lead",
+        "rows": 9
+      }
+    ],
+    "rows": [
+      {
+        "access": "member",
+        "account": "emery.contractor@corp.example",
+        "principal": "Emery Contractor",
+        "resource": "Payroll App Users",
+        "resource_kind": "group",
+        "reviewer": "Casey Owner",
+        "row_id": "R72d2dc2d4e95",
+        "source": "entra.jsonl, line 14",
+        "status": "Enabled",
+        "via": "Direct"
+      },
+      {
+        "access": "member",
+        "account": "emery.contractor@corp.example",
+        "principal": "Emery Contractor",
+        "resource": "Server Operators",
+        "resource_kind": "group",
+        "reviewer": "Casey Owner",
+        "row_id": "Radff3f4f68d7",
+        "source": "ad.jsonl, line 18",
+        "status": "Enabled",
+        "via": "Direct"
+      },
+      {
+        "access": "whole directory",
+        "account": "morgan.lead@corp.example",
+        "principal": "Morgan Lead",
+        "resource": "Global Administrator",
+        "resource_kind": "role",
+        "reviewer": "Jordan Director",
+        "row_id": "R8b4b33a23130",
+        "source": "entra.jsonl, line 11",
+        "status": "Enabled",
+        "via": "Direct"
+      },
+      {
+        "access": "Approver",
+        "account": "morgan.lead@corp.example",
+        "principal": "Morgan Lead",
+        "resource": "Ledger",
+        "resource_kind": "application",
+        "reviewer": "Jordan Director",
+        "row_id": "R7e70501da446",
+        "source": "ledger.csv, row 3",
+        "status": "Enabled",
+        "via": "Direct"
+      },
+      {
+        "access": "member",
+        "account": "avery.example@corp.example",
+        "principal": "Avery Example",
+        "resource": "Finance Admins",
+        "resource_kind": "group",
+        "reviewer": "Morgan Lead",
+        "row_id": "Rce931cefa50a",
+        "source": "ad.jsonl, line 13",
+        "status": "Enabled",
+        "via": "Direct"
+      },
+      {
+        "access": "member",
+        "account": "blake.sample@corp.example",
+        "principal": "Blake Sample",
+        "resource": "Finance Admins",
+        "resource_kind": "group",
+        "reviewer": "Morgan Lead",
+        "row_id": "R070a8260809e",
+        "source": "ad.jsonl, line 17",
+        "status": "Disabled",
+        "via": "Direct"
+      },
+      {
+        "access": "Approver",
+        "account": "avery.example@corp.example",
+        "principal": "Avery Example",
+        "resource": "Ledger",
+        "resource_kind": "application",
+        "reviewer": "Morgan Lead",
+        "row_id": "R3dd2ac32ff3d",
+        "source": "ledger.csv, row 4",
+        "status": "Enabled",
+        "via": "Direct"
+      },
+      {
+        "access": "Viewer",
+        "account": "blake.sample@corp.example",
+        "principal": "Blake Sample",
+        "resource": "Ledger",
+        "resource_kind": "application",
+        "reviewer": "Morgan Lead",
+        "row_id": "R3c13774fa103",
+        "source": "ledger.csv, row 6",
+        "status": "Disabled",
+        "via": "Direct"
+      },
+      {
+        "access": "Viewer",
+        "account": "drew.analyst@corp.example",
+        "principal": "Drew Analyst",
+        "resource": "Ledger",
+        "resource_kind": "application",
+        "reviewer": "Morgan Lead",
+        "row_id": "R954d0306e234",
+        "source": "ledger.csv, row 5",
+        "status": "Enabled",
+        "via": "Direct"
+      },
+      {
+        "access": "member",
+        "account": "drew.analyst@corp.example",
+        "principal": "Drew Analyst",
+        "resource": "Ops Helpers",
+        "resource_kind": "group",
+        "reviewer": "Morgan Lead",
+        "row_id": "R60b815364cb6",
+        "source": "ad.jsonl, line 15",
+        "status": "Enabled",
+        "via": "Direct"
+      },
+      {
+        "access": "member",
+        "account": "avery.example@corp.example",
+        "principal": "Avery Example",
+        "resource": "Payroll App Users",
+        "resource_kind": "group",
+        "reviewer": "Morgan Lead",
+        "row_id": "R119eb45d6c64",
+        "source": "entra.jsonl, line 12",
+        "status": "Enabled",
+        "via": "Direct"
+      },
+      {
+        "access": "member",
+        "account": "drew.analyst@corp.example",
+        "principal": "Drew Analyst",
+        "resource": "Payroll App Users",
+        "resource_kind": "group",
+        "reviewer": "Morgan Lead",
+        "row_id": "R01318e99338d",
+        "source": "entra.jsonl, line 13",
+        "status": "Enabled",
+        "via": "Direct"
+      },
+      {
+        "access": "member",
+        "account": "drew.analyst@corp.example",
+        "principal": "Drew Analyst",
+        "resource": "Server Operators",
+        "resource_kind": "group",
+        "reviewer": "Morgan Lead",
+        "row_id": "R2a6be5aaf266",
+        "source": "ad.jsonl, line 14",
+        "status": "Enabled",
+        "via": "Server Operators > Ops Helpers"
+      }
+    ],
+    "unassigned": [
+      {
+        "access": "Viewer",
+        "account": "jordan.director@corp.example",
+        "principal": "Jordan Director",
+        "reason": "the input names no manager for this principal",
+        "resource": "Ledger",
+        "source": "ledger.csv, row 2"
+      },
+      {
+        "access": "member",
+        "account": "svc-backup@corp.example",
+        "principal": "svc-backup (service)",
+        "reason": "the input names no manager for this principal",
+        "resource": "Server Operators",
+        "source": "ad.jsonl, line 16"
+      }
+    ]
+  },
+  "title": "Access review campaign: Q4 2026 access review",
+  "tool": {
+    "name": "shaar",
+    "version": "example"
+  }
+}

@@ -1,0 +1,370 @@
+{
+  "collected_at": "2026-11-01T22:00:00Z",
+  "complete_resources": [
+    "ad:sid:S-1-5-21-1000-1000-1000-2001",
+    "ad:sid:S-1-5-21-1000-1000-1000-2002",
+    "ad:sid:S-1-5-21-1000-1000-1000-2003",
+    "csv:ledger:ledger",
+    "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001",
+    "entra:00000000-0000-4000-8000-000000000000:role:62e90394-69f5-4237-9190-012177145e10"
+  ],
+  "created_at": "2026-11-02T09:00:00Z",
+  "digest": "18ac49946693d4befda6e8a6a7d6a976f13cdfa29616bdce80e9325b0903a8dc",
+  "due": "2026-11-16",
+  "id": "C21f06e77d8c77003",
+  "inputs": [
+    {
+      "kind": "shaar-export",
+      "name": "ad.jsonl",
+      "sha256": "f248f8e56d8926cf7baf6b489a600d0266df95b241b21f9b27df521dacb68733",
+      "size": 4029
+    },
+    {
+      "kind": "shaar-export",
+      "name": "entra.jsonl",
+      "sha256": "dfe2df70b884bcd6e3c5633ddf34601f073d2dd89cdec19691455798b547b0ff",
+      "size": 3485
+    },
+    {
+      "kind": "csv",
+      "name": "ledger.csv",
+      "sha256": "ee38eb63cd3d672d6b9a45ec978f40dc71037e9834c44be1e6ad44040b4fb115",
+      "size": 478
+    }
+  ],
+  "name": "Q4 2026 access review",
+  "problems": [],
+  "reviewers": [
+    {
+      "email": "casey.owner@corp.example",
+      "key": "mail:casey.owner@corp.example",
+      "name": "Casey Owner",
+      "packet": "packet-01-Casey-Owner-da089e.xlsx",
+      "packet_digest": "f3513dd6577fb5e8c7ec5df59526664dcd823c0443e4535f57f2ccce8944252e",
+      "rows": 2
+    },
+    {
+      "email": "jordan.director@corp.example",
+      "key": "mail:jordan.director@corp.example",
+      "name": "Jordan Director",
+      "packet": "packet-02-Jordan-Director-24304a.xlsx",
+      "packet_digest": "f728e8671b0f9e9b26c4b51e0c9d94f771a2dca91be8c86e350b494bebc0793a",
+      "rows": 2
+    },
+    {
+      "email": "morgan.lead@corp.example",
+      "key": "mail:morgan.lead@corp.example",
+      "name": "Morgan Lead",
+      "packet": "packet-03-Morgan-Lead-e16dc6.xlsx",
+      "packet_digest": "0186b4350d3e748d5a4f40d916bee9dd7bfd065d74396d04a4cc7c5596532c8d",
+      "rows": 9
+    }
+  ],
+  "rows": [
+    {
+      "display": {
+        "access": "member",
+        "account": "emery.contractor@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-30T08:15:00Z",
+        "resource": "Payroll App Users",
+        "resource_kind": "group",
+        "status": "Enabled",
+        "user": "Emery Contractor",
+        "via": "Direct"
+      },
+      "grant_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001|entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000007|member",
+      "principal_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000007",
+      "resource_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001",
+      "reviewer_key": "mail:casey.owner@corp.example",
+      "row_check": "f6f95c270c3c16a3508a08492c8f57b3ec8742d139338df62a7190fd8c2e6927",
+      "row_id": "R72d2dc2d4e95",
+      "source": "entra.jsonl, line 14"
+    },
+    {
+      "display": {
+        "access": "member",
+        "account": "emery.contractor@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-30T08:15:00Z",
+        "resource": "Server Operators",
+        "resource_kind": "group",
+        "status": "Enabled",
+        "user": "Emery Contractor",
+        "via": "Direct"
+      },
+      "grant_key": "ad:sid:S-1-5-21-1000-1000-1000-2002|ad:sid:S-1-5-21-1000-1000-1000-1106|member",
+      "principal_key": "ad:sid:S-1-5-21-1000-1000-1000-1106",
+      "resource_key": "ad:sid:S-1-5-21-1000-1000-1000-2002",
+      "reviewer_key": "mail:casey.owner@corp.example",
+      "row_check": "d7b54db36e42dbc42bd10c4c3f9c38e9f7ab71893d21b307b9aa4601d062e8cb",
+      "row_id": "Radff3f4f68d7",
+      "source": "ad.jsonl, line 18"
+    },
+    {
+      "display": {
+        "access": "whole directory",
+        "account": "morgan.lead@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-30T08:15:00Z",
+        "resource": "Global Administrator",
+        "resource_kind": "role",
+        "status": "Enabled",
+        "user": "Morgan Lead",
+        "via": "Direct"
+      },
+      "grant_key": "entra:00000000-0000-4000-8000-000000000000:role:62e90394-69f5-4237-9190-012177145e10|entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000002|whole directory",
+      "principal_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000002",
+      "resource_key": "entra:00000000-0000-4000-8000-000000000000:role:62e90394-69f5-4237-9190-012177145e10",
+      "reviewer_key": "mail:jordan.director@corp.example",
+      "row_check": "c86d33b1984d524081d6d830cc4732a547afeaf75f75b301d8b4e093285960be",
+      "row_id": "R8b4b33a23130",
+      "source": "entra.jsonl, line 11"
+    },
+    {
+      "display": {
+        "access": "Approver",
+        "account": "morgan.lead@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-29",
+        "resource": "Ledger",
+        "resource_kind": "application",
+        "status": "Enabled",
+        "user": "Morgan Lead",
+        "via": "Direct"
+      },
+      "grant_key": "csv:ledger:ledger|csv:ledger:morgan.lead@corp.example|approver",
+      "principal_key": "csv:ledger:morgan.lead@corp.example",
+      "resource_key": "csv:ledger:ledger",
+      "reviewer_key": "mail:jordan.director@corp.example",
+      "row_check": "7e0c799fb5f865bc1bf8c9ff0f329292d7fc958e7e80b55a91848cdfffdd8d61",
+      "row_id": "R7e70501da446",
+      "source": "ledger.csv, row 3"
+    },
+    {
+      "display": {
+        "access": "member",
+        "account": "avery.example@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-30T08:15:00Z",
+        "resource": "Finance Admins",
+        "resource_kind": "group",
+        "status": "Enabled",
+        "user": "Avery Example",
+        "via": "Direct"
+      },
+      "grant_key": "ad:sid:S-1-5-21-1000-1000-1000-2001|ad:sid:S-1-5-21-1000-1000-1000-1102|member",
+      "principal_key": "ad:sid:S-1-5-21-1000-1000-1000-1102",
+      "resource_key": "ad:sid:S-1-5-21-1000-1000-1000-2001",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_check": "f55ffb0c142dd5ec7d55bbe4886041146df5f038f4fb917418e69c44b2a82be8",
+      "row_id": "Rce931cefa50a",
+      "source": "ad.jsonl, line 13"
+    },
+    {
+      "display": {
+        "access": "member",
+        "account": "blake.sample@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-06-01T08:15:00Z",
+        "resource": "Finance Admins",
+        "resource_kind": "group",
+        "status": "Disabled",
+        "user": "Blake Sample",
+        "via": "Direct"
+      },
+      "grant_key": "ad:sid:S-1-5-21-1000-1000-1000-2001|ad:sid:S-1-5-21-1000-1000-1000-1103|member",
+      "principal_key": "ad:sid:S-1-5-21-1000-1000-1000-1103",
+      "resource_key": "ad:sid:S-1-5-21-1000-1000-1000-2001",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_check": "b7a43c733cba6e54aa5ebe956b412c3fd0589cf56c0c50e79168b65a6baa93b1",
+      "row_id": "R070a8260809e",
+      "source": "ad.jsonl, line 17"
+    },
+    {
+      "display": {
+        "access": "Approver",
+        "account": "avery.example@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-29",
+        "resource": "Ledger",
+        "resource_kind": "application",
+        "status": "Enabled",
+        "user": "Avery Example",
+        "via": "Direct"
+      },
+      "grant_key": "csv:ledger:ledger|csv:ledger:avery.example@corp.example|approver",
+      "principal_key": "csv:ledger:avery.example@corp.example",
+      "resource_key": "csv:ledger:ledger",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_check": "ba370404def13ee791b383644c971461c45e2cb71d38509de46e44b1b0b90fd0",
+      "row_id": "R3dd2ac32ff3d",
+      "source": "ledger.csv, row 4"
+    },
+    {
+      "display": {
+        "access": "Viewer",
+        "account": "blake.sample@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-29",
+        "resource": "Ledger",
+        "resource_kind": "application",
+        "status": "Disabled",
+        "user": "Blake Sample",
+        "via": "Direct"
+      },
+      "grant_key": "csv:ledger:ledger|csv:ledger:blake.sample@corp.example|viewer",
+      "principal_key": "csv:ledger:blake.sample@corp.example",
+      "resource_key": "csv:ledger:ledger",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_check": "6805298a87138c81fab1d355910e8f45d8d4758ddaab5c11cc6b863635e83547",
+      "row_id": "R3c13774fa103",
+      "source": "ledger.csv, row 6"
+    },
+    {
+      "display": {
+        "access": "Viewer",
+        "account": "drew.analyst@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-29",
+        "resource": "Ledger",
+        "resource_kind": "application",
+        "status": "Enabled",
+        "user": "Drew Analyst",
+        "via": "Direct"
+      },
+      "grant_key": "csv:ledger:ledger|csv:ledger:drew.analyst@corp.example|viewer",
+      "principal_key": "csv:ledger:drew.analyst@corp.example",
+      "resource_key": "csv:ledger:ledger",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_check": "ebb3d14da8051f1bd4c1b5bc485ec6f5796b74c9172778845f0b171e295f921d",
+      "row_id": "R954d0306e234",
+      "source": "ledger.csv, row 5"
+    },
+    {
+      "display": {
+        "access": "member",
+        "account": "drew.analyst@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-30T08:15:00Z",
+        "resource": "Ops Helpers",
+        "resource_kind": "group",
+        "status": "Enabled",
+        "user": "Drew Analyst",
+        "via": "Direct"
+      },
+      "grant_key": "ad:sid:S-1-5-21-1000-1000-1000-2003|ad:sid:S-1-5-21-1000-1000-1000-1105|member",
+      "principal_key": "ad:sid:S-1-5-21-1000-1000-1000-1105",
+      "resource_key": "ad:sid:S-1-5-21-1000-1000-1000-2003",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_check": "b19c86fbab4db51027eee92b49baa6922790bd7ae5062fedc54b2c1679dc007b",
+      "row_id": "R60b815364cb6",
+      "source": "ad.jsonl, line 15"
+    },
+    {
+      "display": {
+        "access": "member",
+        "account": "avery.example@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-30T08:15:00Z",
+        "resource": "Payroll App Users",
+        "resource_kind": "group",
+        "status": "Enabled",
+        "user": "Avery Example",
+        "via": "Direct"
+      },
+      "grant_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001|entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000003|member",
+      "principal_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000003",
+      "resource_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_check": "35e497e02f984a5c1a1cc1249e473494fc8bde147ee2ac0598586e5f6f1626ad",
+      "row_id": "R119eb45d6c64",
+      "source": "entra.jsonl, line 12"
+    },
+    {
+      "display": {
+        "access": "member",
+        "account": "drew.analyst@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-30T08:15:00Z",
+        "resource": "Payroll App Users",
+        "resource_kind": "group",
+        "status": "Enabled",
+        "user": "Drew Analyst",
+        "via": "Direct"
+      },
+      "grant_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001|entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000006|member",
+      "principal_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000006",
+      "resource_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_check": "9855b55472cf13a998863d4be776f783876c435c5f5ae637f41af63707ecb2f4",
+      "row_id": "R01318e99338d",
+      "source": "entra.jsonl, line 13"
+    },
+    {
+      "display": {
+        "access": "member",
+        "account": "drew.analyst@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-30T08:15:00Z",
+        "resource": "Server Operators",
+        "resource_kind": "group",
+        "status": "Enabled",
+        "user": "Drew Analyst",
+        "via": "Server Operators > Ops Helpers"
+      },
+      "grant_key": "ad:sid:S-1-5-21-1000-1000-1000-2002|ad:sid:S-1-5-21-1000-1000-1000-1105|member",
+      "principal_key": "ad:sid:S-1-5-21-1000-1000-1000-1105",
+      "resource_key": "ad:sid:S-1-5-21-1000-1000-1000-2002",
+      "reviewer_key": "mail:morgan.lead@corp.example",
+      "row_check": "b711dbb8d5c22c1d739934b2e919314a1b6a2dfc1a021c855beb78ef94270e34",
+      "row_id": "R2a6be5aaf266",
+      "source": "ad.jsonl, line 14"
+    }
+  ],
+  "rule": "manager",
+  "shaar_campaign": 1,
+  "systems": [
+    "ad",
+    "csv:ledger",
+    "entra"
+  ],
+  "unassigned": [
+    {
+      "display": {
+        "access": "Viewer",
+        "account": "jordan.director@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-29",
+        "resource": "Ledger",
+        "resource_kind": "application",
+        "status": "Enabled",
+        "user": "Jordan Director",
+        "via": "Direct"
+      },
+      "grant_key": "csv:ledger:ledger|csv:ledger:jordan.director@corp.example|viewer",
+      "principal_key": "csv:ledger:jordan.director@corp.example",
+      "reason": "the input names no manager for this principal",
+      "resource_key": "csv:ledger:ledger",
+      "source": "ledger.csv, row 2"
+    },
+    {
+      "display": {
+        "access": "member",
+        "account": "svc-backup@corp.example",
+        "co_owners": "",
+        "last_sign_in": "2026-10-30T08:15:00Z",
+        "resource": "Server Operators",
+        "resource_kind": "group",
+        "status": "Enabled",
+        "user": "svc-backup (service)",
+        "via": "Direct"
+      },
+      "grant_key": "ad:sid:S-1-5-21-1000-1000-1000-2002|ad:sid:S-1-5-21-1000-1000-1000-1107|member",
+      "principal_key": "ad:sid:S-1-5-21-1000-1000-1000-1107",
+      "reason": "the input names no manager for this principal",
+      "resource_key": "ad:sid:S-1-5-21-1000-1000-1000-2002",
+      "source": "ad.jsonl, line 16"
+    }
+  ]
+}

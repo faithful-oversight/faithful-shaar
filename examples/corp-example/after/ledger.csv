@@ -1,0 +1,4 @@
+Full name,Email,Manager email,Active,Role,Last login
+Jordan Director,jordan.director@corp.example,,Yes,Viewer,2026-10-29
+Morgan Lead,morgan.lead@corp.example,jordan.director@corp.example,Yes,Approver,2026-10-29
+Avery Example,avery.example@corp.example,morgan.lead@corp.example,Yes,Approver,2026-10-29

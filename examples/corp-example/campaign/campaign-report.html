@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Access review campaign: Q4 2026 access review</title>
+<style>
+:root{--fg:#1f2328;--muted:#4d5661;--bg:#fff;--panel:#f6f8fa;--line:#c4ccd4;--accent:#0550ae}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:80rem;margin:0 auto;padding:1rem 1.25rem 3rem}
+h1{font-size:1.6rem;margin:1.25rem 0 .25rem}
+h2{font-size:1.2rem;margin:2rem 0 .5rem;padding-bottom:.25rem;border-bottom:1px solid var(--line)}
+.count{font-weight:400;color:var(--muted);font-size:.9rem}
+.headline{font-size:1.1rem;font-weight:600;border:2px solid var(--fg);border-radius:6px;
+padding:.7rem 1rem;margin:1rem 0;background:var(--panel)}
+.tablewrap{overflow-x:auto;margin:.5rem 0 1rem}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+caption{position:absolute;left:-999px}
+th,td{border:1px solid var(--line);padding:.35rem .5rem;text-align:left;vertical-align:top;
+overflow-wrap:anywhere;white-space:pre-wrap}
+thead th{background:var(--panel)}
+thead{display:table-header-group}
+tr{break-inside:avoid}
+table.facts{width:auto;min-width:24rem}
+table.facts th{font-weight:600;background:var(--panel)}
+td.cite{color:var(--muted);font-size:.82rem}
+.muted{color:var(--muted)}
+code{font:.88em ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+ul.list{padding-left:1.2rem}
+ul.list li{margin:.3rem 0}
+footer{margin-top:2.5rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);
+padding-top:.75rem}
+@media print{body{font-size:11pt}main{max-width:none;padding:0}
+h2{break-after:avoid}th,td{padding:.2rem .35rem}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Access review campaign: Q4 2026 access review</h1>
+<p class="headline" role="status">13 access entries for 3 reviewers. 2 entries have no reviewer.</p>
+</header>
+<div class="tablewrap"><table class="facts"><caption>Facts</caption><tr><th scope="row">Campaign</th><td>Q4 2026 access review</td></tr><tr><th scope="row">Campaign ID</th><td>C21f06e77d8c77003</td></tr><tr><th scope="row">Reviewers chosen by</th><td>manager</td></tr><tr><th scope="row">Due</th><td>2026-11-16</td></tr><tr><th scope="row">Access read at</th><td>2026-11-01T22:00:00Z</td></tr><tr><th scope="row">Systems</th><td>ad, csv:ledger, entra</td></tr></table></div>
+<div class="tablewrap"><table><caption>Counts</caption><thead><tr><th scope="col">Count</th><th scope="col">Number</th></tr></thead><tbody><tr><td>Access entries</td><td>13</td></tr><tr><td>Reviewers</td><td>3</td></tr><tr><td>Entries with no reviewer</td><td>2</td></tr><tr><td>Problems reading the inputs</td><td>0</td></tr></tbody></table></div>
+<section aria-labelledby="s1"><h2 id="s1">Reviewers and packets <span class="count">(3 rows)</span></h2><p>Send each reviewer their own packet.</p><div class="tablewrap"><table><caption>Reviewers and packets</caption><thead><tr><th scope="col">Reviewer</th><th scope="col">Email</th><th scope="col">Entries</th><th scope="col">Packet file</th></tr></thead><tbody><tr><td>Casey Owner</td><td>casey.owner@corp.example</td><td>2</td><td>packet-01-Casey-Owner-da089e.xlsx</td></tr><tr><td>Jordan Director</td><td>jordan.director@corp.example</td><td>2</td><td>packet-02-Jordan-Director-24304a.xlsx</td></tr><tr><td>Morgan Lead</td><td>morgan.lead@corp.example</td><td>9</td><td>packet-03-Morgan-Lead-e16dc6.xlsx</td></tr></tbody></table></div></section><section aria-labelledby="s2"><h2 id="s2">Entries with no reviewer <span class="count">(2 rows)</span></h2><p>No rule could place these entries. Assign them with a reviewer map, or review them separately.</p><div class="tablewrap"><table><caption>Entries with no reviewer</caption><thead><tr><th scope="col">User</th><th scope="col">Account</th><th scope="col">Access to</th><th scope="col">Access</th><th scope="col">Why there is no reviewer</th><th scope="col">Source</th></tr></thead><tbody><tr><td>Jordan Director</td><td>jordan.director@corp.example</td><td>Ledger</td><td>Viewer</td><td>the input names no manager for this principal</td><td class="cite">ledger.csv, row 2</td></tr><tr><td>svc-backup (service)</td><td>svc-backup@corp.example</td><td>Server Operators</td><td>member</td><td>the input names no manager for this principal</td><td class="cite">ad.jsonl, line 16</td></tr></tbody></table></div></section><section aria-labelledby="s3"><h2 id="s3">All entries <span class="count">(13 rows)</span></h2><p>Every entry sent for review, by reviewer.</p><div class="tablewrap"><table><caption>All entries</caption><thead><tr><th scope="col">Row ID</th><th scope="col">Reviewer</th><th scope="col">User</th><th scope="col">Account</th><th scope="col">Status</th><th scope="col">Access to</th><th scope="col">Type</th><th scope="col">Access</th><th scope="col">Granted through</th><th scope="col">Source</th></tr></thead><tbody><tr><td>R72d2dc2d4e95</td><td>Casey Owner</td><td>Emery Contractor</td><td>emery.contractor@corp.example</td><td>Enabled</td><td>Payroll App Users</td><td>group</td><td>member</td><td>Direct</td><td class="cite">entra.jsonl, line 14</td></tr><tr><td>Radff3f4f68d7</td><td>Casey Owner</td><td>Emery Contractor</td><td>emery.contractor@corp.example</td><td>Enabled</td><td>Server Operators</td><td>group</td><td>member</td><td>Direct</td><td class="cite">ad.jsonl, line 18</td></tr><tr><td>R8b4b33a23130</td><td>Jordan Director</td><td>Morgan Lead</td><td>morgan.lead@corp.example</td><td>Enabled</td><td>Global Administrator</td><td>role</td><td>whole directory</td><td>Direct</td><td class="cite">entra.jsonl, line 11</td></tr><tr><td>R7e70501da446</td><td>Jordan Director</td><td>Morgan Lead</td><td>morgan.lead@corp.example</td><td>Enabled</td><td>Ledger</td><td>application</td><td>Approver</td><td>Direct</td><td class="cite">ledger.csv, row 3</td></tr><tr><td>Rce931cefa50a</td><td>Morgan Lead</td><td>Avery Example</td><td>avery.example@corp.example</td><td>Enabled</td><td>Finance Admins</td><td>group</td><td>member</td><td>Direct</td><td class="cite">ad.jsonl, line 13</td></tr><tr><td>R070a8260809e</td><td>Morgan Lead</td><td>Blake Sample</td><td>blake.sample@corp.example</td><td>Disabled</td><td>Finance Admins</td><td>group</td><td>member</td><td>Direct</td><td class="cite">ad.jsonl, line 17</td></tr><tr><td>R3dd2ac32ff3d</td><td>Morgan Lead</td><td>Avery Example</td><td>avery.example@corp.example</td><td>Enabled</td><td>Ledger</td><td>application</td><td>Approver</td><td>Direct</td><td class="cite">ledger.csv, row 4</td></tr><tr><td>R3c13774fa103</td><td>Morgan Lead</td><td>Blake Sample</td><td>blake.sample@corp.example</td><td>Disabled</td><td>Ledger</td><td>application</td><td>Viewer</td><td>Direct</td><td class="cite">ledger.csv, row 6</td></tr><tr><td>R954d0306e234</td><td>Morgan Lead</td><td>Drew Analyst</td><td>drew.analyst@corp.example</td><td>Enabled</td><td>Ledger</td><td>application</td><td>Viewer</td><td>Direct</td><td class="cite">ledger.csv, row 5</td></tr><tr><td>R60b815364cb6</td><td>Morgan Lead</td><td>Drew Analyst</td><td>drew.analyst@corp.example</td><td>Enabled</td><td>Ops Helpers</td><td>group</td><td>member</td><td>Direct</td><td class="cite">ad.jsonl, line 15</td></tr><tr><td>R119eb45d6c64</td><td>Morgan Lead</td><td>Avery Example</td><td>avery.example@corp.example</td><td>Enabled</td><td>Payroll App Users</td><td>group</td><td>member</td><td>Direct</td><td class="cite">entra.jsonl, line 12</td></tr><tr><td>R01318e99338d</td><td>Morgan Lead</td><td>Drew Analyst</td><td>drew.analyst@corp.example</td><td>Enabled</td><td>Payroll App Users</td><td>group</td><td>member</td><td>Direct</td><td class="cite">entra.jsonl, line 13</td></tr><tr><td>R2a6be5aaf266</td><td>Morgan Lead</td><td>Drew Analyst</td><td>drew.analyst@corp.example</td><td>Enabled</td><td>Server Operators</td><td>group</td><td>member</td><td>Server Operators &gt; Ops Helpers</td><td class="cite">ad.jsonl, line 14</td></tr></tbody></table></div></section>
+<section aria-labelledby="problems"><h2 id="problems">Not read <span class="count">(0 problems)</span></h2><p class="muted">No problems were recorded while reading the inputs.</p></section>
+<section aria-labelledby="limits"><h2 id="limits">What this report does not show</h2>
+<ul class="list"><li>Access that no input recorded, such as local accounts or systems that were not exported.</li><li>What a group or role lets its members do: only who holds it.</li><li>Whether any access is appropriate: that is each reviewer&#x27;s decision.</li></ul></section>
+<h2 id="inputs">Inputs</h2><div class="tablewrap"><table><caption>Inputs</caption><thead><tr><th scope="col">File</th><th scope="col">Kind</th><th scope="col">Bytes</th><th scope="col">SHA-256</th></tr></thead><tbody><tr><td>ad.jsonl</td><td>shaar-export</td><td>4029</td><td class="mono">f248f8e56d8926cf7baf6b489a600d0266df95b241b21f9b27df521dacb68733</td></tr><tr><td>entra.jsonl</td><td>shaar-export</td><td>3485</td><td class="mono">dfe2df70b884bcd6e3c5633ddf34601f073d2dd89cdec19691455798b547b0ff</td></tr><tr><td>ledger.csv</td><td>csv</td><td>478</td><td class="mono">ee38eb63cd3d672d6b9a45ec978f40dc71037e9834c44be1e6ad44040b4fb115</td></tr></tbody></table></div>
+<footer>Generated by shaar example at 2026-11-02T09:00:00Z</footer>
+</main>
+</body>
+</html>

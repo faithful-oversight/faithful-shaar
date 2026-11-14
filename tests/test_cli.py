@@ -21,8 +21,9 @@ def test_version_flag_prints_version(capsys: pytest.CaptureFixture[str]) -> None
 
 
 def test_no_arguments_prints_help(capsys: pytest.CaptureFixture[str]) -> None:
-    assert main([]) == ExitCode.OK
-    assert "usage: shaar" in capsys.readouterr().out
+    assert main([]) == ExitCode.USAGE
+    assert "usage: shaar" in capsys.readouterr().err
+    assert main(["collect"]) == ExitCode.USAGE
 
 
 def test_unknown_option_is_a_usage_error(capsys: pytest.CaptureFixture[str]) -> None:
@@ -31,7 +32,7 @@ def test_unknown_option_is_a_usage_error(capsys: pytest.CaptureFixture[str]) -> 
 
 
 def test_exit_codes_are_stable() -> None:
-    assert [int(code) for code in ExitCode] == [0, 1, 2, 3]
+    assert [int(code) for code in ExitCode] == [0, 1, 2, 3, 4]
 
 
 @given(st.lists(st.text().map(lambda s: "--x" + s), min_size=1))
