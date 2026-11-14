@@ -1,5 +1,6 @@
 {
   "counts": {
+    "Decision record gaps": 2,
     "Kept but gone": 1,
     "New since the review": 1,
     "Removals verified": 2,
@@ -10,7 +11,12 @@
   "data": {
     "as_of": "2026-11-20T22:00:00Z",
     "campaign_digest": "18ac49946693d4befda6e8a6a7d6a976f13cdfa29616bdce80e9325b0903a8dc",
-    "campaign_id": "C21f06e77d8c77003"
+    "campaign_id": "C21f06e77d8c77003",
+    "decision_record_complete": false,
+    "decision_record_gaps": [
+      "3 entries have no accepted decision (undecided 1, unassigned 2)",
+      "1 entry marked Unsure"
+    ]
   },
   "facts": {
     "Campaign": "Q4 2026 access review",
@@ -19,7 +25,7 @@
     "Later access read at": "2026-11-20T22:00:00Z"
   },
   "generated_at": "2026-11-21T09:00:00Z",
-  "headline": "2 of 5 removals verified. Still present: 1 past due, 0 not yet due. Unknown: 2.",
+  "headline": "2 of 5 removals verified. Still present: 1 past due, 0 not yet due. Unknown: 2. The decision record is not complete, so this does not show that the review was carried out: 3 entries have no accepted decision (undecided 1, unassigned 2); 1 entry marked Unsure.",
   "inputs": [
     {
       "kind": "shaar-export",
@@ -46,7 +52,22 @@
     "Why access is still present.",
     "Changes made after the later export was taken."
   ],
-  "problems": [],
+  "problems": [
+    {
+      "reason": "3 entries have no accepted decision (undecided 1, unassigned 2)",
+      "source": {
+        "detail": "",
+        "file": "decisions.json"
+      }
+    },
+    {
+      "reason": "1 entry marked Unsure",
+      "source": {
+        "detail": "",
+        "file": "decisions.json"
+      }
+    }
+  ],
   "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/verify-report-v1.schema.json",
   "sections": {
     "kept_but_gone": [

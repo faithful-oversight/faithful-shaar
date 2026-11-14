@@ -63,7 +63,9 @@ def test_removed_when_the_whole_membership_was_read() -> None:
         "the principal is disabled" in outcome.checks[1].reason
         or "disabled" in outcome.checks[0].reason
     )
-    assert outcome.complete
+    assert outcome.removals_made
+    assert not outcome.complete  # only one reviewer's packet was returned
+    assert outcome.record_gaps
     assert outcome.as_of == AFTER
 
 

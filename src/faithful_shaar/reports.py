@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from faithful_shaar import decide
 from faithful_shaar.formats.xlsx import Packet, PacketRow, write_packet
 from faithful_shaar.model import Problem, Source
 from faithful_shaar.outputs.columns import SECTION_COLUMNS
@@ -308,10 +309,14 @@ def decisions_document(
             }
         )
     problems = [
-        Problem(Source(p.file), f"the packet was {p.status}: {p.reason}")
-        for p in record.packets
-        if p.status != "read"
+        *campaign.problems,
+        *(
+            Problem(Source(p.file), f"the packet was {p.status}: {p.reason}")
+            for p in record.packets
+            if p.status != "read"
+        ),
     ]
+    input_gaps = decide.campaign_gaps(campaign)
     total = len(campaign.rows)
     headline = (
         f"{counts['accepted']} of {_plural(total, 'entry', 'entries')} have an accepted "
@@ -320,6 +325,11 @@ def decisions_document(
     if not record.complete:
         verb = "needs" if len(attention) == 1 else "need"
         headline += f" {_plural(len(attention), 'item')} {verb} attention."
+    if input_gaps:
+        headline += (
+            " The campaign could not read all of its input, so the review may be missing "
+            "entries; see Not read."
+        )
     returned = [p for p in record.packets if p.status == "read"]
     return Document(
         kind="decisions",
@@ -339,6 +349,7 @@ def decisions_document(
             ("Copies disagree", counts["conflict"]),
             ("No reviewer", counts["unassigned"]),
             ("Rows from elsewhere", len(record.strays)),
+            ("Problems reading the inputs", len(campaign.problems)),
         ],
         sections=[
             _section("decisions", "removals", removals),
@@ -354,6 +365,8 @@ def decisions_document(
             "campaign_id": campaign.id,
             "campaign_digest": campaign.digest,
             "decisions_digest": record.digest,
+            "complete": not decide.gaps(campaign, record),
+            "gaps": decide.gaps(campaign, record),
             "packets": [
                 {
                     "file": p.file,
@@ -430,6 +443,15 @@ def verify_document(
             f" Still present: {tally['failed']} past due, {tally['pending']} not yet due. "
             f"Unknown: {tally['unknown']}."
         )
+    if verification.record_gaps:
+        headline += (
+            " The decision record is not complete, so this does not show that the review "
+            f"was carried out: {'; '.join(verification.record_gaps)}."
+        )
+    problems = [
+        *(Problem(Source("decisions.json"), gap) for gap in verification.record_gaps),
+        *later.problems,
+    ]
     return Document(
         kind="verify",
         title=f"Access review verification: {campaign.name}",
@@ -446,13 +468,14 @@ def verify_document(
             ("Unknown", tally["unknown"]),
             ("Kept but gone", len(kept)),
             ("New since the review", len(new)),
+            ("Decision record gaps", len(verification.record_gaps)),
         ],
         sections=[
             _section("verify", "removals", removals),
             _section("verify", "kept_but_gone", kept),
             _section("verify", "new_since_review", new),
         ],
-        problems=later.problems,
+        problems=problems,
         not_shown=VERIFY_NOT_SHOWN,
         generated_at=generated_at,
         tool_version=version,
@@ -461,5 +484,7 @@ def verify_document(
             "campaign_id": campaign.id,
             "campaign_digest": campaign.digest,
             "as_of": verification.as_of,
+            "decision_record_complete": not verification.record_gaps,
+            "decision_record_gaps": verification.record_gaps,
         },
     )

@@ -5,6 +5,7 @@
     "Copies disagree": 0,
     "No reviewer": 2,
     "Not valid": 0,
+    "Problems reading the inputs": 0,
     "Removals to make": 5,
     "Rows from elsewhere": 0,
     "Undecided": 1
@@ -12,7 +13,12 @@
   "data": {
     "campaign_digest": "18ac49946693d4befda6e8a6a7d6a976f13cdfa29616bdce80e9325b0903a8dc",
     "campaign_id": "C21f06e77d8c77003",
+    "complete": false,
     "decisions_digest": "2fc51aa2210329473c377c0fb4e0f86462016cb3075d539a055cfbf0eba7dbfb",
+    "gaps": [
+      "3 entries have no accepted decision (undecided 1, unassigned 2)",
+      "1 entry marked Unsure"
+    ],
     "packets": [
       {
         "file": "returned-01-Casey-Owner-da089e.xlsx",

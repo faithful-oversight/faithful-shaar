@@ -7,18 +7,18 @@
     },
     {
       "name": "decisions-report.json",
-      "sha256": "fec22ba74ee2a076d2a68510391ed30829af3c5fb826785aa97687582357b20f",
-      "size": 11454
+      "sha256": "d1af0bc5c6dc31ecfc6b943b41fd88a6e33cfa5a209ff63d6fab67afb15b6aa9",
+      "size": 11639
     },
     {
       "name": "decisions-report.md",
-      "sha256": "e8cfc71e39e658974e9948ea225dcd6493067a333b7563f34cef71298fbae606",
-      "size": 5967
+      "sha256": "a9865ba086b819a683ff988825a66dbc120d129d6093d66bdc0d1577af28639f",
+      "size": 6003
     },
     {
       "name": "decisions-report.html",
-      "sha256": "1849964b409ca74f1bd61850275b9fdebcfde0ddad91824c01e308594e10ac3f",
-      "size": 11583
+      "sha256": "dffe78d7264b7f853aa02ffceb8e1aecbefe793ba6f6b619c23b36f8cfe8c3bf",
+      "size": 11638
     },
     {
       "name": "removals.csv",

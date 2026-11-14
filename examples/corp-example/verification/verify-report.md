@@ -1,6 +1,6 @@
 # Access review verification: Q4 2026 access review
 
-2 of 5 removals verified. Still present: 1 past due, 0 not yet due. Unknown: 2.
+2 of 5 removals verified. Still present: 1 past due, 0 not yet due. Unknown: 2. The decision record is not complete, so this does not show that the review was carried out: 3 entries have no accepted decision (undecided 1, unassigned 2); 1 entry marked Unsure.
 
 | Item | Value |
 | --- | --- |
@@ -17,6 +17,7 @@
 | Unknown | 2 |
 | Kept but gone | 1 |
 | New since the review | 1 |
+| Decision record gaps | 2 |
 
 ## Removals (5 rows)
 
@@ -46,9 +47,14 @@ Access on the reviewed resources that the campaign did not include. Information 
 | --- | --- | --- | --- |
 | Emery Contractor | Finance Admins | member | ad.jsonl, line 18 |
 
-## Not read (0 problems)
+## Not read (2 problems)
 
-No problems were recorded while reading the inputs.
+These could not be read or trusted, so what they hold is not in this report.
+
+| Source | Reason |
+| --- | --- |
+| decisions.json | 3 entries have no accepted decision (undecided 1, unassigned 2) |
+| decisions.json | 1 entry marked Unsure |
 
 ## What this report does not show
 

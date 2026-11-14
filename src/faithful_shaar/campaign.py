@@ -292,6 +292,12 @@ def build(  # noqa: PLR0913 - the parts of a campaign
                 len(mine),
             )
         )
+    problems = list(snapshot.problems)
+    if not rows and not unassigned:
+        # A header-only export, a filter that matched nothing or the wrong file looks like
+        # a clean review of nobody; say so instead.
+        first = snapshot.inputs[0].name if snapshot.inputs else name
+        problems.append(Problem(Source(first), "no access entries were found in the inputs"))
     built = Campaign(
         id=cid,
         name=name,
@@ -311,7 +317,7 @@ def build(  # noqa: PLR0913 - the parts of a campaign
                 u.grant_key,
             ),
         ),
-        problems=list(snapshot.problems),
+        problems=problems,
         complete_resources=sorted(snapshot.complete_resources),
     )
     built.digest = digest(built)

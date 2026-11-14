@@ -319,7 +319,7 @@ def _decisions(args: argparse.Namespace) -> int:
     _write(args.output, out, force=args.force, inputs=built.inputs, when=when)
     print(terminal(document.headline))  # noqa: T201
     print(terminal(f"Decision record written to {args.output}."))  # noqa: T201
-    return int(ExitCode.OK if record.complete else ExitCode.FINDINGS)
+    return int(ExitCode.FINDINGS if decide.gaps(built, record) else ExitCode.OK)
 
 
 def _verify(args: argparse.Namespace) -> int:

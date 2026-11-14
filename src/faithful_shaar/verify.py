@@ -15,14 +15,20 @@ For every accepted Remove decision the result is one of:
 
 Two further lists are information, not failures: kept access that has gone anyway, and
 access on the reviewed resources that was not part of the review.
+
+Removals are only part of a review. When the decision record is not complete (entries
+without an accepted decision, Unsure answers, packets never returned, or input the
+campaign could not read), the verification says so and does not count as complete, however
+many of the removals that were decided have been made.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from faithful_shaar import decide
 from faithful_shaar.errors import InputError
 from faithful_shaar.keys import entitlement_of, system_of
 
@@ -64,11 +70,17 @@ class Verification:
     checks: list[Check]
     kept_but_gone: list[Note]
     new_since_review: list[Note]
+    record_gaps: list[str] = field(default_factory=list)
+
+    @property
+    def removals_made(self) -> bool:
+        """Whether every accepted removal was verified as made."""
+        return all(check.result == "removed" for check in self.checks)
 
     @property
     def complete(self) -> bool:
-        """Whether every removal was verified as made."""
-        return all(check.result == "removed" for check in self.checks)
+        """Whether every removal was verified as made and the decision record is complete."""
+        return self.removals_made and not self.record_gaps
 
 
 def _check_record(campaign: Campaign, record: DecisionRecord) -> None:
@@ -215,4 +227,6 @@ def verify(
         for grant in sorted(later.grants.values(), key=lambda g: g.key)
         if grant.resource_key in resources and grant.key not in reviewed
     ]
-    return Verification(campaign.id, when, checks, kept_but_gone, new)
+    return Verification(
+        campaign.id, when, checks, kept_but_gone, new, decide.gaps(campaign, record)
+    )

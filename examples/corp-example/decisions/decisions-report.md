@@ -19,6 +19,7 @@
 | Copies disagree | 0 |
 | No reviewer | 2 |
 | Rows from elsewhere | 0 |
+| Problems reading the inputs | 0 |
 
 ## Removals to make (5 rows)
 
