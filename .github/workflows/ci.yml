@@ -20,6 +20,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+  # The one pinned uv release for this workflow. setup-uv checks its checksum.
+  # Change it with every workflow and docs/releasing.md in the same pull request.
+  FO_UV_VERSION: "0.11.32"
 env:
   UV_LOCKED: "1"
   POWERSHELL_TELEMETRY_OPTOUT: "1"
@@ -37,6 +40,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
+          version: ${{ env.FO_UV_VERSION }}
           enable-cache: false
       - run: uv sync --locked
       - run: scripts/check.sh format lint types
@@ -70,6 +74,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
+          version: ${{ env.FO_UV_VERSION }}
           enable-cache: false
           python-version: ${{ matrix.python }}
       # All extras let the real transport and secret-source tests run. GitHub's runners
@@ -94,6 +99,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
+          version: ${{ env.FO_UV_VERSION }}
           enable-cache: false
       - run: uv sync --locked
       - run: scripts/check.sh docs site config reuse
@@ -141,6 +147,7 @@ jobs:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
+          version: ${{ env.FO_UV_VERSION }}
           enable-cache: false
       - run: |
           scripts/install_gitleaks.sh "$HOME/.local/bin"
@@ -160,6 +167,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
+          version: ${{ env.FO_UV_VERSION }}
           enable-cache: false
       - run: uv sync --locked
       - run: scripts/check.sh build
