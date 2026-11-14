@@ -794,13 +794,37 @@ def test_force_takes_away_the_earlier_runs_files_but_nothing_else(tmp_path: Path
     write_outputs(tmp_path, old, force=False, generated_at=WHEN, tool_version="1")
     (tmp_path / "notes.txt").write_bytes(b"mine")
     write_outputs(
-        tmp_path, {"packet-01.xlsx": b"2"}, force=True, generated_at=WHEN, tool_version="1"
+        tmp_path,
+        {"packet-01.xlsx": b"2"},
+        force=True,
+        generated_at=WHEN,
+        tool_version="1",
+        removable=lambda name: name.startswith("packet-"),
     )
     assert sorted(p.name for p in tmp_path.iterdir()) == [
         "manifest.json",
         "notes.txt",
         "packet-01.xlsx",
     ]
+
+
+def test_force_takes_away_nothing_unless_the_caller_names_what_it_may(tmp_path: Path) -> None:
+    # SHAAR-C05: a manifest lists every file of the folder's earlier run, whichever command
+    # wrote it, so listing a name is not enough to delete it.
+    old = {"campaign.json": b"the only copy", "packet-01.xlsx": b"1"}
+    write_outputs(tmp_path, old, force=False, generated_at=WHEN, tool_version="1")
+    write_outputs(
+        tmp_path,
+        {"decisions.json": b"d"},
+        force=True,
+        generated_at=WHEN,
+        tool_version="1",
+        removable=lambda name: name == "decisions.json",
+    )
+    assert (tmp_path / "campaign.json").read_bytes() == b"the only copy"
+    assert (tmp_path / "packet-01.xlsx").exists()
+    write_outputs(tmp_path, {"x.json": b"x"}, force=True, generated_at=WHEN, tool_version="1")
+    assert (tmp_path / "campaign.json").exists()
 
 
 @pytest.mark.parametrize(

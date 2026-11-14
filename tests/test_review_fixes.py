@@ -327,3 +327,60 @@ def test_c04_an_owner_cannot_review_their_own_access_in_another_form(tmp_path: P
     assert code == ExitCode.FINDINGS
     (unassigned,) = rs.load(tmp_path).unassigned
     assert "cannot review their own access" in unassigned.reason
+
+
+# SHAAR-C05 ------------------------------------------------------------------------------
+
+
+def test_c05_force_never_deletes_the_campaign_or_its_packets(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert rs.start(tmp_path, rs.ROWS) == ExitCode.OK
+    packet = rs.answer(tmp_path, "Keep")
+    camp = tmp_path / "camp"
+    before = {p.name: p.read_bytes() for p in camp.iterdir()}
+    # Without --force the run stops and the message says what --force would do.
+    assert main(["decisions", str(camp), str(packet), "-o", str(camp)]) == ExitCode.INPUT_ERROR
+    assert "is, or contains, the folder of" in capsys.readouterr().err
+    code = main(["decisions", str(camp), str(packet), "-o", str(camp), "--force"])
+    assert code == ExitCode.INPUT_ERROR
+    assert {p.name: p.read_bytes() for p in camp.iterdir()} == before
+    # The campaign.json path, and the parent folder, are the same record.
+    argv = ["decisions", str(camp / "campaign.json"), str(packet), "--force", "-o"]
+    assert main([*argv, str(camp)]) == ExitCode.INPUT_ERROR
+    assert main([*argv, str(tmp_path)]) == ExitCode.INPUT_ERROR
+    assert {p.name: p.read_bytes() for p in camp.iterdir()} == before
+
+
+def test_c05_verify_never_replaces_the_decision_record(tmp_path: Path) -> None:
+    assert rs.start(tmp_path, rs.ROWS) == ExitCode.OK
+    assert rs.decide(tmp_path, rs.answer(tmp_path, "Remove")) == ExitCode.OK
+    later = rs.write(tmp_path / "after.csv", rs.HEADER + rs.OTHER)
+    rs.ledger_map(tmp_path, "amap.toml", rs.AFTER_AT)
+    dec = tmp_path / "dec"
+    kept = {p.name: p.read_bytes() for p in dec.iterdir()}
+    for out in (dec, tmp_path / "camp"):
+        argv = ["verify", str(tmp_path / "camp"), str(dec), str(later), "--map"]
+        argv += [str(tmp_path / "amap.toml"), "-o", str(out), "--force"]
+        assert main(argv) == ExitCode.INPUT_ERROR
+    assert {p.name: p.read_bytes() for p in dec.iterdir()} == kept
+    assert (tmp_path / "camp" / "campaign.json").is_file()
+
+
+def test_c05_another_commands_folder_is_refused_even_with_force(tmp_path: Path) -> None:
+    assert rs.start(tmp_path, rs.ROWS) == ExitCode.OK
+    assert rs.decide(tmp_path, rs.answer(tmp_path, "Keep")) == ExitCode.OK
+    # A new campaign into the decisions folder would leave a decision record beside a
+    # campaign it does not belong to.
+    assert rs.start(tmp_path, rs.ROWS, out="dec") == ExitCode.INPUT_ERROR
+    assert (tmp_path / "dec" / "decisions.json").is_file()
+
+
+def test_c05_force_still_replaces_the_same_commands_own_output(tmp_path: Path) -> None:
+    assert rs.start(tmp_path, rs.ROWS) == ExitCode.OK
+    packet = rs.answer(tmp_path, "Keep")
+    assert rs.decide(tmp_path, packet) == ExitCode.OK
+    code = main(["decisions", str(tmp_path / "camp"), str(packet), "-o", str(tmp_path / "dec")])
+    assert code == ExitCode.INPUT_ERROR  # exists, no --force
+    argv = ["decisions", str(tmp_path / "camp"), str(packet), "-o", str(tmp_path / "dec")]
+    assert main([*argv, "--force"]) == ExitCode.OK

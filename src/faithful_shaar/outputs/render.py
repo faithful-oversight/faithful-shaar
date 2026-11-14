@@ -31,7 +31,7 @@ from faithful_shaar.outputs.safety import csv_cell, escape_markdown, visible
 from faithful_shaar.outputs.schema import MANIFEST_NAME, TIME_PATTERN, schema_id
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping, Sequence
+    from collections.abc import Callable, Iterable, Mapping, Sequence
     from pathlib import Path
 
     from faithful_shaar.model import InputFile
@@ -444,12 +444,19 @@ def write_outputs(  # noqa: PLR0913 - the documented API
     generated_at: str,
     tool_version: str,
     inputs: Iterable[InputFile] = (),
+    removable: Callable[[str], bool] | None = None,
 ) -> dict[str, Any]:
     """Write ``files`` and then ``manifest.json``, all together or not at all.
 
     Files are created owner-only, an existing file is never replaced unless ``force`` is
     true, and a symbolic link at a target is replaced, never followed. The manifest goes
     last, so a manifest means every other file is in place.
+
+    With ``force``, a file that an earlier run's manifest lists and this run does not write
+    is taken away only when ``removable(name)`` says the name is one this kind of run
+    writes. Without ``removable`` nothing is taken away. A manifest is not proof that a
+    name belongs to the command now running: an output folder reused for another command
+    lists that command's files too, and ``campaign.json`` cannot be written again.
 
     Returns:
         The manifest as written.
@@ -477,7 +484,9 @@ def write_outputs(  # noqa: PLR0913 - the documented API
         directory,
         {**files, MANIFEST_FILE: render_manifest(manifest)},
         force=force,
-        remove=_earlier_files(directory) if force else (),
+        remove=[n for n in _earlier_files(directory) if removable and removable(n)]
+        if force
+        else (),
     )
     return manifest
 
