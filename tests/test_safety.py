@@ -52,7 +52,6 @@ ORDINARY = [
     chr(0x65E5) + chr(0x672C),  # CJK
     chr(0x41F) + chr(0x440),  # Cyrillic
     chr(0x1F600),  # an emoji without joiners
-    "a" + chr(0xA0) + "b",  # no-break space is visible spacing
 ]
 
 
@@ -132,3 +131,36 @@ def test_command_line_quotes_for_the_shell(monkeypatch: pytest.MonkeyPatch) -> N
 def test_command_line_quotes_for_windows(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("faithful_shaar.outputs.safety.os.name", "nt")
     assert command_line("shaar", "my file") == 'shaar "my file"'
+
+
+@pytest.mark.parametrize(
+    "code",
+    [0x00A0, 0x1680, 0x2000, 0x2003, 0x200A, 0x202F, 0x205F, 0x2800, 0x3000],
+)
+def test_look_alike_spaces_are_escaped(code: int) -> None:
+    assert visible(f"admin{chr(code)}") == f"admin\\u{code:04x}"
+
+
+def test_every_space_separator_except_the_ascii_space_is_escaped() -> None:
+    spaces = [chr(code) for code in range(0x110000) if unicodedata.category(chr(code)) == "Zs"]
+    assert " " in spaces
+    for char in spaces:
+        assert (visible(char) == char) is (char == " ")
+
+
+def test_a_look_alike_space_cannot_hide_a_formula() -> None:
+    assert csv_cell("\u00a0=1+1") == "\\u00a0=1+1"
+    assert not csv_cell("\u00a0=1+1").startswith(("=", "+", "-", "@"))
+
+
+@pytest.mark.parametrize("value", ["-1", "-42", "-0.5", "-1000000"])
+def test_a_plain_negative_number_stays_a_number(value: str) -> None:
+    assert neutralize_formula(value) == value
+    assert csv_cell(value) == value
+
+
+@pytest.mark.parametrize(
+    "value", ["-1+1", "-cmd|x", "--1", "-", "-1e5", "-1,5", "-\u0661", "- 1", "-1\n", "=-1"]
+)
+def test_anything_else_starting_with_a_minus_is_still_neutralized(value: str) -> None:
+    assert neutralize_formula(value) == "'" + value
