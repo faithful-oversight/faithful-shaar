@@ -35,6 +35,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - The dependency audit always includes every optional extra, and a new check fails it when a package named by an extra is missing from the audited export.
 - The release evidence is now one SBOM per scope: `sbom-base.cdx.json` for the base install, and `sbom-all-extras.cdx.json` when the project defines optional extras. Each states its scope, and tests check what each one holds.
 
+### Added
+
+- `--limit NAME=VALUE` on `campaign`, `decisions` and `verify` raises any of the size limits (CSV, export, line, reviewer map, column map, `campaign.json`, `decisions.json`, returned packets, workbook rows, cells, bytes and XML elements). A file over a limit stops the run with exit code 3 and says which limit to raise; a returned packet over a limit is recorded as unreadable. Every run records the limits it used in `limits` in `manifest.json` (an optional field of `manifest-v1`).
+
 ### Changed
 
 - The README now has a status line, a short account of how shaar differs from other kinds of tools, a runnable five-minute example with real output, and install instructions that work today (from GitHub, with `pipx ensurepath`). There is a new quickstart and an examples page.
@@ -46,6 +50,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Security
 
 - Closed the three ways shaar could report a clean or complete result when it was not (campaign problems dropped by `decisions`, a short or cut-off CSV row, an incomplete record verified).
+- Khmer and Mongolian marks that draw nothing (U+17B4, U+17B5, U+180B to U+180D, U+180F) now print as visible escapes, and an issue reference such as `#123` from the input is no longer turned into a link in the Markdown report.
 
 ## [0.1.0] - 2026-11-13
 
