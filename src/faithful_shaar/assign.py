@@ -28,6 +28,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from faithful_shaar import limits
 from faithful_shaar.errors import InputError
 from faithful_shaar.keys import fold
 
@@ -195,12 +196,15 @@ def read_map(path: Path) -> list[MapEntry]:
             msg = f"the reviewer map {path} is not a regular file"
             raise InputError(msg)
         with path.open("rb") as handle:
-            data = handle.read(MAX_MAP_BYTES + 1)
+            data = handle.read(limits.get("map-bytes") + 1)
     except OSError as exc:
         msg = f"cannot read the reviewer map {path}: {exc.strerror}"
         raise InputError(msg) from None
-    if len(data) > MAX_MAP_BYTES:
-        msg = f"the reviewer map {path} is larger than {MAX_MAP_BYTES} bytes"
+    if len(data) > limits.get("map-bytes"):
+        msg = (
+            f"the reviewer map {path} is larger than {limits.get('map-bytes')} bytes; "
+            f"{limits.hint('map-bytes')}"
+        )
         raise InputError(msg)
     try:
         text = data.decode("utf-8-sig")

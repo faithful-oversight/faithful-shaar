@@ -13,6 +13,7 @@ import json
 import stat
 from typing import TYPE_CHECKING
 
+from faithful_shaar import limits
 from faithful_shaar.errors import InputError
 from faithful_shaar.inputs import csvread, export
 from faithful_shaar.inputs.csvmap import PRESETS, CsvMap, load_map
@@ -37,7 +38,7 @@ def is_export(first_line: bytes) -> bool:
 
 
 def _parse(stream: BinaryIO, path: Path, cmap: CsvMap | None) -> Snapshot:
-    first = stream.readline(export.MAX_LINE_BYTES + 1)
+    first = stream.readline(limits.get("line-bytes") + 1)
     stream.seek(0)
     if is_export(first):
         return export.read_export(stream, path.name)[0]
@@ -60,8 +61,11 @@ def _read_one(path: Path, cmap: CsvMap | None) -> Snapshot:
     if not stat.S_ISREG(info.st_mode):
         msg = f"{path} is not a regular file"
         raise InputError(msg)
-    if info.st_size > export.MAX_FILE_BYTES:
-        msg = f"{path} is larger than the limit of {export.MAX_FILE_BYTES} bytes"
+    if info.st_size > limits.get("export-bytes"):
+        msg = (
+            f"{path} is larger than the limit of {limits.get('export-bytes')} bytes; "
+            f"{limits.hint('export-bytes')}"
+        )
         raise InputError(msg)
     try:
         with path.open("rb") as stream:

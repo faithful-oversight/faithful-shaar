@@ -138,6 +138,6 @@
   "title": "Access review verification: Q4 2026 access review",
   "tool": {
     "name": "shaar",
-    "version": "0.1.0"
+    "version": "0.1.1"
   }
 }

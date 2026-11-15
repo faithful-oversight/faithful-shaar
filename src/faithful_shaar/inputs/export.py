@@ -25,7 +25,7 @@ import json
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from faithful_shaar import keys
+from faithful_shaar import keys, limits
 from faithful_shaar.errors import InputError
 from faithful_shaar.inputs.combine import add_grant, parse_time
 from faithful_shaar.model import (
@@ -103,16 +103,16 @@ class _Reader:
         Every byte read goes into the whole-file hash. A too-long line is also added to
         the body hash here, because it cannot be the trailer.
         """
-        chunk = stream.readline(MAX_LINE_BYTES + 1)
+        chunk = stream.readline(limits.get("line-bytes") + 1)
         if not chunk:
             return b""
         self.lineno += 1
         self.take(chunk)
-        if len(chunk) <= MAX_LINE_BYTES or chunk.endswith(b"\n"):
+        if len(chunk) <= limits.get("line-bytes") or chunk.endswith(b"\n"):
             return chunk
         self.body.update(chunk)
         while True:
-            chunk = stream.readline(MAX_LINE_BYTES)
+            chunk = stream.readline(limits.get("line-bytes"))
             self.take(chunk)
             self.body.update(chunk)
             if not chunk or chunk.endswith(b"\n"):
@@ -120,8 +120,11 @@ class _Reader:
 
     def take(self, chunk: bytes) -> None:
         self.size += len(chunk)
-        if self.size > MAX_FILE_BYTES:
-            msg = f"{self.name} is larger than the limit of {MAX_FILE_BYTES} bytes"
+        if self.size > limits.get("export-bytes"):
+            msg = (
+                f"{self.name} is larger than the limit of {limits.get('export-bytes')} bytes; "
+                f"{limits.hint('export-bytes')}"
+            )
             raise InputError(msg)
         self.everything.update(chunk)
 
@@ -366,7 +369,11 @@ class _Reader:
         """Handle one body line (everything after the header)."""
         source = self.source()
         if line is None:
-            self.problem(source, f"line is longer than {MAX_LINE_BYTES} bytes; skipped")
+            self.problem(
+                source,
+                f"line is longer than {limits.get('line-bytes')} bytes; skipped "
+                f"({limits.hint('line-bytes')})",
+            )
             self.loss = True
             return
         if self.trailer_seen:

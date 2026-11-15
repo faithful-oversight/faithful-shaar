@@ -20,6 +20,7 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from faithful_shaar import limits
 from faithful_shaar.assign import MapEntry, MapIndex, assign
 from faithful_shaar.errors import InputError
 from faithful_shaar.formats.xlsx import cell_text
@@ -379,8 +380,11 @@ def load(raw: bytes) -> Campaign:
         InputError: The file is not a campaign, has the wrong shape, or was changed after
             it was written (its digest does not match).
     """
-    if len(raw) > MAX_CAMPAIGN_BYTES:
-        msg = f"campaign.json is larger than {MAX_CAMPAIGN_BYTES} bytes"
+    if len(raw) > limits.get("campaign-bytes"):
+        msg = (
+            f"campaign.json is larger than {limits.get('campaign-bytes')} bytes; "
+            f"{limits.hint('campaign-bytes')}"
+        )
         raise InputError(msg)
     try:
         data = json.loads(raw.decode("utf-8"))

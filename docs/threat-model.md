@@ -75,14 +75,14 @@ A returned packet is the input most exposed to a hostile or careless author. The
 - **XML attacks.** XML is parsed by the standard library's expat parser through a wrapper that refuses a `DOCTYPE` (so no entity is declared, expanded, or fetched), limits nesting to 64 levels, and ignores the declared encoding.
 - **Formulas.** A cell that holds a formula is read as its saved value, and the row is noted. A decision cell that held a formula, or any cell in the row, makes the row `invalid`. Nothing is ever calculated.
 - **OLE and encryption.** An old `.xls` file, or a password-protected workbook (a CFB container), is refused with a message. An encrypted part is refused.
-- **Sizes.** At most 100,000 rows, valid cell references, and a file of at most 64 MiB. A bad reference or a cell outside the sheet is an error.
+- **Sizes.** By default at most 100,000 rows, 1,600,000 cells with content and a file of at most 64 MiB once unzipped; valid cell references. A bad reference or a cell outside the sheet is an error. These caps can be raised with `--limit` (see [Usage](usage.md#size-limits)); a raised cap trades memory for size, so raise it only for a file you trust to be large. The reader streams rows, so memory follows what is kept, not how many elements the file holds.
 - **Macros.** shaar reads no macro or script part, and does not open the file in any spreadsheet program.
 
 A refused workbook is `unreadable`, and its rows stay undecided. It never stops the other packets.
 
 ## Hostile exports and CSV files
 
-- **Size and shape.** An export line is at most 1 MiB, a file at most 512 MiB. A CSV is at most 256 MiB and 2,000,000 rows. A row with too many cells, a blank id, or a bad key is skipped with a problem. Maps and reviewer maps are size-limited and strictly validated, and unknown keys are errors.
+- **Size and shape.** By default an export line is at most 1 MiB, a file at most 512 MiB, and a CSV at most 256 MiB and 2,000,000 rows. Each can be raised with `--limit`, and the limits a run used are in its `manifest.json`, so an auditor can see them. Hitting a limit is never silent: it is an error naming the limit (exit code 3), or, for a returned packet, a recorded unreadable packet and an incomplete record (exit code 1). A row with too many cells, a blank id, or a bad key is skipped with a problem. Maps and reviewer maps are size-limited and strictly validated, and unknown keys are errors.
 - **A forged or cut export.** A wrong trailer means no resource is complete. A forger who recomputes the hash can still mislead the reviewer. See the digests preceding.
 - **Injection into reports.** Values are untrusted text. CSV output neutralizes leading formula characters, Markdown output is escaped with a word joiner after `@`, `://`, and `www.`, HTML output is escaped under a content security policy that forbids scripts, and invisible or reordering characters show as visible escapes. A value can fill a cell but not forge a heading, a link, a table, or a tag. Terminal output is escaped too, and a packet's cell text is XML-escaped.
 - **Injection into packets.** A name that starts with `=` is written as an inline string. Excel shows it as text. Invisible and reordering characters in names are written as visible escapes, as in the reports, so a reviewer and the operator read the same text.

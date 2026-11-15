@@ -165,6 +165,15 @@ def _manifest() -> dict[str, Any]:
             },
         },
         "inputs": {"type": "array", "items": _input_item()},
+        "limits": {
+            "description": (
+                "The size limits the run used, by name (see the --limit option). Present "
+                "when the command reads files. A value above the built-in default was "
+                "chosen by whoever ran the command."
+            ),
+            "type": "object",
+            "additionalProperties": {"type": "integer", "minimum": 1},
+        },
     }
     return {
         "$schema": DIALECT,
@@ -177,7 +186,7 @@ def _manifest() -> dict[str, Any]:
         ),
         "type": "object",
         "additionalProperties": False,
-        "required": sorted(properties),
+        "required": sorted(set(properties) - {"limits"}),
         "properties": dict(sorted(properties.items())),
         "$defs": dict(_DEFS),
     }

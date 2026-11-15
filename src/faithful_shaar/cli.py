@@ -13,7 +13,16 @@ from enum import IntEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from faithful_shaar import __version__, campaign, console, decide, example, reports, verify
+from faithful_shaar import (
+    __version__,
+    campaign,
+    console,
+    decide,
+    example,
+    limits,
+    reports,
+    verify,
+)
 from faithful_shaar.assign import RULES, read_map
 from faithful_shaar.collect import ad as collect_ad
 from faithful_shaar.collect import entra as collect_entra
@@ -75,6 +84,20 @@ def _time(text: str) -> str:
     if moment.tzinfo is None:
         moment = moment.replace(tzinfo=UTC)
     return format_time(moment.astimezone(UTC))
+
+
+def _limit_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--limit",
+        action="append",
+        default=[],
+        metavar="NAME=VALUE",
+        help=(
+            "raise a size limit (repeatable). A file over a limit stops the run with exit "
+            "code 3 and names the limit. The limits in force are recorded in manifest.json. "
+            f"NAME is one of: {', '.join(limits.NAMES)}."
+        ),
+    )
 
 
 def _csv_options(parser: argparse.ArgumentParser) -> None:
@@ -141,6 +164,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="when decisions and removals are due",
     )
     _csv_options(start)
+    _limit_option(start)
     start.add_argument("--force", action="store_true", help="replace existing files")
     start.set_defaults(run=_campaign)
 
@@ -172,6 +196,7 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="DECISION",
         help="a decision that needs a comment (repeatable): Keep, Remove or Unsure",
     )
+    _limit_option(take)
     take.add_argument("--force", action="store_true", help="replace existing files")
     take.set_defaults(run=_decisions)
 
@@ -204,6 +229,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="when the later access was read; overrides the time the inputs record",
     )
     _csv_options(check)
+    _limit_option(check)
     check.add_argument("--force", action="store_true", help="replace existing files")
     check.set_defaults(run=_verify)
 
@@ -249,13 +275,17 @@ def _now() -> datetime:
     return datetime.now(UTC).replace(microsecond=0)
 
 
-def _read(path: Path, limit: int, what: str) -> bytes:
+def _read(path: Path, limit: str, what: str) -> bytes:
+    """Read a whole file, refusing one larger than the limit called ``limit``."""
     try:
         if not path.is_file():
             msg = f"cannot read {path}: it is not a file"
             raise InputError(msg)
-        if path.stat().st_size > limit:
-            msg = f"{path} is larger than {limit} bytes, so it is not read as {what}"
+        if path.stat().st_size > limits.get(limit):
+            msg = (
+                f"{path} is larger than {limits.get(limit)} bytes, so it is not read as {what}; "
+                f"{limits.hint(limit)}"
+            )
             raise InputError(msg)
         return path.read_bytes()
     except OSError as exc:
@@ -263,7 +293,7 @@ def _read(path: Path, limit: int, what: str) -> bytes:
         raise InputError(msg) from None
 
 
-def _record(path: Path, name: str, limit: int) -> bytes:
+def _record(path: Path, name: str, limit: str) -> bytes:
     return _read(path / name if path.is_dir() else path, limit, name)
 
 
@@ -326,6 +356,7 @@ def _write(  # noqa: PLR0913 - one call per command, all keywords
         tool_version=__version__,
         inputs=inputs,
         removable=_owned(command),
+        limits=limits.effective(),
     )
 
 
@@ -364,13 +395,13 @@ def _campaign(args: argparse.Namespace) -> int:
 
 def _decisions(args: argparse.Namespace) -> int:
     _guard_output(args.output, "decisions", [args.campaign])
-    built = campaign.load(_record(args.campaign, CAMPAIGN_FILE, campaign.MAX_CAMPAIGN_BYTES))
+    built = campaign.load(_record(args.campaign, CAMPAIGN_FILE, "campaign-bytes"))
     names = [path.name for path in args.packets]
     repeated = sorted({name for name in names if names.count(name) > 1})
     if repeated:
         msg = f"two packets are named {repeated[0]}; rename one so each decision's source is clear"
         raise UsageError(msg)
-    files = [(path.name, _read(path, MAX_PACKET_BYTES, "a packet")) for path in args.packets]
+    files = [(path.name, _read(path, "packet-bytes", "a packet")) for path in args.packets]
     when = format_time(_now())
     record = decide.read_decisions(
         built, files, read=read_packet, created_at=when, require_comment=args.require_comment
@@ -389,8 +420,8 @@ def _decisions(args: argparse.Namespace) -> int:
 
 def _verify(args: argparse.Namespace) -> int:
     _guard_output(args.output, "verify", [args.campaign, args.decisions])
-    built = campaign.load(_record(args.campaign, CAMPAIGN_FILE, campaign.MAX_CAMPAIGN_BYTES))
-    record = decide.load(_record(args.decisions, DECISIONS_FILE, decide.MAX_DECISIONS_BYTES))
+    built = campaign.load(_record(args.campaign, CAMPAIGN_FILE, "campaign-bytes"))
+    record = decide.load(_record(args.decisions, DECISIONS_FILE, "decisions-bytes"))
     later = read_inputs(
         args.inputs, label="later", csv_map=args.map, preset=args.preset, resource=args.resource
     )
@@ -451,6 +482,7 @@ def _run(argv: Sequence[str] | None) -> int:
         parser.print_help(sys.stderr)
         return int(ExitCode.USAGE)
     try:
+        limits.configure(getattr(args, "limit", None))
         return int(args.run(args))
     except ShaarError as exc:
         say(f"shaar: error: {terminal(redact(str(exc)))}", error=True)
@@ -462,3 +494,5 @@ def _run(argv: Sequence[str] | None) -> int:
             error=True,
         )
         return int(ExitCode.INTERNAL_ERROR)
+    finally:
+        limits.reset()

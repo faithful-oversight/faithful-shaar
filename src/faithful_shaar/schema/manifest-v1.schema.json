@@ -70,6 +70,14 @@
         }
       }
     },
+    "limits": {
+      "description": "The size limits the run used, by name (see the --limit option). Present when the command reads files. A value above the built-in default was chosen by whoever ran the command.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
     "schema": {
       "const": "https://faithful-oversight.github.io/faithful-shaar/schema/manifest-v1.schema.json"
     },

@@ -22,6 +22,7 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 
+from faithful_shaar import limits
 from faithful_shaar.campaign import DISPLAY, canonical
 from faithful_shaar.errors import InputError
 
@@ -462,8 +463,11 @@ def load(raw: bytes) -> DecisionRecord:
         InputError: The file is not a decision record, has the wrong shape, or was changed
             after it was written.
     """
-    if len(raw) > MAX_DECISIONS_BYTES:
-        msg = f"decisions.json is larger than {MAX_DECISIONS_BYTES} bytes"
+    if len(raw) > limits.get("decisions-bytes"):
+        msg = (
+            f"decisions.json is larger than {limits.get('decisions-bytes')} bytes; "
+            f"{limits.hint('decisions-bytes')}"
+        )
         raise InputError(msg)
     try:
         data = json.loads(raw.decode("utf-8"))

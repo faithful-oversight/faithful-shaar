@@ -103,7 +103,7 @@ A packet's zip entries are written in a fixed order with the campaign's creation
 
 ### Size
 
-shaar writes a packet only if it could read it back after the reviewer edits it: at most 90,000 rows and 48 MiB, below the 100,000 rows and 64 MiB that a returned packet may hold. A larger packet stops the campaign with exit code `3` before any file is written. Split the campaign, for example by system or with a reviewer map.
+shaar writes a packet only if it could read it back after the reviewer edits it: at most 90,000 rows and 48 MiB, below the 100,000 rows and 64 MiB that a returned packet may hold. A larger packet stops the campaign with exit code `3` before any file is written. Split the campaign, for example by system or with a reviewer map, or raise `xlsx-rows` or `xlsx-bytes` with [`--limit`](usage.md#size-limits).
 
 ## Row checks and digests
 

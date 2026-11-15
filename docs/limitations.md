@@ -72,13 +72,9 @@ See [Verification](verification.md).
 
 ## Size limits
 
-shaar refuses or records as a problem:
+shaar refuses, or records as a problem, an input over a size limit; it never reads part of one and reports it as whole. The defaults are above realistic enterprise sizes (for example 2,000,000 CSV rows, 512 MiB for an export, 100,000 rows on a packet's sheet) and each can be raised for a run with `--limit NAME=VALUE`. [Usage](usage.md#size-limits) lists every limit and its default, and each run records the limits it used in its `manifest.json`.
 
-- An export file over 512 MiB, or a line over 1 MiB.
-- A CSV over 256 MiB or 2,000,000 data rows.
-- A returned packet over 64 MiB. A workbook with more than 2,000 zip entries, more than 64 MiB uncompressed, an entry that expands more than 200 to 1, or a sheet of more than 100,000 rows.
-- XML that nests more than 64 levels.
-- A `campaign.json` or `decisions.json` over 256 MiB, and a reviewer map over 16 MiB, a column map over 1 MiB.
+Some limits have no option because no realistic file reaches them: a workbook with more than 2,000 zip entries or an entry that expands more than 200 to 1, XML nested more than 64 levels, and the 32,767 characters Excel allows in a cell.
 
 ## Inputs that change during a run
 

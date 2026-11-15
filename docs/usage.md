@@ -184,6 +184,34 @@ Exit code `1` never means the tool failed. It means read the report.
 
 A `verify` run exits with `0` only when the decision record is complete and every accepted removal is verified. With a complete record and no accepted removals it exits with `0`. With an incomplete record it exits with `1` even if no removal was decided, and says so in its headline and in the report.
 
+## Size limits
+
+Every file shaar reads has a size limit, so that a damaged or hostile file cannot use all of a machine's memory. A limit is never silent. When an input is over a limit, the command stops, names the limit and how to raise it, and exits with code `3`; nothing is written. When a returned packet is over a limit, `shaar decisions` records the packet as unreadable with that reason, so the decision record is incomplete and the command exits with code `1`.
+
+The defaults are well above the size of any realistic enterprise review. To read something larger, raise the limit for that run with `--limit NAME=VALUE`, which `campaign`, `decisions` and `verify` accept and which can be repeated. A value is a whole number from 1 to 1,099,511,627,776 (`_` may separate digits). Anything else is a usage error (exit code `2`), and so is an unknown name.
+
+```shell
+shaar campaign export.csv --map map.toml --limit csv-rows=5000000 --limit csv-bytes=2147483648 ...
+```
+
+| Name | What it limits | Default |
+| --- | --- | --- |
+| `csv-bytes` | The size of one CSV input, in bytes. | 268,435,456 |
+| `csv-rows` | The data rows in one CSV input. | 2,000,000 |
+| `export-bytes` | The size of one shaar export (JSON Lines), in bytes. | 536,870,912 |
+| `line-bytes` | The length of one line of a shaar export. A longer line is skipped and recorded as a problem, so the run cannot be clean. | 1,048,576 |
+| `map-bytes` | The size of a reviewer map. | 16,777,216 |
+| `column-map-bytes` | The size of a column map. | 1,048,576 |
+| `campaign-bytes` | The size of `campaign.json`. | 268,435,456 |
+| `decisions-bytes` | The size of `decisions.json`. | 268,435,456 |
+| `packet-bytes` | The size of one returned packet file. | 67,108,864 |
+| `xlsx-rows` | The rows on a packet's sheet. Packets are written with 10 percent fewer, so every packet can be read when it comes back. | 100,000 |
+| `xlsx-cells` | The cells with content in a packet. Follows `xlsx-rows` (16 for each row) unless set. | 1,600,000 |
+| `xlsx-bytes` | The size of a packet once unzipped. Packets are written 25 percent smaller. | 67,108,864 |
+| `xml-elements` | The XML elements in one part of a packet. Follows `xlsx-rows` (64 for each row) unless set. | 6,400,000 |
+
+Every run records the limits it used in `limits` in its `manifest.json`, whether or not it raised any, so a reader of the output can see what the run would have refused. The fixed safety limits that no realistic file reaches (zip entries, the 200 to 1 expansion ratio, nesting depth, cell text length) have no option.
+
 ## Repeatable output
 
 Every report records the time it was written. Set `SOURCE_DATE_EPOCH` to a whole number of seconds since 1970-01-01 UTC, and shaar uses that time instead of the clock. The campaign's `created_at`, its id, the row identifiers, the packet workbooks (their zip dates and document properties), the reports, and the manifests are then byte-for-byte the same for the same inputs. `shaar collect entra` also takes its `collected_at` from it.

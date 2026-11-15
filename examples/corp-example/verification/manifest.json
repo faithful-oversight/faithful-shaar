@@ -2,17 +2,17 @@
   "files": [
     {
       "name": "verify-report.json",
-      "sha256": "e344b20164914ec8ac99e695e6bf067046a37b4ebf5d63345965ad4e7a173c4b",
+      "sha256": "9294151464442dd2e9072e29d001a89be1e82af9b7b95d94bbf3623fa982c749",
       "size": 4649
     },
     {
       "name": "verify-report.md",
-      "sha256": "2a9f86b01272bff7d4048312f91405fd76650ef43dbce4055afefb575824df3f",
+      "sha256": "4bc3ccffca6683e5a68270b0684fe9d7fce766c2c84e96c0e1f62c60e3322c94",
       "size": 3345
     },
     {
       "name": "verify-report.html",
-      "sha256": "946fcbd06c3cb7465a039cdbc0d84d4116de0704c623fa8c7c3776681bda83f4",
+      "sha256": "4b583ebd54430923744e14feecaa8ba91d0a3de3ffdba9b546305f102c065546",
       "size": 7776
     },
     {
@@ -52,9 +52,24 @@
       "size": 305
     }
   ],
+  "limits": {
+    "campaign-bytes": 268435456,
+    "column-map-bytes": 1048576,
+    "csv-bytes": 268435456,
+    "csv-rows": 2000000,
+    "decisions-bytes": 268435456,
+    "export-bytes": 536870912,
+    "line-bytes": 1048576,
+    "map-bytes": 16777216,
+    "packet-bytes": 67108864,
+    "xlsx-bytes": 67108864,
+    "xlsx-cells": 1600000,
+    "xlsx-rows": 100000,
+    "xml-elements": 6400000
+  },
   "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/manifest-v1.schema.json",
   "tool": {
     "name": "shaar",
-    "version": "0.1.0"
+    "version": "0.1.1"
   }
 }

@@ -45,7 +45,7 @@ import tomllib
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from faithful_shaar import keys
+from faithful_shaar import keys, limits
 from faithful_shaar.errors import InputError
 from faithful_shaar.inputs.combine import parse_time
 from faithful_shaar.model import PRINCIPAL_KINDS, RESOURCE_KINDS
@@ -345,12 +345,15 @@ def build_map(data: Mapping[str, Any], explicit: frozenset[str] = frozenset()) -
 def _read_toml(path: Path) -> dict[str, Any]:
     try:
         with path.open("rb") as handle:
-            raw = handle.read(MAX_MAP_BYTES + 1)
+            raw = handle.read(limits.get("column-map-bytes") + 1)
     except OSError as exc:
         msg = f"cannot read the column map {path}: {exc.strerror}"
         raise InputError(msg) from exc
-    if len(raw) > MAX_MAP_BYTES:
-        msg = f"the column map {path} is larger than {MAX_MAP_BYTES} bytes"
+    if len(raw) > limits.get("column-map-bytes"):
+        msg = (
+            f"the column map {path} is larger than {limits.get('column-map-bytes')} bytes; "
+            f"{limits.hint('column-map-bytes')}"
+        )
         raise InputError(msg)
     try:
         return tomllib.loads(raw.decode("utf-8"))

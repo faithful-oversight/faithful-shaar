@@ -27,7 +27,7 @@ import io
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from faithful_shaar import keys
+from faithful_shaar import keys, limits
 from faithful_shaar.errors import InputError
 from faithful_shaar.inputs.combine import (
     add_grant,
@@ -473,8 +473,11 @@ class _Reader:
                     self.resolve(header, number)
             elif any(cell.strip() for cell in record):
                 data_rows += 1
-                if data_rows > MAX_ROWS:
-                    msg = f"{self.name} has more than {MAX_ROWS} rows"
+                if data_rows > limits.get("csv-rows"):
+                    msg = (
+                        f"{self.name} has more than {limits.get('csv-rows')} rows; "
+                        f"{limits.hint('csv-rows')}"
+                    )
                     raise InputError(msg)
                 self.row(number, record)
         if header is None:
@@ -536,9 +539,10 @@ def read_csv(stream: BinaryIO, name: str, cmap: CsvMap) -> tuple[Snapshot, Input
     mapped column, or is larger than :data:`MAX_CSV_BYTES` or :data:`MAX_ROWS`. A bad row
     becomes a problem and is skipped.
     """
-    raw = stream.read(MAX_CSV_BYTES + 1)
-    if len(raw) > MAX_CSV_BYTES:
-        msg = f"{name} is larger than the limit of {MAX_CSV_BYTES} bytes"
+    size = limits.get("csv-bytes")
+    raw = stream.read(size + 1)
+    if len(raw) > size:
+        msg = f"{name} is larger than the limit of {size} bytes; {limits.hint('csv-bytes')}"
         raise InputError(msg)
     text = decode(raw, cmap.encoding, name)
     delimiter = sniff(text, cmap.delimiter, name)

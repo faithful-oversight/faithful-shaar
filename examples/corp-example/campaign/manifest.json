@@ -22,17 +22,17 @@
     },
     {
       "name": "campaign-report.json",
-      "sha256": "51a720a61344678be3ba7bb25b0209aa7e3aaf6ba26b5676bb89f6a9a6999f13",
+      "sha256": "10feaf522e6d5c03edf69b6cf9f0de176e9a2a6f854ce0a6771c7e5b442ee040",
       "size": 7693
     },
     {
       "name": "campaign-report.md",
-      "sha256": "0a60c741c4473daaf170b579fb22aff77c169a2624e96d9b7f12c7047df92da2",
+      "sha256": "7a37f905da381cb73253521194c21dc17cbca701d99d39fe1eecd8809360786e",
       "size": 4500
     },
     {
       "name": "campaign-report.html",
-      "sha256": "957828517097570820e3e09e1d0420e0ce97e035023a58e8dab5b6223ed225a9",
+      "sha256": "8f43b0f9a78a359a4c58fd036cd6b2353e407c88b8c3de70f6a9ab8132e6f360",
       "size": 9587
     },
     {
@@ -67,9 +67,24 @@
       "size": 478
     }
   ],
+  "limits": {
+    "campaign-bytes": 268435456,
+    "column-map-bytes": 1048576,
+    "csv-bytes": 268435456,
+    "csv-rows": 2000000,
+    "decisions-bytes": 268435456,
+    "export-bytes": 536870912,
+    "line-bytes": 1048576,
+    "map-bytes": 16777216,
+    "packet-bytes": 67108864,
+    "xlsx-bytes": 67108864,
+    "xlsx-cells": 1600000,
+    "xlsx-rows": 100000,
+    "xml-elements": 6400000
+  },
   "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/manifest-v1.schema.json",
   "tool": {
     "name": "shaar",
-    "version": "0.1.0"
+    "version": "0.1.1"
   }
 }

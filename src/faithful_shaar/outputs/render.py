@@ -417,9 +417,13 @@ def build_manifest(
     generated_at: str,
     tool_version: str,
     inputs: Iterable[InputFile] = (),
+    limits: Mapping[str, int] | None = None,
 ) -> dict[str, Any]:
-    """The manifest (``manifest-v1``) for ``files``: name, size and SHA-256 of each."""
-    return {
+    """The manifest (``manifest-v1``) for ``files``: name, size and SHA-256 of each.
+
+    ``limits`` are the size limits the run used; they are listed when given.
+    """
+    manifest: dict[str, Any] = {
         "schema": schema_id(MANIFEST_NAME),
         "tool": {"name": "shaar", "version": tool_version},
         "generated_at": generated_at,
@@ -429,6 +433,9 @@ def build_manifest(
         ],
         "inputs": _inputs(inputs),
     }
+    if limits:
+        manifest["limits"] = dict(sorted(limits.items()))
+    return manifest
 
 
 def render_manifest(manifest: Mapping[str, Any]) -> bytes:
@@ -445,6 +452,7 @@ def write_outputs(  # noqa: PLR0913 - the documented API
     tool_version: str,
     inputs: Iterable[InputFile] = (),
     removable: Callable[[str], bool] | None = None,
+    limits: Mapping[str, int] | None = None,
 ) -> dict[str, Any]:
     """Write ``files`` and then ``manifest.json``, all together or not at all.
 
@@ -478,7 +486,7 @@ def write_outputs(  # noqa: PLR0913 - the documented API
         msg = f"generated_at {generated_at!r} is not an RFC 3339 UTC time"
         raise ValueError(msg)
     manifest = build_manifest(
-        files, generated_at=generated_at, tool_version=tool_version, inputs=inputs
+        files, generated_at=generated_at, tool_version=tool_version, inputs=inputs, limits=limits
     )
     write_files(
         directory,
