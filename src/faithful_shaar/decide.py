@@ -303,9 +303,20 @@ def _outcome(row: Row, seen: _Seen | None, returned: bool, unreadable: bool) -> 
         comments = sorted({comment for _, comment, *_ in seen.decisions if comment})
         _, _, packet, citation = seen.decisions[0]
         reason = "another copy of this row is not valid" if seen.invalid else ""
-        state = "conflict" if seen.invalid else "accepted"
+        if seen.invalid:
+            # Nothing is accepted, so no decision is recorded for a consumer to act on.
+            return RowDecision(
+                row.row_id,
+                key,
+                "conflict",
+                "",
+                " | ".join(comments),
+                packet,
+                citation,
+                f"{reason} (a copy says {decision})",
+            )
         return RowDecision(
-            row.row_id, key, state, decision, " | ".join(comments), packet, citation, reason
+            row.row_id, key, "accepted", decision, " | ".join(comments), packet, citation, reason
         )
     packet, citation = seen.blank[0]
     reason = "missing from the returned packet" if citation.endswith(": missing") else "no decision"
@@ -456,7 +467,7 @@ def load(raw: bytes) -> DecisionRecord:
         raise InputError(msg)
     try:
         data = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
+    except (UnicodeDecodeError, ValueError, RecursionError):
         msg = "decisions.json is not JSON"
         raise InputError(msg) from None
     if not isinstance(data, dict) or data.get("shaar_decisions") != FORMAT:

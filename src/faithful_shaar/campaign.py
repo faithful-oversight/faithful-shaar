@@ -20,11 +20,12 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from faithful_shaar.assign import MapEntry, assign
+from faithful_shaar.assign import MapEntry, MapIndex, assign
 from faithful_shaar.errors import InputError
 from faithful_shaar.formats.xlsx import cell_text
 from faithful_shaar.keys import fold
 from faithful_shaar.model import InputFile, Problem, Source
+from faithful_shaar.outputs.safety import visible
 
 if TYPE_CHECKING:
     from faithful_shaar.model import Grant, Snapshot
@@ -103,10 +104,19 @@ class Campaign:
     problems: list[Problem]
     complete_resources: list[str] = field(default_factory=list)
     digest: str = ""
+    _by_reviewer: dict[str, list[Row]] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _counted: int = field(default=0, init=False, repr=False, compare=False)
 
     def rows_for(self, reviewer_key: str) -> list[Row]:
         """Return a reviewer's rows in packet order."""
-        return [row for row in self.rows if row.reviewer_key == reviewer_key]
+        if self._by_reviewer is None or self._counted != len(self.rows):
+            grouped: dict[str, list[Row]] = {}
+            for row in self.rows:
+                grouped.setdefault(row.reviewer_key, []).append(row)
+            self._by_reviewer, self._counted = grouped, len(self.rows)
+        return list(self._by_reviewer.get(reviewer_key, []))
 
 
 def _sha256(text: str) -> str:
@@ -148,7 +158,7 @@ def _status(enabled: bool | None) -> str:  # noqa: FBT001 - the value shown, not
 def display_for(
     grant: Grant, snapshot: Snapshot, co_owners: tuple[str, ...] = ()
 ) -> dict[str, str]:
-    """Return what a reviewer sees for a grant."""
+    """Return what a reviewer sees for a grant (invisible characters shown as escapes)."""
     principal = snapshot.principals.get(grant.principal_key)
     resource = snapshot.resources.get(grant.resource_key)
     if principal is None:
@@ -173,7 +183,9 @@ def display_for(
     }
     # The campaign keeps exactly the text a packet cell holds, so a returned packet can be
     # compared with it character for character.
-    return {name: cell_text(value)[0].strip() for name, value in shown.items()}
+    # Invisible and reordering characters show as visible escapes, as in every report, so the
+    # reviewer and the operator read the same text for the same row.
+    return {name: cell_text(visible(value))[0].strip() for name, value in shown.items()}
 
 
 def campaign_id(  # noqa: PLR0913 - everything that decides who reviews what
@@ -224,8 +236,9 @@ def build(  # noqa: PLR0913 - the parts of a campaign
     placed: list[tuple[Grant, Any, dict[str, str]]] = []
     unassigned: list[Unassigned] = []
     reviewers: dict[str, Any] = {}
+    map_index = MapIndex(entries) if entries is not None else None
     for grant in sorted(snapshot.grants.values(), key=lambda g: g.key):
-        result = assign(grant, snapshot, rule, entries)
+        result = assign(grant, snapshot, rule, map_index)
         display = display_for(grant, snapshot, result.co_owners)
         if result.reviewer is None:
             unassigned.append(
@@ -279,10 +292,13 @@ def build(  # noqa: PLR0913 - the parts of a campaign
                 str(grant.source),
             )
         )
+    by_reviewer: dict[str, list[Row]] = {}
+    for row in rows:
+        by_reviewer.setdefault(row.reviewer_key, []).append(row)
     entries_out = []
     ordered = sorted(reviewers.values(), key=lambda r: (r.name.casefold(), r.key))
     for index, reviewer in enumerate(ordered, start=1):
-        mine = [row for row in rows if row.reviewer_key == reviewer.key]
+        mine = by_reviewer.get(reviewer.key, [])
         entries_out.append(
             ReviewerEntry(
                 reviewer.key,
@@ -327,7 +343,8 @@ def build(  # noqa: PLR0913 - the parts of a campaign
 
 def _plain(campaign: Campaign) -> dict[str, Any]:
     data = asdict(campaign)
-    data.pop("digest")
+    for name in ("digest", "_by_reviewer", "_counted"):
+        data.pop(name)
     data["problems"] = [{"source": str(p.source), "reason": p.reason} for p in campaign.problems]
     return data
 
@@ -367,7 +384,7 @@ def load(raw: bytes) -> Campaign:
         raise InputError(msg)
     try:
         data = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
+    except (UnicodeDecodeError, ValueError, RecursionError):
         msg = "campaign.json is not JSON"
         raise InputError(msg) from None
     if not isinstance(data, dict) or data.get("shaar_campaign") != FORMAT:

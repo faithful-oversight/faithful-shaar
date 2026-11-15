@@ -16,17 +16,21 @@ import os
 import subprocess
 import sys
 import unicodedata
+import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from faithful_shaar import keys
+import pytest
+
+from faithful_shaar import example, keys
+from faithful_shaar.assign import MapIndex
 from faithful_shaar.cli import ExitCode, main
+from faithful_shaar.formats import xlsx, xmlsafe
 from tests import review_support as rs
+from tests.core_fixtures import people, resources, snapshot
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-
-    import pytest
 
 SRC = Path(__file__).resolve().parent.parent / "src"
 
@@ -532,3 +536,154 @@ def test_a_content_error_names_the_full_path_too(
     )  # fmt: skip
     assert code == ExitCode.INPUT_ERROR
     assert f"{path} has no column 'Missing'" in capsys.readouterr().err
+
+
+# SHAAR-C06 ------------------------------------------------------------------------------
+
+
+def test_c06_packets_and_records_show_invisible_characters_as_escapes(tmp_path: Path) -> None:
+    rlo, zwsp = chr(0x202E), chr(0x200B)
+    rows = (
+        f"Alice Admin{rlo},alice@corp.example,Yes,Admin\n"
+        f"Bob{zwsp} Reviewer,bob@corp.example,Yes,Viewer\n"
+    )
+    assert rs.start(tmp_path, rows) == ExitCode.OK
+    built = rs.load(tmp_path)
+    users = sorted(r.display["user"] for r in built.rows)
+    assert users == ["Alice Admin\\u202e", "Bob\\u200b Reviewer"]
+    (packet,) = (tmp_path / "camp").glob("packet-*.xlsx")
+    with zipfile.ZipFile(packet) as archive:
+        for name in archive.namelist():
+            text = archive.read(name).decode("utf-8", "replace")
+            assert rlo not in text
+            assert zwsp not in text
+    # The round trip still matches: the escaped text is what the reviewer returns.
+    assert rs.decide(tmp_path, rs.answer(tmp_path, "Keep")) == ExitCode.OK
+
+
+NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+
+# SHAAR-C07 ------------------------------------------------------------------------------
+
+
+def test_c07_a_hostile_worksheet_is_refused_without_building_a_tree() -> None:
+    cells = '<c s="1"/>' * 300_000
+    xml = (
+        f'<worksheet xmlns="{NS_MAIN}"><sheetData><row r="1">{cells}</row></sheetData></worksheet>'
+    ).encode()
+    with pytest.raises(xmlsafe.XmlError, match="more than"):
+        xmlsafe.parse(xml, max_elements=100_000)
+
+
+def test_c07_taken_elements_are_handed_over_and_dropped() -> None:
+    seen: list[str] = []
+    rows = "".join(f'<row r="{n}"><c><v>{n}</v></c></row>' for n in range(1, 2001))
+    xml = f"<worksheet><sheetData>{rows}</sheetData></worksheet>".encode()
+    root = xmlsafe.parse(
+        xml,
+        max_elements=50,  # far fewer than the document holds: only open elements count
+        take=(("*", "sheetData", "row"), lambda row: seen.append(row.get("r", ""))),
+    )
+    assert len(seen) == 2000
+    assert len(root[0]) == 0  # nothing kept
+
+
+def test_c07_a_packet_with_millions_of_empty_cells_is_refused_cheaply() -> None:
+    from faithful_shaar.errors import InputError  # noqa: PLC0415
+
+    cells = "".join(f'<c s="{n}"/>' for n in range(17_000))  # more cells than a sheet row can hold
+    sheet = (
+        f'<worksheet xmlns="{NS_MAIN}"><sheetData><row r="1">{cells}</row></sheetData></worksheet>'
+    )
+    data = rs_packet_with_sheet(sheet)
+    with pytest.raises(InputError, match="more cells than a sheet can hold"):
+        xlsx.read_packet(data, "x.xlsx")
+
+
+def rs_packet_with_sheet(sheet_xml: str) -> bytes:
+    """Return a valid packet whose Review sheet is replaced by ``sheet_xml``."""
+    built = example.build()
+    (name,) = [n for n in built["returned"] if n.startswith("returned-01")]
+    source = io.BytesIO(built["returned"][name])
+    out = io.BytesIO()
+    with zipfile.ZipFile(source) as zin, zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+            if item.filename == "xl/worksheets/sheet1.xml":
+                data = sheet_xml.encode()
+            zout.writestr(item.filename, data)
+    return out.getvalue()
+
+
+# SHAAR-C08 ------------------------------------------------------------------------------
+
+
+def test_c08_assignment_and_verification_scale_to_large_inputs() -> None:
+    import time  # noqa: PLC0415
+
+    from faithful_shaar.assign import MapEntry, Reviewer, by_map  # noqa: PLC0415
+    from tests.core_fixtures import grant as make_grant  # noqa: PLC0415
+
+    size = 3000
+    snap = snapshot(people(), resources(), [make_grant(1102, 2001)])
+    entries = [
+        MapEntry(f"nothing-{n}", "", Reviewer(f"map:r{n}", f"R{n}"), n + 2) for n in range(size)
+    ]
+    entries.append(MapEntry("finance admins", "", Reviewer("map:fin", "Fin"), size + 2))
+    index = MapIndex(entries)
+    started = time.perf_counter()
+    for _ in range(size):
+        result = by_map(make_grant(1102, 2001), snap, index)
+    assert result.reviewer is not None
+    assert result.reviewer.key == "map:fin"
+    assert time.perf_counter() - started < 5  # a scan of the map for each grant took minutes
+
+
+# SHAAR-C09, C10, C12, C13 ---------------------------------------------------------------
+
+
+@pytest.mark.parametrize("name", ["campaign.json", "decisions.json"])
+def test_c09_deeply_nested_json_is_a_bad_input_not_a_bug(tmp_path: Path, name: str) -> None:
+    assert rs.start(tmp_path, rs.ROWS) == ExitCode.OK
+    folder = tmp_path / "rec"
+    rs.write(folder / name, "[" * 200_000)
+    if name == "campaign.json":
+        argv = ["decisions", str(folder), str(tmp_path / "x.xlsx"), "-o", str(tmp_path / "o")]
+    else:
+        rs.ledger_map(tmp_path, "amap.toml", rs.AFTER_AT)
+        later = rs.write(tmp_path / "after.csv", rs.HEADER + rs.OTHER)
+        argv = ["verify", str(tmp_path / "camp"), str(folder), str(later), "--map"]
+        argv += [str(tmp_path / "amap.toml"), "-o", str(tmp_path / "o")]
+    assert main(argv) == ExitCode.INPUT_ERROR
+
+
+def test_c10_a_reviewer_map_that_is_not_a_file_is_refused(tmp_path: Path) -> None:
+    rs.write(tmp_path / "before.csv", rs.HEADER + rs.ROWS)
+    rs.ledger_map(tmp_path, "map.toml", rs.BEFORE_AT)
+    for bad in (Path("/dev/zero"), tmp_path):
+        code = main(
+            ["campaign", str(tmp_path / "before.csv"), "--map", str(tmp_path / "map.toml"),
+             "--name", "T", "--reviewers", "map", "--reviewer-map", str(bad),
+             "-o", str(tmp_path / "o")]
+        )  # fmt: skip
+        assert code == ExitCode.INPUT_ERROR
+
+
+def test_c12_a_conflict_records_no_decision(tmp_path: Path) -> None:
+    assert rs.start(tmp_path, rs.ROWS) == ExitCode.OK
+    first = rs.answer(tmp_path, "Remove", name="a.xlsx")
+    second = rs.answer(tmp_path, "Maybe", name="b.xlsx")
+    assert rs.decide(tmp_path, first, second) == ExitCode.FINDINGS
+    record = json.loads((tmp_path / "dec" / "decisions.json").read_text("utf-8"))
+    states = {row["state"] for row in record["rows"]}
+    assert states == {"conflict"}
+    assert all(row["decision"] == "" for row in record["rows"])
+    assert (tmp_path / "dec" / "removals.csv").read_text("utf-8").count("\n") == 1  # header only
+
+
+def test_c13_the_ad_export_is_dated_when_reading_starts() -> None:
+    script = (SRC / "faithful_shaar" / "data" / "Export-ShaarAccess.ps1").read_text("utf-8")
+    body = script[script.index("function Invoke-Export") :]
+    assert body.index("$startedAt = Get-Date") < body.index("Get-DomainFacts")
+    assert "Get-HeaderLine $facts.DomainDn $startedAt" in body
+    assert "Format-UtcTime (Get-Date)" not in script

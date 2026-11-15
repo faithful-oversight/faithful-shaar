@@ -33,6 +33,7 @@ from faithful_shaar.errors import InputError
 from faithful_shaar.formats import xmlsafe
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from xml.etree import ElementTree as ET
 
 DECISIONS = ("Keep", "Remove", "Unsure")
@@ -64,6 +65,12 @@ MAX_UNCOMPRESSED_BYTES = 64 * 1024 * 1024
 MAX_RATIO = 200
 MAX_ROWS = 100_000
 MAX_CELL_CHARS = 32_767
+MAX_CELLS = MAX_ROWS * 16
+"""Most cells with content one sheet may hold (a packet has about 13 columns)."""
+MAX_XML_ELEMENTS = MAX_ROWS * 64
+"""Most elements one worksheet or shared-strings part may hold in all."""
+MAX_SMALL_XML_ELEMENTS = 50_000
+"""Most elements the small parts (workbook, relationships, properties) may hold."""
 WRITE_MAX_ROWS = MAX_ROWS * 9 // 10
 WRITE_MAX_BYTES = MAX_UNCOMPRESSED_BYTES * 3 // 4
 """The most a written packet may hold. They sit below what the reader accepts, so a packet
@@ -644,7 +651,30 @@ class _Package:
 
     def xml(self, part: str) -> ET.Element:
         try:
-            return xmlsafe.parse(self.read(part), max_bytes=MAX_UNCOMPRESSED_BYTES)
+            return xmlsafe.parse(
+                self.read(part),
+                max_bytes=MAX_UNCOMPRESSED_BYTES,
+                max_elements=MAX_SMALL_XML_ELEMENTS,
+            )
+        except xmlsafe.XmlError as exc:
+            self.fail(f"part {part!r} is not safe XML: {exc}")
+
+    def stream(
+        self, part: str, path: tuple[str, ...], receive: Callable[[ET.Element], None]
+    ) -> None:
+        """Read a large part, handing each element at ``path`` to ``receive`` and dropping it.
+
+        Memory then depends on what ``receive`` keeps, not on how many elements the file
+        holds (a file of empty cells is small but makes millions of elements).
+        """
+        try:
+            xmlsafe.parse(
+                self.read(part),
+                max_bytes=MAX_UNCOMPRESSED_BYTES,
+                max_elements=MAX_SMALL_XML_ELEMENTS,
+                max_total=MAX_XML_ELEMENTS,
+                take=(path, receive),
+            )
         except xmlsafe.XmlError as exc:
             self.fail(f"part {part!r} is not safe XML: {exc}")
 
@@ -739,7 +769,9 @@ def _shared_strings(package: _Package, rels: dict[str, _Relationship]) -> list[s
     part = _first_of_kind(rels, "/sharedStrings")
     if part is None or not package.has(part):
         return []
-    return [_rich_text(item) for item in _children(package.xml(part), "si")]
+    strings: list[str] = []
+    package.stream(part, ("*", "si"), lambda item: strings.append(_rich_text(item)))
+    return strings
 
 
 @dataclass(frozen=True, slots=True)
@@ -801,16 +833,21 @@ def _row_number(package: _Package, element: ET.Element, previous: int) -> int:
 
 
 def _sheet_cells(package: _Package, part: str, strings: list[str]) -> dict[int, dict[int, _Cell]]:
-    """Read every cell of a worksheet into ``{row number: {column number: cell}}``."""
-    data = _child(package.xml(part), "sheetData")
+    """Read every cell of a worksheet into ``{row number: {column number: cell}}``.
+
+    Rows are read one at a time and dropped. Cells with no content are not kept (a missing
+    cell and an empty one read the same), so a sheet of empty cells costs no memory.
+    """
     rows: dict[int, dict[int, _Cell]] = {}
-    previous_row = 0
-    for element in _children(data, "row") if data is not None else []:
-        number = _row_number(package, element, previous_row)
-        previous_row = number
+    state = {"previous": 0, "cells": 0}
+
+    def read_row(element: ET.Element) -> None:
+        number = _row_number(package, element, state["previous"])
+        state["previous"] = number
         cells = rows.setdefault(number, {})
         if len(rows) > MAX_ROWS:
             package.fail(f"sheet has more than {MAX_ROWS} rows")
+        seen: set[int] = set()
         column = 0
         for cell in _children(element, "c"):
             ref = cell.get("r")
@@ -822,9 +859,17 @@ def _sheet_cells(package: _Package, part: str, strings: list[str]) -> dict[int, 
                     package.fail(f"cell {ref} sits in row {number}")
             if column > _MAX_SHEET_COLUMN:
                 package.fail("a row has more cells than a sheet can hold")
-            if column in cells:
+            if column in seen:
                 package.fail(f"row {number} holds column {column} twice")
-            cells[column] = _cell_value(cell, strings)
+            seen.add(column)
+            value = _cell_value(cell, strings)
+            if value.text or value.note:
+                state["cells"] += 1
+                if state["cells"] > MAX_CELLS:
+                    package.fail(f"sheet has more than {MAX_CELLS} cells with content")
+                cells[column] = value
+
+    package.stream(part, ("*", "sheetData", "row"), read_row)
     return rows
 
 

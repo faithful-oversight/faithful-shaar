@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import csv
 import io
+import stat
 from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -190,7 +191,11 @@ def read_map(path: Path) -> list[MapEntry]:
         InputError: The file cannot be read, is not UTF-8 CSV, or lacks a needed column.
     """
     try:
-        data = path.read_bytes()
+        if not stat.S_ISREG(path.stat().st_mode):
+            msg = f"the reviewer map {path} is not a regular file"
+            raise InputError(msg)
+        with path.open("rb") as handle:
+            data = handle.read(MAX_MAP_BYTES + 1)
     except OSError as exc:
         msg = f"cannot read the reviewer map {path}: {exc.strerror}"
         raise InputError(msg) from None
@@ -239,14 +244,39 @@ def read_map(path: Path) -> list[MapEntry]:
     return entries
 
 
-def by_map(grant: Grant, snapshot: Snapshot, entries: list[MapEntry]) -> Assignment:
+class MapIndex:
+    """A reviewer map indexed by the text each line matches, so a grant is a lookup.
+
+    Scanning every line for every grant is quadratic; a large directory and a large map
+    would take hours.
+    """
+
+    def __init__(self, entries: list[MapEntry]) -> None:
+        """Index ``entries`` by the resource and principal text they match."""
+        self.resource: dict[str, list[MapEntry]] = {}
+        self.principal: dict[str, list[MapEntry]] = {}
+        for entry in entries:
+            if entry.resource:
+                self.resource.setdefault(entry.resource, []).append(entry)
+            if entry.principal:
+                self.principal.setdefault(entry.principal, []).append(entry)
+
+    def matches(self, wanted: str, names: set[str]) -> list[MapEntry]:
+        """Return the lines whose ``wanted`` field is one of ``names``, in line order."""
+        table = self.resource if wanted == "resource" else self.principal
+        found = {id(e): e for name in names for e in table.get(name, ())}
+        return sorted(found.values(), key=lambda e: e.line)
+
+
+def by_map(grant: Grant, snapshot: Snapshot, entries: list[MapEntry] | MapIndex) -> Assignment:
     """Assign a grant by the reviewer map: a resource match first, then a principal match."""
+    index = entries if isinstance(entries, MapIndex) else MapIndex(entries)
     resource = snapshot.resources.get(grant.resource_key)
     principal = snapshot.principals.get(grant.principal_key)
     resource_names = _resource_names(resource) if resource else {grant.resource_key}
     principal_names = _names(principal) if principal else {grant.principal_key}
     for wanted, names in (("resource", resource_names), ("principal", principal_names)):
-        matches = [e for e in entries if getattr(e, wanted) and getattr(e, wanted) in names]
+        matches = index.matches(wanted, names)
         reviewers = {e.reviewer for e in matches}
         if len(reviewers) > 1:
             lines = ", ".join(str(e.line) for e in matches)
@@ -265,7 +295,7 @@ def by_map(grant: Grant, snapshot: Snapshot, entries: list[MapEntry]) -> Assignm
 
 
 def assign(
-    grant: Grant, snapshot: Snapshot, rule: str, entries: list[MapEntry] | None = None
+    grant: Grant, snapshot: Snapshot, rule: str, entries: list[MapEntry] | MapIndex | None = None
 ) -> Assignment:
     """Assign one grant by ``rule`` (one of :data:`RULES`)."""
     if rule == "manager":
@@ -273,6 +303,6 @@ def assign(
     if rule == "owner":
         return by_owner(grant, snapshot)
     if rule == "map":
-        return by_map(grant, snapshot, entries or [])
+        return by_map(grant, snapshot, entries if entries is not None else [])
     msg = f"unknown reviewer rule {rule!r}; use one of {', '.join(RULES)}"
     raise ValueError(msg)

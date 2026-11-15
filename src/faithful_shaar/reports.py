@@ -11,6 +11,7 @@ from faithful_shaar.formats.xlsx import Packet, PacketRow, write_packet
 from faithful_shaar.model import Problem, Source
 from faithful_shaar.outputs.columns import SECTION_COLUMNS
 from faithful_shaar.outputs.document import Document, Row, Section
+from faithful_shaar.outputs.safety import visible
 
 if TYPE_CHECKING:
     from faithful_shaar.campaign import Campaign
@@ -142,10 +143,10 @@ def packets(campaign: Campaign) -> dict[str, bytes]:
             for row in campaign.rows_for(reviewer.key)
         ]
         packet = Packet(
-            campaign_name=campaign.name,
+            campaign_name=visible(campaign.name),
             campaign_id=campaign.id,
-            reviewer_name=reviewer.name,
-            reviewer_email=reviewer.email,
+            reviewer_name=visible(reviewer.name),
+            reviewer_email=visible(reviewer.email),
             due=campaign.due,
             packet_digest=reviewer.packet_digest,
             rows=rows,

@@ -126,8 +126,9 @@ def test_copies_of_a_row_must_agree() -> None:
     half = run(camp, {"a.xlsx": returned(camp, 1101, ALL), "b.xlsx": returned(camp, 1101, bad)})
     assert (half.rows[0].state, half.rows[0].reason) == (
         "conflict",
-        "another copy of this row is not valid",
+        "another copy of this row is not valid (a copy says Remove)",
     )
+    assert half.rows[0].decision == ""  # SHAAR-C12: nothing accepted, nothing to act on
 
 
 def test_comments_from_agreeing_copies_are_kept() -> None:

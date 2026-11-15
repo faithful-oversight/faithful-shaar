@@ -1070,7 +1070,7 @@ function Build-Records($Roots) {
 
 # --- Export -------------------------------------------------------------------------
 
-function Get-HeaderLine([string] $DomainDn) {
+function Get-HeaderLine([string] $DomainDn, [datetime] $StartedAt) {
     $groups = @()
     if ($Group) { $groups = @($Group | Where-Object { $_ }) }
     $baseJson = 'null'
@@ -1080,7 +1080,7 @@ function Get-HeaderLine([string] $DomainDn) {
     $note = 'last_sign_in is lastLogonTimestamp, which controllers replicate with up to about 14 days of lag'
     '{"shaar_export":1,"system":"ad"' +
     ',"collector":{"name":"' + $CollectorName + '","version":"' + $CollectorVersion + '"}' +
-    ',"collected_at":"' + (Format-UtcTime (Get-Date)) + '"' +
+    ',"collected_at":"' + (Format-UtcTime $StartedAt) + '"' +
     ',"scope":{"groups":' + (ConvertTo-JsonTextArray $groups) +
     ',"search_base":' + $baseJson +
     ',"privileged":' + (ConvertTo-JsonBool ([bool] $Privileged)) +
@@ -1099,6 +1099,9 @@ function Invoke-Export {
             throw "$OutFile already exists. Use -Force to replace it."
         }
     }
+    # The export is dated when the reading starts: a long export must not look newer than
+    # the oldest thing it read.
+    $startedAt = Get-Date
     # Everything that can fail on the choice of scope happens before a file is made.
     $facts = Get-DomainFacts
     Initialize-State $facts.DomainDn
@@ -1112,7 +1115,7 @@ function Invoke-Export {
     $writer = New-LineWriter $OutFile ([bool] $ToPipeline)
     $published = $false
     try {
-        Write-Line $writer (Get-HeaderLine $facts.DomainDn)
+        Write-Line $writer (Get-HeaderLine $facts.DomainDn $startedAt)
         foreach ($line in $lines) {
             Write-Line $writer $line
             $writer.Count++

@@ -126,7 +126,26 @@ def _still_there(campaign: Campaign, as_of: str) -> tuple[str, str]:
     return "failed", "still present; the campaign has no due date"
 
 
-def _same_person(row: Row, later: Snapshot) -> str:
+Holders = dict[tuple[str, str], dict[str, str]]
+"""For each (resource key, entitlement) of the later export: the folded account texts of
+the principals holding it, each with the name to report."""
+
+
+def _holders(later: Snapshot) -> Holders:
+    """Index the later grants once, so each absent removal is a lookup, not a scan."""
+    found: Holders = {}
+    for grant in later.grants.values():
+        principal = later.principals.get(grant.principal_key)
+        if principal is None:
+            continue
+        slot = found.setdefault((grant.resource_key, entitlement_of(grant.key)), {})
+        for text in (principal.upn, principal.email, principal.id):
+            if text and fold(text.strip()):
+                slot.setdefault(fold(text.strip()), principal.name or principal.id)
+    return found
+
+
+def _same_person(row: Row, holders: Holders) -> str:
     """Return who in the later export holds this access under another key, or ``""``.
 
     A person can change key between exports, for example when a CSV's id column changes.
@@ -134,20 +153,14 @@ def _same_person(row: Row, later: Snapshot) -> str:
     absence is no evidence of a removal.
     """
     account = fold(row.display.get("account", "").strip())
-    entitlement = entitlement_of(row.grant_key)
-    for grant in later.grants.values():
-        if grant.resource_key != row.resource_key or entitlement_of(grant.key) != entitlement:
-            continue
-        principal = later.principals.get(grant.principal_key)
-        if principal is None or not account:
-            continue
-        names = {fold(v.strip()) for v in (principal.upn, principal.email, principal.id) if v}
-        if account in names:
-            return principal.name or principal.id
-    return ""
+    if not account:
+        return ""
+    return holders.get((row.resource_key, entitlement_of(row.grant_key)), {}).get(account, "")
 
 
-def _absent(campaign: Campaign, row: Row, later: Snapshot, when: str) -> tuple[str, str]:
+def _absent(
+    campaign: Campaign, row: Row, later: Snapshot, when: str, holders: Holders
+) -> tuple[str, str]:
     """Judge access absent from a fully read resource: removed only with a dated, later read."""
     taken, started = _instant(when), _instant(campaign.created_at)
     if taken is None:
@@ -161,7 +174,7 @@ def _absent(campaign: Campaign, row: Row, later: Snapshot, when: str) -> tuple[s
             "the later export has no entitlement column, so every grant in it reads as "
             "'member' and it cannot show that this entitlement was removed"
         )
-    holder = _same_person(row, later)
+    holder = _same_person(row, holders)
     if holder:
         return "unknown", f"the same account still holds this access under another key ({holder})"
     reason = "not in the later export, which read the whole membership"
@@ -173,14 +186,20 @@ def _absent(campaign: Campaign, row: Row, later: Snapshot, when: str) -> tuple[s
     return "removed", reason
 
 
-def _removal(
-    campaign: Campaign, row: Row, later: Snapshot, when: str, systems: set[str]
+def _removal(  # noqa: PLR0913 - the evidence one judgement rests on
+    campaign: Campaign,
+    row: Row,
+    later: Snapshot,
+    when: str,
+    *,
+    systems: set[str],
+    holders: Holders,
 ) -> tuple[str, str]:
     """Return the result and reason for one accepted Remove decision."""
     if row.grant_key in later.grants:
         return _still_there(campaign, when)
     if row.resource_key in later.complete_resources:
-        return _absent(campaign, row, later, when)
+        return _absent(campaign, row, later, when, holders)
     if system_of(row.resource_key) not in systems:
         return "unknown", "the later export is not of the system this access is on"
     if row.resource_key not in later.resources:
@@ -209,6 +228,7 @@ def verify(
     systems = set(later.systems) | {
         system_of(key) for key in later.complete_resources | set(later.resources)
     }
+    holders = _holders(later)
     checks: list[Check] = []
     kept_but_gone: list[Note] = []
     for row_id, decision in sorted(decided.items()):
@@ -221,7 +241,9 @@ def verify(
             # Each resource is judged by when its own inputs read it, not by another
             # input's time; --as-of, when given, is the operator's statement for all.
             read_at = as_of or later.resource_times.get(row.resource_key, later.collected_at)
-            result, reason = _removal(campaign, row, later, read_at, systems)
+            result, reason = _removal(
+                campaign, row, later, read_at, systems=systems, holders=holders
+            )
             checks.append(Check(row_id, row.grant_key, result, reason, decision.citation))
         elif decision.decision == "Keep" and not present and complete:
             kept_but_gone.append(
