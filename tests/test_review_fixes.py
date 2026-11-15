@@ -520,7 +520,7 @@ def test_an_unreadable_input_is_named_by_its_full_path(
          "--reviewer-map", str(tmp_path / "rmap.csv"), "-o", str(tmp_path / "o")]
     )  # fmt: skip
     assert code == ExitCode.INPUT_ERROR
-    assert f"cannot read {missing}: No such file or directory" in capsys.readouterr().err
+    assert f"cannot read {missing}: " in capsys.readouterr().err  # the reason is OS-worded
 
 
 def test_a_content_error_names_the_full_path_too(
