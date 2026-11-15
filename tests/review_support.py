@@ -128,3 +128,52 @@ def verify(
 def report(root: Path, folder: str, kind: str) -> dict[str, Any]:
     data: dict[str, Any] = json.loads((root / folder / f"{kind}-report.json").read_text("utf-8"))
     return data
+
+
+def example_commands(root: Path) -> list[tuple[dict[str, str], list[str]]]:
+    """Run ``shaar example ROOT`` and return the commands it prints, parsed.
+
+    Each command is its environment settings and its arguments after ``shaar``. Only the
+    printed text is read, exactly as a person would copy it.
+    """
+    import contextlib  # noqa: PLC0415
+    import io  # noqa: PLC0415
+    import shlex  # noqa: PLC0415
+
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        assert main(["example", str(root)]) == 0
+    commands: list[tuple[dict[str, str], list[str]]] = []
+    env: dict[str, str] = {}
+    for line in out.getvalue().splitlines():
+        if not line.startswith("  "):
+            continue
+        parts = shlex.split(line.strip())
+        if parts[0] == "set":  # the Windows form: the setting is on a line of its own
+            name, _, value = parts[1].partition("=")
+            env[name] = value
+            continue
+        while "=" in parts[0] and not parts[0].startswith("-"):
+            name, _, value = parts.pop(0).partition("=")
+            env[name] = value
+        assert parts.pop(0) == "shaar"
+        commands.append((dict(env), parts))
+        env = {}
+    return commands
+
+
+def run_command(command: tuple[dict[str, str], list[str]]) -> int:
+    """Run one parsed printed command with its environment settings."""
+    import os  # noqa: PLC0415
+
+    env, argv = command
+    saved = {name: os.environ.get(name) for name in env}
+    os.environ.update(env)
+    try:
+        return main(argv)
+    finally:
+        for name, old in saved.items():
+            if old is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = old

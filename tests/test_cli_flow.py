@@ -16,12 +16,14 @@ from faithful_shaar import cli, example
 from faithful_shaar.cli import ExitCode, main
 from faithful_shaar.formats.xlsx import read_packet
 from faithful_shaar.schema import schema_text
+from tests import review_support as rs
 
 
 @pytest.fixture(scope="module")
 def sample(tmp_path_factory: pytest.TempPathFactory) -> Path:
     root = tmp_path_factory.mktemp("example")
-    assert main(["example", str(root / "ex")]) == ExitCode.OK
+    first = rs.example_commands(root / "ex")[0]
+    assert rs.run_command(first) == ExitCode.FINDINGS  # two entries have no manager
     return root / "ex"
 
 

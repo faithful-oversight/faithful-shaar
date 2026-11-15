@@ -15,6 +15,7 @@ import pytest
 
 from faithful_shaar import example
 from faithful_shaar.cli import ExitCode, main
+from tests import review_support as rs
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
 @pytest.fixture(scope="module")
 def sample(tmp_path_factory: pytest.TempPathFactory) -> Path:
     root = tmp_path_factory.mktemp("example")
-    assert main(["example", str(root / "ex")]) == ExitCode.OK
+    assert rs.run_command(rs.example_commands(root / "ex")[0]) == ExitCode.FINDINGS
     return root / "ex"
 
 

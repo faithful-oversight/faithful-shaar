@@ -16,7 +16,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from faithful_shaar import example
-from faithful_shaar.cli import ExitCode, main
+from faithful_shaar.cli import ExitCode
+from tests import review_support as rs
 
 if TYPE_CHECKING:
     import pytest
@@ -27,28 +28,8 @@ REGENERATE = "differs from the code; run: uv run python -m tests.test_example"
 
 
 def produce(root: Path) -> list[int]:
-    """Write the example and run decisions and verification on it; return the exit codes."""
-    codes = [main(["example", str(root)])]
-    returned = sorted(str(p) for p in (root / "returned").iterdir())
-    codes.append(
-        main(["decisions", str(root / "campaign"), *returned, "-o", str(root / "decisions")])
-    )
-    after = [str(root / "after" / n) for n in ("ad.jsonl", "entra.jsonl", "ledger.csv")]
-    codes.append(
-        main(
-            [
-                "verify",
-                str(root / "campaign"),
-                str(root / "decisions"),
-                *after,
-                "--map",
-                str(root / "after" / "ledger-map.toml"),
-                "-o",
-                str(root / "verification"),
-            ]
-        )
-    )
-    return codes
+    """Run exactly the commands ``shaar example`` prints, in order; return their exit codes."""
+    return [rs.run_command(command) for command in rs.example_commands(root)]
 
 
 def files(root: Path) -> dict[str, bytes]:
@@ -63,11 +44,30 @@ def test_the_committed_example_is_what_the_code_produces(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("SOURCE_DATE_EPOCH", GENERATED)
-    assert produce(tmp_path / "ex") == [ExitCode.OK, ExitCode.FINDINGS, ExitCode.FINDINGS]
+    assert produce(tmp_path / "ex") == [ExitCode.FINDINGS] * 3
     made, committed = files(tmp_path / "ex"), files(SAMPLE)
     assert sorted(made) == sorted(committed), REGENERATE
     for name, data in made.items():
         assert data == committed[name], f"{name} {REGENERATE}"
+
+
+def test_the_printed_commands_chain_into_a_full_review(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # What a new user does: run `shaar example DIR`, then copy the printed commands in order.
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", GENERATED)
+    root = tmp_path / "shaar-demo"
+    commands = rs.example_commands(root)
+    assert [argv[0] for _, argv in commands] == ["campaign", "decisions", "verify"]
+    assert "SOURCE_DATE_EPOCH" in commands[0][0]
+    assert [rs.run_command(c) for c in commands] == [ExitCode.FINDINGS] * 3
+    decisions = json.loads((root / "decisions" / "decisions-report.json").read_text("utf-8"))
+    assert decisions["headline"].startswith("12 of 13 entries have an accepted decision")
+    verification = json.loads((root / "verification" / "verify-report.json").read_text("utf-8"))
+    assert verification["headline"].startswith("2 of 5 removals verified")
+    # The returned packets were accepted by the campaign the first command made.
+    packets = decisions["data"]["packets"]
+    assert [p["status"] for p in packets] == ["read"] * 3
 
 
 def test_every_manifest_matches_its_folder() -> None:

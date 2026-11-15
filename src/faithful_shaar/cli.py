@@ -414,7 +414,16 @@ def _schema(args: argparse.Namespace) -> int:
 
 def _example(args: argparse.Namespace) -> int:
     written = example.write(args.directory, force=args.force)
-    say(terminal(f"Wrote synthetic access data to {args.directory}. Try:\n{written}"))
+    say(
+        terminal(
+            f"Wrote synthetic access data to {args.directory}. Run these in order:\n{written}\n"
+            "The first command sets the time the campaign is made at, so it is the campaign "
+            "the returned packets answer; a campaign made at another time has another id and "
+            "refuses them. All three commands end with exit code 1 here on purpose: the "
+            "example has entries with no reviewer, an Unsure answer, a blank answer and a "
+            "removal that was not made."
+        )
+    )
     return int(ExitCode.OK)
 
 

@@ -248,6 +248,6 @@
   "title": "Access review campaign: Q4 2026 access review",
   "tool": {
     "name": "shaar",
-    "version": "example"
+    "version": "0.1.0"
   }
 }
