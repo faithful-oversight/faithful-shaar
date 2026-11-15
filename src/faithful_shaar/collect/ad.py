@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from faithful_shaar.collect import names, remote, script, secrets
+from faithful_shaar.console import say
 from faithful_shaar.errors import CollectionError, UsageError
 
 if TYPE_CHECKING:
@@ -163,13 +164,13 @@ def run_collect_ad(args: argparse.Namespace) -> int:
     if args.secret:
         target = remote.Target(**{**vars(target), "secret": secrets.resolve(args.secret)})
     result = remote.collect(target, script.text(), values, args.output, force=args.force)
-    print(terminal(f"Exported {result.records} records from {host} into {result.path}."))  # noqa: T201
+    say(terminal(f"Exported {result.records} records from {host} into {result.path}."))
     for name in result.incomplete:
-        print(terminal(f"  incomplete: {name}"))  # noqa: T201
+        say(terminal(f"  incomplete: {name}"))
     for gap in result.gaps:
-        print(terminal(f"  not read: {gap}"))  # noqa: T201
+        say(terminal(f"  not read: {gap}"))
     command = _quoted("shaar", "campaign", str(result.path), "-o", "review", "--name", "NAME")
-    print(terminal(f"Start a review with: {command} --reviewers manager"))  # noqa: T201
+    say(terminal(f"Start a review with: {command} --reviewers manager"))
     return 0
 
 
@@ -184,6 +185,6 @@ def run_exporter(args: argparse.Namespace) -> int:
     path = directory / script.NAME
     remote.write_private(path, script.text().encode("ascii"), force=args.force)
     command = f".\\{script.NAME} -Privileged -OutFile corp-access.jsonl"
-    print(terminal(f"Wrote {path}. In PowerShell on a domain-joined computer:"))  # noqa: T201
-    print(terminal(f"  {command}"))  # noqa: T201
+    say(terminal(f"Wrote {path}. In PowerShell on a domain-joined computer:"))
+    say(terminal(f"  {command}"))
     return 0

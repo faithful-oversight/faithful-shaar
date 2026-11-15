@@ -192,15 +192,15 @@ def read_map(path: Path) -> list[MapEntry]:
     try:
         data = path.read_bytes()
     except OSError as exc:
-        msg = f"cannot read the reviewer map {path.name}: {exc.strerror}"
+        msg = f"cannot read the reviewer map {path}: {exc.strerror}"
         raise InputError(msg) from None
     if len(data) > MAX_MAP_BYTES:
-        msg = f"the reviewer map {path.name} is larger than {MAX_MAP_BYTES} bytes"
+        msg = f"the reviewer map {path} is larger than {MAX_MAP_BYTES} bytes"
         raise InputError(msg)
     try:
         text = data.decode("utf-8-sig")
     except UnicodeDecodeError:
-        msg = f"the reviewer map {path.name} is not UTF-8 text"
+        msg = f"the reviewer map {path} is not UTF-8 text"
         raise InputError(msg) from None
     header, records = _map_table(path.name, text)
     seen: dict[str, tuple[Reviewer, int]] = {}

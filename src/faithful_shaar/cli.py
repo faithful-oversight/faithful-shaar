@@ -13,11 +13,12 @@ from enum import IntEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from faithful_shaar import __version__, campaign, decide, example, reports, verify
+from faithful_shaar import __version__, campaign, console, decide, example, reports, verify
 from faithful_shaar.assign import RULES, read_map
 from faithful_shaar.collect import ad as collect_ad
 from faithful_shaar.collect import entra as collect_entra
 from faithful_shaar.collect.secrets import redact
+from faithful_shaar.console import say
 from faithful_shaar.errors import InputError, ShaarError, UsageError
 from faithful_shaar.formats.xlsx import read_packet
 from faithful_shaar.inputs import read_inputs
@@ -251,14 +252,14 @@ def _now() -> datetime:
 def _read(path: Path, limit: int, what: str) -> bytes:
     try:
         if not path.is_file():
-            msg = f"cannot read {path.name}: it is not a file"
+            msg = f"cannot read {path}: it is not a file"
             raise InputError(msg)
         if path.stat().st_size > limit:
-            msg = f"{path.name} is larger than {limit} bytes, so it is not read as {what}"
+            msg = f"{path} is larger than {limit} bytes, so it is not read as {what}"
             raise InputError(msg)
         return path.read_bytes()
     except OSError as exc:
-        msg = f"cannot read {path.name}: {exc.strerror}"
+        msg = f"cannot read {path}: {exc.strerror}"
         raise InputError(msg) from None
 
 
@@ -350,14 +351,15 @@ def _campaign(args: argparse.Namespace) -> int:
     files = {CAMPAIGN_FILE: campaign.dump(built), **reports.packets(built)}
     files |= render_all(document, list(_CAMPAIGN_CSV) if built.unassigned else ["rows"])
     _write(args.output, files, command="campaign", force=args.force, inputs=built.inputs, when=when)
-    print(terminal(document.headline))  # noqa: T201
-    print(terminal(f"Campaign written to {args.output}: {len(built.reviewers)} packets to send."))  # noqa: T201
+    code = ExitCode.FINDINGS if built.unassigned or built.problems else ExitCode.OK
+    say(terminal(document.headline))
+    say(terminal(f"Campaign written to {args.output}: {len(built.reviewers)} packets to send."))
     if built.reviewers:
         returned = command_line(
             "shaar", "decisions", str(args.output), "PACKET...", "-o", "DECISIONS"
         )
-        print(terminal(f"When the packets come back:\n  {returned}"))  # noqa: T201
-    return int(ExitCode.FINDINGS if built.unassigned or built.problems else ExitCode.OK)
+        say(terminal(f"When the packets come back:\n  {returned}"))
+    return int(code)
 
 
 def _decisions(args: argparse.Namespace) -> int:
@@ -379,9 +381,10 @@ def _decisions(args: argparse.Namespace) -> int:
         **render_all(document, [*_DECISIONS_CSV]),
     }
     _write(args.output, out, command="decisions", force=args.force, inputs=built.inputs, when=when)
-    print(terminal(document.headline))  # noqa: T201
-    print(terminal(f"Decision record written to {args.output}."))  # noqa: T201
-    return int(ExitCode.FINDINGS if decide.gaps(built, record) else ExitCode.OK)
+    code = ExitCode.FINDINGS if decide.gaps(built, record) else ExitCode.OK
+    say(terminal(document.headline))
+    say(terminal(f"Decision record written to {args.output}."))
+    return int(code)
 
 
 def _verify(args: argparse.Namespace) -> int:
@@ -398,24 +401,37 @@ def _verify(args: argparse.Namespace) -> int:
     )
     files = render_all(document, [*_VERIFY_CSV])
     _write(args.output, files, command="verify", force=args.force, inputs=later.inputs, when=when)
-    print(terminal(document.headline))  # noqa: T201
-    print(terminal(f"Report written to {args.output}."))  # noqa: T201
-    return int(ExitCode.OK if outcome.complete else ExitCode.FINDINGS)
+    code = ExitCode.OK if outcome.complete else ExitCode.FINDINGS
+    say(terminal(document.headline))
+    say(terminal(f"Report written to {args.output}."))
+    return int(code)
 
 
 def _schema(args: argparse.Namespace) -> int:
-    sys.stdout.write(schema_text(args.name))
+    say(schema_text(args.name), end="")
     return int(ExitCode.OK)
 
 
 def _example(args: argparse.Namespace) -> int:
     written = example.write(args.directory, force=args.force)
-    print(terminal(f"Wrote synthetic access data to {args.directory}. Try:\n{written}"))  # noqa: T201
+    say(terminal(f"Wrote synthetic access data to {args.directory}. Try:\n{written}"))
     return int(ExitCode.OK)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the command line and return an exit code."""
+    """Run the command line and return an exit code.
+
+    The exit code is decided by the command before it prints its summary, and printing
+    cannot change it: a closed pipe or an output that cannot encode a character never turns
+    a finished run into an internal error (see :mod:`faithful_shaar.console`).
+    """
+    console.prepare()
+    code = _run(argv)
+    console.finish()
+    return code
+
+
+def _run(argv: Sequence[str] | None) -> int:
     parser = build_parser()
     try:
         args = parser.parse_args(argv)
@@ -428,12 +444,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         return int(args.run(args))
     except ShaarError as exc:
-        print(f"shaar: error: {terminal(redact(str(exc)))}", file=sys.stderr)  # noqa: T201
+        say(f"shaar: error: {terminal(redact(str(exc)))}", error=True)
         return int(ExitCode.USAGE if isinstance(exc, UsageError) else ExitCode.INPUT_ERROR)
     except Exception as exc:  # noqa: BLE001 - last-resort handler keeps crashes distinct
-        print(  # noqa: T201
+        say(
             f"shaar: internal error: {type(exc).__name__}: {terminal(redact(str(exc)))[:200]}\n"
             "This is a bug in shaar. Please report it.",
-            file=sys.stderr,
+            error=True,
         )
         return int(ExitCode.INTERNAL_ERROR)

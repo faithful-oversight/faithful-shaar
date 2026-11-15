@@ -347,15 +347,15 @@ def _read_toml(path: Path) -> dict[str, Any]:
         with path.open("rb") as handle:
             raw = handle.read(MAX_MAP_BYTES + 1)
     except OSError as exc:
-        msg = f"cannot read the column map {path.name}: {exc.strerror}"
+        msg = f"cannot read the column map {path}: {exc.strerror}"
         raise InputError(msg) from exc
     if len(raw) > MAX_MAP_BYTES:
-        msg = f"the column map {path.name} is larger than {MAX_MAP_BYTES} bytes"
+        msg = f"the column map {path} is larger than {MAX_MAP_BYTES} bytes"
         raise InputError(msg)
     try:
         return tomllib.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
-        msg = f"the column map {path.name} is not valid TOML: {exc}"
+        msg = f"the column map {path} is not valid TOML: {exc}"
         raise InputError(msg) from exc
 
 

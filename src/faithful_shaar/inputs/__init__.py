@@ -20,6 +20,7 @@ from faithful_shaar.inputs.merge import merge
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import BinaryIO
 
     from faithful_shaar.model import Snapshot
 
@@ -35,35 +36,46 @@ def is_export(first_line: bytes) -> bool:
     return isinstance(head, dict) and "shaar_export" in head
 
 
+def _parse(stream: BinaryIO, path: Path, cmap: CsvMap | None) -> Snapshot:
+    first = stream.readline(export.MAX_LINE_BYTES + 1)
+    stream.seek(0)
+    if is_export(first):
+        return export.read_export(stream, path.name)[0]
+    if cmap is None:
+        msg = (
+            f"{path} is not a shaar export; to read a CSV, name its columns "
+            "with a map file or a preset"
+        )
+        raise InputError(msg)
+    return csvread.read_csv(stream, path.name, cmap)[0]
+
+
 def _read_one(path: Path, cmap: CsvMap | None) -> Snapshot:
-    name = path.name
+    name = path.name  # reports and the manifest name the file by its name only
     try:
         info = path.stat()
     except OSError as exc:
-        msg = f"cannot read {name}: {exc.strerror}"
+        msg = f"cannot read {path}: {exc.strerror}"
         raise InputError(msg) from exc
     if not stat.S_ISREG(info.st_mode):
-        msg = f"{name} is not a regular file"
+        msg = f"{path} is not a regular file"
         raise InputError(msg)
     if info.st_size > export.MAX_FILE_BYTES:
-        msg = f"{name} is larger than the limit of {export.MAX_FILE_BYTES} bytes"
+        msg = f"{path} is larger than the limit of {export.MAX_FILE_BYTES} bytes"
         raise InputError(msg)
     try:
         with path.open("rb") as stream:
-            first = stream.readline(export.MAX_LINE_BYTES + 1)
-            stream.seek(0)
-            if is_export(first):
-                return export.read_export(stream, name)[0]
-            if cmap is None:
-                msg = (
-                    f"{name} is not a shaar export; to read a CSV, name its columns "
-                    "with a map file or a preset"
-                )
-                raise InputError(msg)
-            return csvread.read_csv(stream, name, cmap)[0]
+            return _parse(stream, path, cmap)
     except OSError as exc:
-        msg = f"cannot read {name}: {exc.strerror}"
+        msg = f"cannot read {path}: {exc.strerror}"
         raise InputError(msg) from exc
+    except InputError as exc:
+        # A message about the file's content begins with the name the readers use; the
+        # person at the terminal needs the path they typed.
+        text = str(exc)
+        if text.startswith(f"{name} "):
+            text = f"{path}{text[len(name) :]}"
+        raise InputError(text) from None
 
 
 def read_inputs(

@@ -8,7 +8,15 @@ because the findings were all gaps between stages that unit tests of one stage c
 
 from __future__ import annotations
 
+import contextlib
+import hashlib
+import io
+import json
+import os
+import subprocess
+import sys
 import unicodedata
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from faithful_shaar import keys
@@ -16,9 +24,11 @@ from faithful_shaar.cli import ExitCode, main
 from tests import review_support as rs
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from collections.abc import Iterator
 
     import pytest
+
+SRC = Path(__file__).resolve().parent.parent / "src"
 
 
 def problems(report: dict[str, object]) -> list[str]:
@@ -384,3 +394,141 @@ def test_c05_force_still_replaces_the_same_commands_own_output(tmp_path: Path) -
     assert code == ExitCode.INPUT_ERROR  # exists, no --force
     argv = ["decisions", str(tmp_path / "camp"), str(packet), "-o", str(tmp_path / "dec")]
     assert main([*argv, "--force"]) == ExitCode.OK
+
+
+# Shared: printing never changes the exit code -------------------------------------------
+
+
+class ClosedPipe:
+    """A stdout whose reader has gone away: every write and flush fails."""
+
+    encoding = "utf-8"
+
+    def write(self, _text: str) -> int:
+        raise BrokenPipeError(32, "Broken pipe")
+
+    def flush(self) -> None:
+        raise BrokenPipeError(32, "Broken pipe")
+
+
+@contextlib.contextmanager
+def closed_stdout() -> Iterator[ClosedPipe]:
+    """Replace stdout with one whose reader has gone away; close what shaar puts in its place."""
+    keep = sys.stdout
+    pipe = ClosedPipe()
+    sys.stdout = pipe
+    try:
+        yield pipe
+    finally:
+        silenced, sys.stdout = sys.stdout, keep
+        if silenced is not pipe:
+            assert isinstance(silenced, io.TextIOWrapper)  # pointed at the null device
+            silenced.close()
+
+
+def test_a_closed_pipe_keeps_the_decided_exit_code_and_complete_files(tmp_path: Path) -> None:
+    with closed_stdout() as pipe:
+        code = rs.start(tmp_path, rs.ROWS + "Dave D,dave@corp.example,Yes,Admin,EXTRA,CELLS\n")
+        assert sys.stdout is not pipe  # replaced: nothing more is printed
+    assert code == ExitCode.FINDINGS  # the input problem, not exit 4
+    names = {p.name for p in (tmp_path / "camp").iterdir()}
+    assert {"campaign.json", "manifest.json", "campaign-report.json"} <= names
+    manifest = json.loads((tmp_path / "camp" / "manifest.json").read_text("utf-8"))
+    for entry in manifest["files"]:
+        data = (tmp_path / "camp" / entry["name"]).read_bytes()
+        assert hashlib.sha256(data).hexdigest() == entry["sha256"]
+
+
+def test_a_closed_pipe_after_the_run_is_still_the_runs_exit_code(tmp_path: Path) -> None:
+    assert rs.start(tmp_path, rs.ROWS) == ExitCode.OK
+    packet = rs.answer(tmp_path, "Unsure")
+    with closed_stdout():
+        code = rs.decide(tmp_path, packet)
+    assert code == ExitCode.FINDINGS
+    assert (tmp_path / "dec" / "decisions.json").is_file()
+
+
+def run_shaar(*args: str, cwd: Path, encoding: str) -> subprocess.CompletedProcess[bytes]:
+    env = {**os.environ, "PYTHONIOENCODING": encoding, "PYTHONPATH": str(SRC)}
+    return subprocess.run(  # noqa: S603 - the interpreter running these tests, with fixed arguments
+        [sys.executable, "-I", "-m", "faithful_shaar", *args],
+        cwd=cwd,
+        env=env,
+        capture_output=True,
+        check=False,
+        timeout=120,
+    )
+
+
+def test_ascii_only_output_with_a_non_ascii_path_keeps_the_exit_code(tmp_path: Path) -> None:
+    home = tmp_path / "revisión-ñ"
+    rs.write(home / "before.csv", rs.HEADER + rs.ROWS + "Dave D,dave@corp.example,Yes,Admin,X,Y\n")
+    rs.ledger_map(home, "map.toml", rs.BEFORE_AT)
+    rs.write(home / "rmap.csv", rs.REVIEWERS)
+    done = run_shaar(
+        "campaign", "before.csv", "--map", "map.toml", "--name", "T", "--reviewers", "map",
+        "--reviewer-map", "rmap.csv", "-o", "résultat",
+        cwd=home, encoding="ascii",
+    )  # fmt: skip
+    assert done.returncode == ExitCode.FINDINGS, done.stderr
+    assert b"internal error" not in done.stderr
+    assert "Campaign written to r\\xc3\\xa9sultat".encode("ascii")[:20] in done.stdout or (
+        b"r\\xe9sultat" in done.stdout
+    )
+    assert (home / "résultat" / "campaign.json").is_file()
+    assert (home / "résultat" / "manifest.json").is_file()
+
+
+def test_a_pipe_closed_by_the_reader_is_not_an_internal_error(tmp_path: Path) -> None:
+    home = tmp_path / "w"
+    rs.write(home / "before.csv", rs.HEADER + rs.ROWS)
+    rs.ledger_map(home, "map.toml", rs.BEFORE_AT)
+    rs.write(home / "rmap.csv", rs.REVIEWERS)
+    env = {**os.environ, "PYTHONPATH": str(SRC)}
+    args = ["campaign", "before.csv", "--map", "map.toml", "--name", "T", "--reviewers", "map"]
+    args += ["--reviewer-map", "rmap.csv", "-o", "out"]
+    with subprocess.Popen(  # noqa: S603 - the interpreter running these tests, with fixed arguments
+        [sys.executable, "-I", "-m", "faithful_shaar", *args],
+        cwd=home,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as child:
+        assert child.stdout is not None
+        child.stdout.close()  # the reader goes away before the summary is printed
+        error = child.stderr.read() if child.stderr else b""
+        code = child.wait(timeout=120)
+    assert code == ExitCode.OK, error
+    assert b"internal error" not in error
+    assert (home / "out" / "manifest.json").is_file()
+
+
+# Shared: error messages name the path the person typed ----------------------------------
+
+
+def test_an_unreadable_input_is_named_by_its_full_path(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    missing = tmp_path / "no" / "such" / "dir" / "a.jsonl"
+    rs.write(tmp_path / "rmap.csv", rs.REVIEWERS)
+    code = main(
+        ["campaign", str(missing), "--name", "T", "--reviewers", "map",
+         "--reviewer-map", str(tmp_path / "rmap.csv"), "-o", str(tmp_path / "o")]
+    )  # fmt: skip
+    assert code == ExitCode.INPUT_ERROR
+    assert f"cannot read {missing}: No such file or directory" in capsys.readouterr().err
+
+
+def test_a_content_error_names_the_full_path_too(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = rs.write(tmp_path / "deep" / "x.csv", rs.HEADER + rs.ROWS)
+    rs.write(tmp_path / "rmap.csv", rs.REVIEWERS)
+    rs.ledger_map(tmp_path, "map.toml", rs.BEFORE_AT, columns='principal_id = "Missing"\n')
+    code = main(
+        ["campaign", str(path), "--map", str(tmp_path / "map.toml"), "--name", "T",
+         "--reviewers", "map", "--reviewer-map", str(tmp_path / "rmap.csv"),
+         "-o", str(tmp_path / "o")]
+    )  # fmt: skip
+    assert code == ExitCode.INPUT_ERROR
+    assert f"{path} has no column 'Missing'" in capsys.readouterr().err
