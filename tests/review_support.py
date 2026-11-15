@@ -138,6 +138,7 @@ def example_commands(root: Path) -> list[tuple[dict[str, str], list[str]]]:
     """
     import contextlib  # noqa: PLC0415
     import io  # noqa: PLC0415
+    import os  # noqa: PLC0415
     import shlex  # noqa: PLC0415
 
     out = io.StringIO()
@@ -148,7 +149,14 @@ def example_commands(root: Path) -> list[tuple[dict[str, str], list[str]]]:
     for line in out.getvalue().splitlines():
         if not line.startswith("  "):
             continue
-        parts = shlex.split(line.strip())
+        if os.name == "nt":
+            # The Windows form keeps backslashes; only double quotes group an argument.
+            parts = [
+                p[1:-1] if len(p) > 1 and p[0] == p[-1] == '"' else p
+                for p in shlex.split(line.strip(), posix=False)
+            ]
+        else:
+            parts = shlex.split(line.strip())
         if parts[0] == "set":  # the Windows form: the setting is on a line of its own
             name, _, value = parts[1].partition("=")
             env[name] = value

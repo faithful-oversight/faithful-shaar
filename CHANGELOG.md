@@ -38,6 +38,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - The required "All checks passed" check now fails if a CI job is missing, and a skipped title or sign-off check no longer counts as a pass on a pull request.
 - `scripts/check.sh workflows` prints a clear message instead of a stack trace when GitHub rejects the token.
 - `SECURITY.md` no longer says that no release has been published. It says the latest release is supported.
+- On Windows, a closed pipe (reported there as an invalid-argument error rather than a broken pipe) also stops the printing and keeps the real exit code, instead of ending with an internal error or exit 120.
 
 ### Added
 

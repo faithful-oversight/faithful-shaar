@@ -47,10 +47,11 @@ def say(text: str = "", *, error: bool = False, end: str = "\n") -> None:
         stream.write(text + end)
     except UnicodeEncodeError:
         stream.write((text + end).encode("ascii", "backslashreplace").decode("ascii"))
-    except BrokenPipeError:
-        _silence()
-    except ValueError:  # pragma: no cover - a stream closed under us; nothing left to say
-        return
+    except (OSError, ValueError):
+        # BrokenPipeError on POSIX; Windows reports a closed pipe as OSError EINVAL. Either
+        # way stdout is replaced, so the flush at interpreter shutdown cannot fail again.
+        if not error:
+            _silence()
 
 
 def finish() -> None:
@@ -58,7 +59,6 @@ def finish() -> None:
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.flush()
-        except BrokenPipeError:
-            _silence()
-        except (OSError, ValueError):  # pragma: no cover - nothing useful can be done
-            continue
+        except (OSError, ValueError):
+            if stream is sys.stdout:
+                _silence()
