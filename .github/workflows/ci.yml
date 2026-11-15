@@ -19,13 +19,12 @@ permissions: {}
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
-  # The one pinned uv release for this workflow. setup-uv checks its checksum.
-  # Change it with every workflow and docs/releasing.md in the same pull request.
-  FO_UV_VERSION: "0.11.32"
 env:
   UV_LOCKED: "1"
   POWERSHELL_TELEMETRY_OPTOUT: "1"
+  # The one pinned uv release for this workflow. setup-uv checks its checksum.
+  # Change it with every workflow and docs/releasing.md in the same pull request.
+  FO_UV_VERSION: "0.11.32"
 
 jobs:
   static:
