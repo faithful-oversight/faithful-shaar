@@ -5,7 +5,7 @@
 | Item | Value |
 | --- | --- |
 | Campaign | Q4 2026 access review |
-| Campaign ID | C21f06e77d8c77003 |
+| Campaign ID | C61cedf912e16213a |
 | Due | 2026-11-16 |
 | Later access read at | 2026-11-20T22:00:00Z |
 
@@ -25,11 +25,11 @@ Each accepted Remove decision, checked against the later export.
 
 | Row ID | User | Access to | Access | Result | Reason | Source |
 | --- | --- | --- | --- | --- | --- | --- |
-| R01318e99338d | Drew Analyst | Payroll App Users | member | unknown | the later export did not read this resource's whole membership | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9 |
-| R070a8260809e | Blake Sample | Finance Admins | member | removed | not in the later export, which read the whole membership; the principal is disabled | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 3 |
-| R3c13774fa103 | Blake Sample | Ledger | Viewer | removed | not in the later export, which read the whole membership; the principal's key is not in the later export | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5 |
-| R72d2dc2d4e95 | Emery Contractor | Payroll App Users | member | unknown | the later export did not read this resource's whole membership | returned-01-Casey-Owner-da089e.xlsx, Review row 2 |
-| Radff3f4f68d7 | Emery Contractor | Server Operators | member | failed | still present on 2026-11-20, on or after the due date 2026-11-16 | returned-01-Casey-Owner-da089e.xlsx, Review row 3 |
+| R07aa66e0c960 | Blake Sample | Finance Admins | member | removed | not in the later export, which read the whole membership; the principal is disabled | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 3 |
+| R20a314c4d7b5 | Drew Analyst | Payroll App Users | member | unknown | the later export did not read this resource's whole membership | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9 |
+| R443b3280ba40 | Emery Contractor | Payroll App Users | member | unknown | the later export did not read this resource's whole membership | returned-01-Casey-Owner-da089e.xlsx, Review row 2 |
+| R680526a4e83a | Emery Contractor | Server Operators | member | failed | still present on 2026-11-20, on or after the due date 2026-11-16 | returned-01-Casey-Owner-da089e.xlsx, Review row 3 |
+| Rd60d89a91c37 | Blake Sample | Ledger | Viewer | removed | not in the later export, which read the whole membership; the principal's key is not in the later export | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5 |
 
 ## Kept, but gone anyway (1 row)
 
@@ -37,7 +37,7 @@ Access a reviewer kept that is no longer present. Information only.
 
 | Row ID | User | Access to | Access | Source |
 | --- | --- | --- | --- | --- |
-| R954d0306e234 | Drew Analyst | Ledger | Viewer | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 6 |
+| R776d2e37f927 | Drew Analyst | Ledger | Viewer | returned-03-Morgan-Lead-e16dc6.xlsx, Review row 6 |
 
 ## New since the review (1 row)
 
@@ -66,8 +66,8 @@ These could not be read or trusted, so what they hold is not in this report.
 
 | File | Kind | Bytes | SHA-256 |
 | --- | --- | --- | --- |
-| ad.jsonl | shaar-export | 4029 | e5d96356d61ef233f7ff4740c9971bdca0129482dc2e1c47ce25529e39b41276 |
-| entra.jsonl | shaar-export | 3142 | 9eb13b7c3d6a5b2f2a7954ed43b105391b436a4764d62c3fd6d5363bb1dd8924 |
+| ad.jsonl | shaar-export | 4029 | 665745390f6255f2bdec34fb43bd02993935c4616b5c924e430e28cf75059824 |
+| entra.jsonl | shaar-export | 3142 | 797ecf83636af87862fa04091a4c7e951044744caed95f32c9fcafadc3343d1a |
 | ledger.csv | csv | 305 | 653d697528a61ca5f75b9939cf8d5001ff4ee7796b1a2164f33aa17928fec4f2 |
 
 ---

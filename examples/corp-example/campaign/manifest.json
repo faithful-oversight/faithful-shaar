@@ -2,37 +2,37 @@
   "files": [
     {
       "name": "campaign.json",
-      "sha256": "4fa5d4ff7679245e1dfc803c1ced8407e8bb733d632c39ae9c88dc1c7293276c",
+      "sha256": "757db3feec4d1b1671c1b9603a737db727290fc840d1483c85a393f0ead55c03",
       "size": 14378
     },
     {
       "name": "packet-01-Casey-Owner-da089e.xlsx",
-      "sha256": "f45a5a9f137a16f01fe99cff59abffa90a81022d92ca08bf22badcc348f39bf0",
+      "sha256": "7d06abc82466ff1267931199840ad7f1fa3c8a38a160d8e5fa5856de46042623",
       "size": 14218
     },
     {
       "name": "packet-02-Jordan-Director-24304a.xlsx",
-      "sha256": "8a444f11b66d3d5cdd9a4b84be12c183293a02d659025bc5a801f5a6d5809f13",
+      "sha256": "f5badf28f7aa33a36f88dbc0c2b78dbf3aae80031112ac9d2534b0c8ea6c8418",
       "size": 14205
     },
     {
       "name": "packet-03-Morgan-Lead-e16dc6.xlsx",
-      "sha256": "7d83d2861c5f2f6059dd3758209722a1e921235c496d741f563e40cd6dd3c651",
+      "sha256": "50202f69690bf6fac8755ee2b92b7fb15f56383dd48b2533456c31779e60faf0",
       "size": 20751
     },
     {
       "name": "campaign-report.json",
-      "sha256": "a430c3fb4aafe47e5fd9d45583f9fe5fc275939d56ddf0abb09a8320b134096d",
+      "sha256": "51a720a61344678be3ba7bb25b0209aa7e3aaf6ba26b5676bb89f6a9a6999f13",
       "size": 7693
     },
     {
       "name": "campaign-report.md",
-      "sha256": "b48b8e6e4534c01548a202fb633256a499cdde5b53b9d1fb022dfd831ba91d96",
+      "sha256": "0a60c741c4473daaf170b579fb22aff77c169a2624e96d9b7f12c7047df92da2",
       "size": 4500
     },
     {
       "name": "campaign-report.html",
-      "sha256": "a36ba85475623103ba579cd898b25a3e89776fa5083efa5e8f390b8a9e1f3b11",
+      "sha256": "957828517097570820e3e09e1d0420e0ce97e035023a58e8dab5b6223ed225a9",
       "size": 9587
     },
     {
@@ -42,7 +42,7 @@
     },
     {
       "name": "rows.csv",
-      "sha256": "4674ee249d3bacd6f6ad23276b99d0d3c79994aa5a0a8dd4dae7d5071723def4",
+      "sha256": "4b5f4693043baadfede638db0dcedc90a00017f7695084e5874fcdcb8c9b9d9c",
       "size": 1844
     }
   ],
@@ -51,13 +51,13 @@
     {
       "kind": "shaar-export",
       "name": "ad.jsonl",
-      "sha256": "f248f8e56d8926cf7baf6b489a600d0266df95b241b21f9b27df521dacb68733",
+      "sha256": "d8eb004a3f5ca775810261e976401b7fef1acbdba35707cb476afff9683d5e1f",
       "size": 4029
     },
     {
       "kind": "shaar-export",
       "name": "entra.jsonl",
-      "sha256": "dfe2df70b884bcd6e3c5633ddf34601f073d2dd89cdec19691455798b547b0ff",
+      "sha256": "4eefc1bf5d6a328849907ac57b4ac79c56845e8ed9668084d45a0d01bb47559c",
       "size": 3485
     },
     {

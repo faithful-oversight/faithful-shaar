@@ -59,7 +59,6 @@ remoting
 openpyxl
 pypsrp
 SIDs?
-Filip
 unkeyed
 endian
 ADSI

@@ -6,8 +6,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-14
+
 ### Fixed
 
+- `shaar decisions` now carries the problems the campaign recorded while reading its inputs into the decision record and its report, notes resources that were not read in full, and exits with code 1 when the review may be missing entries. Before, it said "No problems were recorded" and exited 0.
+- `shaar verify` now says when the decision record it is given is not complete (undecided, Unsure, unassigned, unusable packets, input problems) and exits with code 1. Before, `0 of 0 removals verified` was a clean result for a review in which nobody had answered.
+- A CSV row shorter than the header is now skipped as a problem and leaves no resource complete, instead of being padded with blanks. A file whose last line has no line break is a problem too. A cut-off row used to turn an `Approver` into a `member` and a verified removal.
+- A column that the map file asks for and the file lacks is now a recorded problem. A later export with no entitlement column can no longer show that an entitlement other than `member` was removed: `shaar verify` says unknown.
+- Identity text (ids, names, emails, the reviewer map) is now matched after Unicode normalization, so an address in a composed or decomposed form is the same person: not a removal, not a second packet, not a missed self-review. Names are still shown exactly as read.
+- `--force` can no longer delete `campaign.json`, packets, or the decision record. shaar refuses an output folder that is, or contains, the folder of the campaign or decision record it was given, and with `--force` removes only files the same command wrote. The refusal message says what `--force` does.
+- A campaign with no access entries now records a problem and exits with code 1.
+- A conflicting row no longer keeps a decision in `decisions.json`.
+- Invisible and reordering characters in names are now shown as visible escapes in packets and `campaign.json`, as in the reports.
+- A closed pipe or an output that cannot encode a character (for example an ASCII terminal and a path with an accent) no longer turns a finished run into exit code 4. The exit code is decided before the summary is printed.
+- Error messages about an unreadable input, reviewer map or column map now name the path as given.
+- A returned workbook is read one row at a time and empty cells are not kept, so a 12 MB file of empty cells no longer needs about 3 GB of memory. `xmlsafe` limits the elements it holds at once.
+- `shaar verify`, reviewer-map assignment and per-reviewer row lookup no longer scan every row for every row, which took hours on large inputs.
+- Deeply nested `campaign.json` or `decisions.json` is a bad input (exit code 3), not an internal error.
+- The reviewer map is read with a size limit from a regular file only, so `/dev/zero` or a named pipe is refused.
+- The Active Directory exporter dates its export when reading starts, not when it ends.
+- The commands printed by `shaar example` now run in order into a full campaign, decisions and verify run. The first sets `SOURCE_DATE_EPOCH` so the campaign matches the returned packets.
 - The source archive's own tests now run in the build check: it unpacks the archive outside the checkout and runs the whole suite there, instead of only collecting the tests.
 - Editing a pull request title now reruns the title check, so a corrected title clears the required check.
 - The dependency audit writes its export to a private temporary directory, so a planted link or a second run at the same time cannot interfere.
@@ -15,6 +34,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - The release script now treats only a clean "not found" answer as an absent tag; an authentication, rate-limit, network, or malformed answer stops the release.
 - The dependency audit always includes every optional extra, and a new check fails it when a package named by an extra is missing from the audited export.
 - The release evidence is now one SBOM per scope: `sbom-base.cdx.json` for the base install, and `sbom-all-extras.cdx.json` when the project defines optional extras. Each states its scope, and tests check what each one holds.
+
+### Changed
+
+- The README now has a status line, a short account of how shaar differs from other kinds of tools, a runnable five-minute example with real output, and install instructions that work today (from GitHub, with `pipx ensurepath`). There is a new quickstart and an examples page.
+- `shaar example` no longer writes a `campaign/` folder; the first printed command makes it.
+- The package keyword `compliance` is now `audit-evidence`.
+- The documentation no longer names the maintainer.
+- The committed example and its reports are regenerated.
+
+### Security
+
+- Closed the three ways shaar could report a clean or complete result when it was not (campaign problems dropped by `decisions`, a short or cut-off CSV row, an incomplete record verified).
 
 ## [0.1.0] - 2026-11-13
 

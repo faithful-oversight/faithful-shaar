@@ -34,7 +34,7 @@ shaar campaign INPUT... -o DIR --name NAME --reviewers {manager,owner,map} [opti
 | `--map` | A TOML column map for CSV inputs. See [CSV column maps](formats.md#the-column-map). |
 | `--preset` | A built-in column map: `generic`, `ad-users-groups`, or `entra-members`. |
 | `--resource` | The one resource a members-only CSV lists, such as the group an Entra portal download came from. |
-| `--force` | Replace files that already exist. |
+| `--force` | Replace this command's own files that already exist. See [what `--force` does](#what-force-does). |
 
 `--map`, `--preset`, and `--resource` apply to every CSV input of the command. Run a different command, or write one map that fits all the CSV files, when your CSV files differ.
 
@@ -156,7 +156,11 @@ Prints a JSON Schema for the installed version, with no network access. See [Rep
 shaar example DIR [--force]
 ```
 
-Writes a synthetic review into `DIR`: exports for a made-up domain, `corp.example`, an Entra export, a CSV from a made-up finance application with its column map, a finished campaign, returned packets, and a later export. It then prints the three commands that run the campaign, decisions, and verify steps. Without `--force`, shaar refuses to replace existing files.
+Writes a synthetic review into `DIR`: exports for a made-up domain, `corp.example`, an Entra export, a CSV from a made-up finance application with its column map, returned packets, and a later export. It then prints three commands to run in order: the first makes the campaign (it sets `SOURCE_DATE_EPOCH` to the time the returned packets were prepared for, because a campaign made at another time has another id and refuses them), the second reads the returned packets, and the third verifies. All three exit with code `1` on purpose; the [quickstart](quickstart.md) shows each result. Without `--force`, shaar refuses to replace existing files.
+
+### What `--force` does
+
+Without `--force`, shaar never replaces a file. With it, shaar replaces the files the command writes and takes away files an earlier run of **the same command** wrote there that this run does not (a packet for a reviewer who no longer has entries, for example). It never takes away `campaign.json`, `decisions.json`, or a packet when another command is writing, and it refuses an output folder that is, or contains, the folder of the campaign or decision record the command was given, or that already holds a record the command does not write. Use a new folder for each run.
 
 ## Exit codes
 
@@ -174,11 +178,11 @@ Exit code `1` never means the tool failed. It means read the report.
 
 | Command | Exit code `1` when |
 | --- | --- |
-| `campaign` | At least one entry has no reviewer, or any input could not be read in full (a problem is recorded). The files are written either way. |
-| `decisions` | The record is not complete: any entry lacks an accepted decision (undecided, invalid, altered, conflict, or unassigned), any accepted decision is Unsure, any row did not belong to its packet, or any returned file was rejected or unreadable. |
-| `verify` | Any accepted Remove is not verified as removed: it is pending, failed, or unknown. Kept-but-gone and new-since-review entries, and problems in the later inputs, never change the code. |
+| `campaign` | At least one entry has no reviewer, any input could not be read in full (a problem is recorded), or the inputs hold no access entries at all. The files are written either way. |
+| `decisions` | The record is not complete: any entry lacks an accepted decision (undecided, invalid, altered, conflict, or unassigned), any accepted decision is Unsure, any row did not belong to its packet, any returned file was rejected or unreadable, or the campaign itself recorded problems reading its inputs or had a resource it did not read in full (entries may be missing from the review). |
+| `verify` | Any accepted Remove is not verified as removed (pending, failed, or unknown), **or the decision record is not complete** for any of the reasons in the `decisions` row. Kept-but-gone and new-since-review entries, and problems in the later inputs, never change the code. |
 
-A `verify` run with no accepted removals exits with `0`.
+A `verify` run exits with `0` only when the decision record is complete and every accepted removal is verified. With a complete record and no accepted removals it exits with `0`. With an incomplete record it exits with `1` even if no removal was decided, and says so in its headline and in the report.
 
 ## Repeatable output
 

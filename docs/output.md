@@ -70,7 +70,7 @@ The results are defined in [Verification](verification.md).
   "title": "...",
   "headline": "...",
   "generated_at": "2026-11-13T04:04:39Z",
-  "tool": {"name": "shaar", "version": "0.1.0"},
+  "tool": {"name": "shaar", "version": "0.1.1"},
   "facts": {},
   "counts": {},
   "sections": {"removals": [], "kept_but_gone": [], "new_since_review": []},

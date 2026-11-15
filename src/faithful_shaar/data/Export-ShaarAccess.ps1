@@ -96,7 +96,7 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
 $CollectorName = 'Export-ShaarAccess.ps1'
-$CollectorVersion = '0.1.0'
+$CollectorVersion = '0.1.1'
 $Invariant = [System.Globalization.CultureInfo]::InvariantCulture
 $LookupBatch = 25
 $MaxRanges = 100000

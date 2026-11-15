@@ -10,8 +10,8 @@
   },
   "data": {
     "as_of": "2026-11-20T22:00:00Z",
-    "campaign_digest": "18ac49946693d4befda6e8a6a7d6a976f13cdfa29616bdce80e9325b0903a8dc",
-    "campaign_id": "C21f06e77d8c77003",
+    "campaign_digest": "845bc3abbb627148cb2c8334fe009ca9559ba651ae8eb58b889133a3212c27e3",
+    "campaign_id": "C61cedf912e16213a",
     "decision_record_complete": false,
     "decision_record_gaps": [
       "3 entries have no accepted decision (undecided 1, unassigned 2)",
@@ -20,7 +20,7 @@
   },
   "facts": {
     "Campaign": "Q4 2026 access review",
-    "Campaign ID": "C21f06e77d8c77003",
+    "Campaign ID": "C61cedf912e16213a",
     "Due": "2026-11-16",
     "Later access read at": "2026-11-20T22:00:00Z"
   },
@@ -30,13 +30,13 @@
     {
       "kind": "shaar-export",
       "name": "ad.jsonl",
-      "sha256": "e5d96356d61ef233f7ff4740c9971bdca0129482dc2e1c47ce25529e39b41276",
+      "sha256": "665745390f6255f2bdec34fb43bd02993935c4616b5c924e430e28cf75059824",
       "size": 4029
     },
     {
       "kind": "shaar-export",
       "name": "entra.jsonl",
-      "sha256": "9eb13b7c3d6a5b2f2a7954ed43b105391b436a4764d62c3fd6d5363bb1dd8924",
+      "sha256": "797ecf83636af87862fa04091a4c7e951044744caed95f32c9fcafadc3343d1a",
       "size": 3142
     },
     {
@@ -76,7 +76,7 @@
         "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 6",
         "principal": "Drew Analyst",
         "resource": "Ledger",
-        "row_id": "R954d0306e234"
+        "row_id": "R776d2e37f927"
       }
     ],
     "new_since_review": [
@@ -90,30 +90,21 @@
     "removals": [
       {
         "access": "member",
-        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9",
-        "principal": "Drew Analyst",
-        "reason": "the later export did not read this resource's whole membership",
-        "resource": "Payroll App Users",
-        "result": "unknown",
-        "row_id": "R01318e99338d"
-      },
-      {
-        "access": "member",
         "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 3",
         "principal": "Blake Sample",
         "reason": "not in the later export, which read the whole membership; the principal is disabled",
         "resource": "Finance Admins",
         "result": "removed",
-        "row_id": "R070a8260809e"
+        "row_id": "R07aa66e0c960"
       },
       {
-        "access": "Viewer",
-        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5",
-        "principal": "Blake Sample",
-        "reason": "not in the later export, which read the whole membership; the principal's key is not in the later export",
-        "resource": "Ledger",
-        "result": "removed",
-        "row_id": "R3c13774fa103"
+        "access": "member",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 9",
+        "principal": "Drew Analyst",
+        "reason": "the later export did not read this resource's whole membership",
+        "resource": "Payroll App Users",
+        "result": "unknown",
+        "row_id": "R20a314c4d7b5"
       },
       {
         "access": "member",
@@ -122,7 +113,7 @@
         "reason": "the later export did not read this resource's whole membership",
         "resource": "Payroll App Users",
         "result": "unknown",
-        "row_id": "R72d2dc2d4e95"
+        "row_id": "R443b3280ba40"
       },
       {
         "access": "member",
@@ -131,7 +122,16 @@
         "reason": "still present on 2026-11-20, on or after the due date 2026-11-16",
         "resource": "Server Operators",
         "result": "failed",
-        "row_id": "Radff3f4f68d7"
+        "row_id": "R680526a4e83a"
+      },
+      {
+        "access": "Viewer",
+        "citation": "returned-03-Morgan-Lead-e16dc6.xlsx, Review row 5",
+        "principal": "Blake Sample",
+        "reason": "not in the later export, which read the whole membership; the principal's key is not in the later export",
+        "resource": "Ledger",
+        "result": "removed",
+        "row_id": "Rd60d89a91c37"
       }
     ]
   },

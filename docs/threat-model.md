@@ -1,6 +1,6 @@
 # Threat model
 
-> **Status: current for 0.1.0.** This model covers the file readers, the campaign and packet writers, the report writers, the PowerShell exporter, and the two collectors. Review it whenever an input format, output format, collector, or dependency changes. No collector has run against a real domain, WinRM endpoint, or Entra tenant, and no packet has been tested in Excel or Google Sheets, so the controls that concern them are tested against stand-ins only. See [Limitations](limitations.md).
+> **Status: current for 0.1.1.** This model covers the file readers, the campaign and packet writers, the report writers, the PowerShell exporter, and the two collectors. Review it whenever an input format, output format, collector, or dependency changes. No collector has run against a real domain, WinRM endpoint, or Entra tenant, and no packet has been tested in Excel or Google Sheets, so the controls that concern them are tested against stand-ins only. See [Limitations](limitations.md).
 
 ## What the tool protects
 
@@ -28,7 +28,7 @@ shaar binds a packet to its campaign with SHA-256 digests: a row check for each 
 - The digests detect accidental damage and casual changes: a reviewer who edits a row, a packet returned for another campaign, a hand-edited `campaign.json`, a truncated file.
 - They do **not** stop a determined attacker. The digests are unkeyed SHA-256. Anyone who has a campaign's files, or one packet plus knowledge of another reviewer's rows, can build a packet that decides another reviewer's rows. shaar accepts it and attributes it to the assigned reviewer. Nothing in shaar can tell.
 - Control who receives packets and who runs `shaar decisions`, and keep the returned files.
-- Signing was out of scope for 0.1.0 by Filip's choice: the project chose hash binding over signatures: it needs no key management, and the main risks it addresses are mistakes and casual edits. If you need proof of who decided, rely on the channel that carries the packets, and keep the campaign folder and the returned files in a system that controls who can write. See [decision record 6](adr/0006-campaign-integrity.md).
+- Signing is out of scope for this release: the maintainer chose hash binding over signatures because it needs no key management, and the main risks it addresses are mistakes and casual edits. If you need proof of who decided, rely on the channel that carries the packets, and keep the campaign folder and the returned files in a system that controls who can write. See [decision record 6](adr/0006-campaign-integrity.md).
 
 ## Threats and controls (STRIDE)
 
@@ -85,7 +85,8 @@ A refused workbook is `unreadable`, and its rows stay undecided. It never stops 
 - **Size and shape.** An export line is at most 1 MiB, a file at most 512 MiB. A CSV is at most 256 MiB and 2,000,000 rows. A row with too many cells, a blank id, or a bad key is skipped with a problem. Maps and reviewer maps are size-limited and strictly validated, and unknown keys are errors.
 - **A forged or cut export.** A wrong trailer means no resource is complete. A forger who recomputes the hash can still mislead the reviewer. See the digests preceding.
 - **Injection into reports.** Values are untrusted text. CSV output neutralizes leading formula characters, Markdown output is escaped with a word joiner after `@`, `://`, and `www.`, HTML output is escaped under a content security policy that forbids scripts, and invisible or reordering characters show as visible escapes. A value can fill a cell but not forge a heading, a link, a table, or a tag. Terminal output is escaped too, and a packet's cell text is XML-escaped.
-- **Injection into packets.** A name that starts with `=` is written as an inline string. Excel shows it as text.
+- **Injection into packets.** A name that starts with `=` is written as an inline string. Excel shows it as text. Invisible and reordering characters in names are written as visible escapes, as in the reports, so a reviewer and the operator read the same text.
+- **Look-alike identities.** Matching normalizes Unicode (NFKC) and case, so a re-encoded address is the same person. Cross-script look-alikes are not detected.
 
 ## Personal data exposure
 
@@ -109,10 +110,11 @@ Every file shaar writes goes through one of two safe writers. Neither follows a 
 - **Hash binding is not signing.** Anyone who can write the campaign folder and the returned packets can forge a consistent set. Protect the folder, and keep the returned files and `decisions.json` in a system that records who changed them.
 - **A reviewer's identity is the channel's, not shaar's.** shaar cannot tell who filled in a packet.
 - **A compromised controller, tenant, or exporting account can lie.** A valid trailer shows the file arrived whole.
-- **Memory.** shaar reads files whole. Limits bound the size of an input, but memory use is a multiple of it.
+- **Memory.** shaar reads files whole. Limits bound the size of an input, but memory use is a multiple of it. A returned workbook is read one row at a time, cells with no content are dropped, and a part may hold at most 50,000 elements at once, so a 12 MB file of empty cells peaks at about 0.2 GB instead of 2.9 GB. An input of the largest size that other readers accept can still need several times its size in memory.
 - **Packet protection is an accident guard.** Any reviewer can remove a sheet's protection. The row checks catch the change only if the row is altered.
 - **Secrets in the wrong place.** `file:PATH` reads the first line and does not check who can read the file. NTLM is weaker than Kerberos.
 - **File permissions apply on Linux and macOS.** shaar sets no access rules on Windows.
+- **Output folders.** `--force` takes away only files the same command wrote, and every command refuses a folder that holds or contains the campaign or decision record it was given, so a mistyped `-o` cannot delete a record that cannot be made again.
 - **Delivery.** How packets travel to reviewers, and back, is outside shaar.
 - **The collectors are untested against real systems.** Treat the first runs as a pilot.
 - **Checksums and attestations protect users only if they verify them.** [Releasing](releasing.md) shows how.

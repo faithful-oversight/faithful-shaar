@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "faithful-shaar"
-version = "0.1.0"
+version = "0.1.1"
 description = "Access Review Kit: Runs an offline access review: access data in, reviewer packets out, decisions back in, and a verification of what actually changed."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "Faithful Oversight, LLC" }]
-keywords = ["access-review", "identity-governance", "iam", "audit", "compliance"]
+keywords = ["access-review", "identity-governance", "iam", "audit", "audit-evidence"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Environment :: Console",

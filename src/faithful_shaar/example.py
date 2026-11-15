@@ -76,7 +76,7 @@ def _export(
     header = {
         "shaar_export": 1,
         "system": system,
-        "collector": {"name": "shaar example", "version": "0.1.0"},
+        "collector": {"name": "shaar example", "version": "0.1.1"},
         "collected_at": at,
         "scope": scope,
         **place,

@@ -1,4 +1,4 @@
-{"collected_at": "2026-11-20T22:00:00Z", "collector": {"name": "shaar example", "version": "0.1.0"}, "domain": "corp.example", "scope": {"groups": ["Finance Admins", "Server Operators"]}, "shaar_export": 1, "system": "ad"}
+{"collected_at": "2026-11-20T22:00:00Z", "collector": {"name": "shaar example", "version": "0.1.1"}, "domain": "corp.example", "scope": {"groups": ["Finance Admins", "Server Operators"]}, "shaar_export": 1, "system": "ad"}
 {"principal": {"email": "jordan.director@corp.example", "enabled": true, "extra": {}, "id": "S-1-5-21-1000-1000-1000-1100", "kind": "user", "last_sign_in": "2026-10-30T08:15:00Z", "manager_id": "", "name": "Jordan Director", "upn": "jordan.director@corp.example"}}
 {"principal": {"email": "morgan.lead@corp.example", "enabled": true, "extra": {}, "id": "S-1-5-21-1000-1000-1000-1101", "kind": "user", "last_sign_in": "2026-10-30T08:15:00Z", "manager_id": "S-1-5-21-1000-1000-1000-1100", "name": "Morgan Lead", "upn": "morgan.lead@corp.example"}}
 {"principal": {"email": "avery.example@corp.example", "enabled": true, "extra": {}, "id": "S-1-5-21-1000-1000-1000-1102", "kind": "user", "last_sign_in": "2026-10-30T08:15:00Z", "manager_id": "S-1-5-21-1000-1000-1000-1101", "name": "Avery Example", "upn": "avery.example@corp.example"}}
@@ -16,4 +16,4 @@
 {"grant": {"entitlement": "member", "extra": {}, "principal_id": "S-1-5-21-1000-1000-1000-1107", "resource_id": "S-1-5-21-1000-1000-1000-2002", "via": []}}
 {"grant": {"entitlement": "member", "extra": {}, "principal_id": "S-1-5-21-1000-1000-1000-1106", "resource_id": "S-1-5-21-1000-1000-1000-2002", "via": []}}
 {"grant": {"entitlement": "member", "extra": {}, "principal_id": "S-1-5-21-1000-1000-1000-1106", "resource_id": "S-1-5-21-1000-1000-1000-2001", "via": []}}
-{"end": true, "records": 17, "sha256": "1e632f5a15c08e1d6b33aff73cffe1bc694d17d0ae7b758999415ac33eb507ff"}
+{"end": true, "records": 17, "sha256": "1892cb7f86d92172a52be6b64084393d9a9327181336af3cc2cba24e0a3ef6df"}

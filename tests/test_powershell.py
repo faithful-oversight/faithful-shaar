@@ -70,8 +70,8 @@ def test_the_script_is_pure_ascii_for_windows_powershell() -> None:
 
 
 def test_the_script_states_the_version_it_writes() -> None:
-    assert script.version() == "0.1.0"
-    assert "$CollectorVersion = '0.1.0'" in TEXT
+    assert script.version() == "0.1.1"
+    assert "$CollectorVersion = '0.1.1'" in TEXT
     assert "$CollectorName = 'Export-ShaarAccess.ps1'" in TEXT
     assert script.NAME == "Export-ShaarAccess.ps1"
 
@@ -416,7 +416,7 @@ def test_ranged_retrieval_reads_every_range_and_nested_groups_with_a_cycle(tmp_p
     assert out.header["shaar_export"] == 1
     assert out.header["system"] == "ad"
     assert out.header["domain"] == "corp.example"
-    assert out.header["collector"] == {"name": "Export-ShaarAccess.ps1", "version": "0.1.0"}
+    assert out.header["collector"] == {"name": "Export-ShaarAccess.ps1", "version": "0.1.1"}
     assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", out.header["collected_at"])
     assert out.header["scope"]["groups"] == ["Big Group", "Tier0 Admins", "Loop A"]
     # 7 members read as ranges 0-2, 3-5 and 6-*.

@@ -23,7 +23,7 @@ The tool will not:
 
 - **Sorting.** The sheet is protected, and only the Decision and Comment cells are unlocked. Excel may refuse to sort a protected range that holds locked cells, so a reviewer who wants to sort may have to copy the data or remove the protection. The protection has no password, and removing it does not affect shaar's checks. <!-- TODO(verify): the sheet allows sorting and filtering in its protection settings, but the code does not show how each spreadsheet program treats a sort over locked cells. -->
 - **Personal data.** A packet holds names, accounts, and access of the people in it. Send each packet only to its reviewer, over a channel you would use for that kind of data.
-- **Long text.** A cell longer than 32,767 characters is cut with a marker, and a character that XML does not allow becomes U+FFFD.
+- **Long text.** A cell longer than 32,767 characters is cut with a marker, and a character that XML does not allow becomes U+FFFD. Invisible and reordering characters in a name (zero-width characters, right-to-left marks) are written in the packet and in `campaign.json` as visible escapes such as `\u202e`, so the reviewer reads what the reports show.
 - **A reviewer can claim anything.** shaar records the assigned reviewer, not who typed. See [the reviewer of record](campaigns.md#the-reviewer-of-record).
 
 ## Reviewers
@@ -41,9 +41,15 @@ The tool will not:
 - **Entra roles held by groups.** A role assigned to a group is not expanded to the group's members. The collector writes a gap and the group appears as the holder. Collect the group with `--group` to review its members.
 - **Nested groups.** Nesting is expanded up to 5,000 groups for each exported group in Active Directory and 1,000 in Entra, then a gap says the rest were not.
 - **One moment, one controller.** An export is not a snapshot. Groups are read one after another, from one controller, and a controller that has not replicated a change shows the older state.
+- **A truncated CSV.** A row shorter than the header, or a last line with no line break, is a problem and leaves no resource complete. A file cut exactly at a row boundary cannot be told from a whole one. Use an export with a trailer where you can.
+- **Look-alike letters.** Text is compared after Unicode normalization (NFKC) and case folding. Letters of another script that look the same (Cyrillic a and Latin a) stay different, and shaar does not flag a name that mixes scripts.
 - **A CSV's completeness cannot be known.** shaar treats a CSV as complete unless its map says `complete = false`. A filtered or truncated CSV looks complete, and a removal can then be called `removed` when the row was only left out.
 - **Matching by name.** A CSV with no id column matches principals and resources by name. Two people with one name become one person, and a renamed person looks like a new one.
 - **Managers and owners need records.** The manager and owner rules work only where the inputs hold managers and owners, and the manager or owner is in the inputs.
+
+## What the decision record does not show
+
+- That a review covered everyone. It covers what the campaign was given. When the campaign recorded input problems or did not read a resource in full, `shaar decisions` and `shaar verify` say so and exit with `1`, but they cannot name the people who were left out.
 
 ## What verification cannot prove
 
