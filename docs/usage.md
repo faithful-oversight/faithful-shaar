@@ -34,7 +34,7 @@ shaar campaign INPUT... -o DIR --name NAME --reviewers {manager,owner,map} [opti
 | `--map` | A TOML column map for CSV inputs. See [CSV column maps](formats.md#the-column-map). |
 | `--preset` | A built-in column map: `generic`, `ad-users-groups`, or `entra-members`. |
 | `--resource` | The one resource a members-only CSV lists, such as the group an Entra portal download came from. |
-| `--force` | Replace this command's own files that already exist. See [what `--force` does](#what-force-does). |
+| `--force` | Replace this command's own files that already exist. See [what `--force` does](#replacing-existing-files). |
 
 `--map`, `--preset`, and `--resource` apply to every CSV input of the command. Run a different command, or write one map that fits all the CSV files, when your CSV files differ.
 
@@ -158,7 +158,7 @@ shaar example DIR [--force]
 
 Writes a synthetic review into `DIR`: exports for a made-up domain, `corp.example`, an Entra export, a CSV from a made-up finance application with its column map, returned packets, and a later export. It then prints three commands to run in order: the first makes the campaign (it sets `SOURCE_DATE_EPOCH` to the time the returned packets were prepared for, because a campaign made at another time has another id and refuses them), the second reads the returned packets, and the third verifies. All three exit with code `1` on purpose; the [quickstart](quickstart.md) shows each result. Without `--force`, shaar refuses to replace existing files.
 
-### What `--force` does
+### Replacing existing files
 
 Without `--force`, shaar never replaces a file. With it, shaar replaces the files the command writes and takes away files an earlier run of **the same command** wrote there that this run does not (a packet for a reviewer who no longer has entries, for example). It never takes away `campaign.json`, `decisions.json`, or a packet when another command is writing, and it refuses an output folder that is, or contains, the folder of the campaign or decision record the command was given, or that already holds a record the command does not write. Use a new folder for each run.
 

@@ -10,7 +10,7 @@ shaar refuses a decision record that does not match the campaign as written (the
 
 ## The decision record must be complete
 
-Removals are only part of a review. `shaar verify` also looks at the decision record it was given. When any entry has no accepted decision (undecided, invalid, altered, in conflict, or unassigned), any accepted decision is Unsure, a row came in the wrong packet, a returned file was unusable, or the campaign recorded problems reading its inputs or did not read a resource in full, the headline says "The decision record is not complete", each reason is listed under Not read, `decision_record_complete` in the JSON report is `false`, and the exit code is `1`. That holds even when every decided removal was made, and even when nothing was decided: `0 of 0 removals verified` is not a clean result for a review in which nobody answered.
+Removals are only part of a review. `shaar verify` also looks at the decision record it was given. When any entry has no accepted decision (undecided, invalid, altered, in conflict, or unassigned), any accepted decision is Unsure, a row came in the wrong packet, a returned file was unusable, or the campaign recorded problems reading its inputs or did not read a resource in full, the headline says that the decision record is not complete, each reason is listed under Not read, `decision_record_complete` in the JSON report is `false`, and the exit code is `1`. That holds even when every decided removal was made, and even when nothing was decided: `0 of 0 removals verified` is not a clean result for a review in which nobody answered.
 
 ## The four results
 
