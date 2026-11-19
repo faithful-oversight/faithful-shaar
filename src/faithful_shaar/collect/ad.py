@@ -21,6 +21,7 @@ from faithful_shaar.collect import names, remote, script, secrets
 from faithful_shaar.collision import collection_collision, secret_file
 from faithful_shaar.console import say
 from faithful_shaar.errors import CollectionError, UsageError
+from faithful_shaar.outputs.safety import terminal_line
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -62,9 +63,12 @@ def _search_base(text: str) -> str:
 
 
 def terminal(text: str) -> str:
-    """Make text safe to print: the secrets are removed and control characters escaped."""
-    clean = secrets.redact(text)
-    return _CONTROL.sub(lambda m: f"\\x{ord(m.group()):02x}", clean)
+    """Make text safe to print on one line.
+
+    Secrets are removed, and control, format and bidirectional characters are shown
+    as escapes by the shared ``terminal_line``.
+    """
+    return terminal_line(secrets.redact(text))
 
 
 def _quoted(*parts: str) -> str:

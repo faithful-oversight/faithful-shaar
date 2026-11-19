@@ -714,7 +714,7 @@ def test_collect_runs_and_says_what_to_do_next(
     printed = capsys.readouterr().out
     assert f"Exported 12 records from {SERVER}" in printed
     assert "incomplete: Locked" in printed
-    assert "not read: members of group x: Access\\x1b[31m is denied." in printed
+    assert "not read: members of group x: Access\\u001b[31m is denied." in printed
     assert "\x1b" not in printed
     assert "shaar campaign" in printed
     assert SECRET not in printed
@@ -824,7 +824,7 @@ def test_exporter_reports_a_directory_that_cannot_be_made(tmp_path: Path) -> Non
 
 def test_terminal_escapes_control_characters_and_removes_secrets() -> None:
     secrets.remember(SECRET)
-    assert ad.terminal(f"a\x00b\x9fc {SECRET}") == "a\\x00b\\x9fc [redacted]"
+    assert ad.terminal(f"a\x00b\x9fc {SECRET}") == "a\\u0000b\\u009fc [redacted]"
 
 
 def test_the_exporter_messages_keep_a_line_break_in_a_name_off_the_terminal() -> None:
