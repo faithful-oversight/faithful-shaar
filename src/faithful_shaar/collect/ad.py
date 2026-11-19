@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from faithful_shaar.collect import names, remote, script, secrets
+from faithful_shaar.collision import collection_collision, secret_file
 from faithful_shaar.console import say
 from faithful_shaar.errors import CollectionError, UsageError
 
@@ -147,6 +148,9 @@ def run_collect_ad(args: argparse.Namespace) -> int:
     if username and not args.secret:
         msg = "--username needs --secret; leave both out to use the current Kerberos ticket"
         raise UsageError(msg)
+    clash = collection_collision([args.ca_file, secret_file(args.secret)], args.output)
+    if clash:  # before any secret is read or any connection is made
+        raise CollectionError(clash)
     target = remote.Target(
         server=host,
         auth=args.auth,

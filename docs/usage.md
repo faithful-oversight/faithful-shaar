@@ -160,7 +160,7 @@ Writes a synthetic review into `DIR`: exports for a made-up domain, `corp.exampl
 
 ### Replacing existing files
 
-Without `--force`, shaar never replaces a file. With it, shaar replaces the files the command writes and takes away files an earlier run of **the same command** wrote there that this run does not (a packet for a reviewer who no longer has entries, for example). It never takes away `campaign.json`, `decisions.json`, or a packet when another command is writing, and it refuses an output folder that is, or contains, the folder of the campaign or decision record the command was given, or that already holds a record the command does not write. Use a new folder for each run.
+Without `--force`, shaar never replaces a file. With it, shaar replaces the files the command writes and takes away files an earlier run of **the same command** wrote there that this run does not (a packet for a reviewer who no longer has entries, for example). It never takes away `campaign.json`, `decisions.json`, or a packet when another command is writing, and it refuses an output folder that is, or contains, the folder of the campaign or decision record the command was given, or that already holds a record the command does not write. It also never replaces or takes away a file the command read: an access export, a column map, a reviewer map, a returned packet, or a later export. If an input is, or is linked to (a symbolic link either way, or a hard link), a file the run would write or take away, the run stops with exit code `3` before anything is written, with or without `--force`. `shaar collect` does the same for its CA file, certificate and `file:` secrets, before it reads a secret or connects. Use a new folder for each run.
 
 ## Exit codes
 

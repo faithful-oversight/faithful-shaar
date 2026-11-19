@@ -347,6 +347,7 @@ def _write(  # noqa: PLR0913 - one call per command, all keywords
     force: bool,
     inputs: Sequence[InputFile],
     when: str,
+    read: Sequence[Path],
 ) -> None:
     write_outputs(
         directory,
@@ -357,6 +358,7 @@ def _write(  # noqa: PLR0913 - one call per command, all keywords
         inputs=inputs,
         removable=_owned(command),
         limits=limits.effective(),
+        protect=read,
     )
 
 
@@ -381,7 +383,16 @@ def _campaign(args: argparse.Namespace) -> int:
     document = reports.campaign_document(built, generated_at=when, version=__version__)
     files = {CAMPAIGN_FILE: campaign.dump(built), **reports.packets(built)}
     files |= render_all(document, list(_CAMPAIGN_CSV) if built.unassigned else ["rows"])
-    _write(args.output, files, command="campaign", force=args.force, inputs=built.inputs, when=when)
+    read = [*args.inputs, *(p for p in (args.map, args.reviewer_map) if p)]
+    _write(
+        args.output,
+        files,
+        command="campaign",
+        force=args.force,
+        inputs=built.inputs,
+        when=when,
+        read=read,
+    )
     code = ExitCode.FINDINGS if built.unassigned or built.problems else ExitCode.OK
     say(terminal(document.headline))
     say(terminal(f"Campaign written to {args.output}: {len(built.reviewers)} packets to send."))
@@ -411,7 +422,15 @@ def _decisions(args: argparse.Namespace) -> int:
         DECISIONS_FILE: decide.dump(record),
         **render_all(document, [*_DECISIONS_CSV]),
     }
-    _write(args.output, out, command="decisions", force=args.force, inputs=built.inputs, when=when)
+    _write(
+        args.output,
+        out,
+        command="decisions",
+        force=args.force,
+        inputs=built.inputs,
+        when=when,
+        read=args.packets,
+    )
     code = ExitCode.FINDINGS if decide.gaps(built, record) else ExitCode.OK
     say(terminal(document.headline))
     say(terminal(f"Decision record written to {args.output}."))
@@ -431,7 +450,16 @@ def _verify(args: argparse.Namespace) -> int:
         built, outcome, later, generated_at=when, version=__version__
     )
     files = render_all(document, [*_VERIFY_CSV])
-    _write(args.output, files, command="verify", force=args.force, inputs=later.inputs, when=when)
+    read = [*args.inputs, *([args.map] if args.map else [])]
+    _write(
+        args.output,
+        files,
+        command="verify",
+        force=args.force,
+        inputs=later.inputs,
+        when=when,
+        read=read,
+    )
     code = ExitCode.OK if outcome.complete else ExitCode.FINDINGS
     say(terminal(document.headline))
     say(terminal(f"Report written to {args.output}."))

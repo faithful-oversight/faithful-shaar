@@ -45,6 +45,7 @@ from faithful_shaar.collect.graph import (
     Pages,
     odata_string,
 )
+from faithful_shaar.collision import collection_collision, secret_file
 from faithful_shaar.console import say
 from faithful_shaar.errors import CollectionError, ShaarError, UsageError
 
@@ -876,6 +877,16 @@ def _run(args: argparse.Namespace) -> None:
         msg = "choose what to read: --group, --all-security-groups, --roles, or --pim"
         raise UsageError(msg)
     output: Path = args.output
+    clash = collection_collision(
+        [
+            args.certificate,
+            secret_file(args.client_secret),
+            secret_file(args.certificate_password),
+        ],
+        output,
+    )
+    if clash:  # before any secret is read or any connection is made
+        raise CollectionError(clash)
     if (output.exists() or output.is_symlink()) and not args.force:
         msg = f"{output} already exists; use --force to replace it"
         raise CollectionError(msg)

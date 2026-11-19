@@ -114,7 +114,7 @@ Every file shaar writes goes through one of two safe writers. Neither follows a 
 - **Packet protection is an accident guard.** Any reviewer can remove a sheet's protection. The row checks catch the change only if the row is altered.
 - **Secrets in the wrong place.** `file:PATH` reads the first line and does not check who can read the file. NTLM is weaker than Kerberos.
 - **File permissions apply on Linux and macOS.** shaar sets no access rules on Windows.
-- **Output folders.** `--force` takes away only files the same command wrote, and every command refuses a folder that holds or contains the campaign or decision record it was given, so a mistyped `-o` cannot delete a record that cannot be made again.
+- **Output folders.** `--force` takes away only files the same command wrote, and every command refuses a folder that holds or contains the campaign or decision record it was given, so a mistyped `-o` cannot delete a record that cannot be made again. No command, with or without `--force`, replaces or removes a file it read (an export, map, reviewer map, packet, CA file, certificate or secret file), including through a symbolic link or a hard link.
 - **Delivery.** How packets travel to reviewers, and back, is outside shaar.
 - **The collectors are untested against real systems.** Treat the first runs as a pilot.
 - **Checksums and attestations protect users only if they verify them.** [Releasing](releasing.md) shows how.
