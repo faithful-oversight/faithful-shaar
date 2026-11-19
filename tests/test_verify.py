@@ -199,7 +199,7 @@ def test_a_changed_key_is_not_a_removal() -> None:
 
 def test_a_changed_key_is_not_a_removal_when_the_account_holds_text_a_packet_escapes() -> None:
     """SH-R2: the raw account is compared, whatever the campaign shows or cuts."""
-    for account in ("avery​@corp.example", "a\ud800z@corp.example", "x" * 40_000):
+    for account in ("avery\u200b@corp.example", "a\ud800z@corp.example", "x" * 40_000):
         snap, _ = standard()
         avery = dataclasses.replace(snap.principals[sid(1102)], upn=account, email=account)
         snap.principals[avery.key] = avery

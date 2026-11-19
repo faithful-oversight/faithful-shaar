@@ -125,10 +125,10 @@ def review_with_id_change(root: Path, account: str, later_account: str | None = 
 @pytest.mark.parametrize(
     "account",
     [
-        pytest.param("avery​@corp.example", id="zero-width-space"),
-        pytest.param("avery‮@corp.example", id="right-to-left-override"),
-        pytest.param("avery@corp.example ", id="no-break-space-at-the-end"),
-        pytest.param("　avery@corp.example", id="ideographic-space-at-the-start"),
+        pytest.param("avery\u200b@corp.example", id="zero-width-space"),
+        pytest.param("avery\u202e@corp.example", id="right-to-left-override"),
+        pytest.param("avery@corp.example\u00a0", id="no-break-space-at-the-end"),
+        pytest.param("\u3000avery@corp.example", id="ideographic-space-at-the-start"),
         pytest.param("avery\x01@corp.example", id="a-control-character"),
         pytest.param("a" * 40_000 + "@corp.example", id="longer-than-a-cell-holds"),
     ],
@@ -147,8 +147,10 @@ def test_r2_the_same_account_under_a_changed_key_is_never_a_verified_removal(
 
 
 def test_r2_literal_escape_text_is_not_the_character_it_spells(tmp_path: Path) -> None:
-    """``avery\\u200b@...`` typed out is a different account from one holding U+200B."""
-    review_with_id_change(tmp_path, "avery​@corp.example", later_account="avery\\u200b@corp.example")
+    r"""``avery\u200b@...`` typed out is a different account from one holding U+200B."""
+    review_with_id_change(
+        tmp_path, "avery\u200b@corp.example", later_account="avery\\u200b@corp.example"
+    )
     assert rs.verify(tmp_path, tmp_path / "after.csv", columns=BY_ID) == ExitCode.OK
     assert removal_results(tmp_path) == ["removed"]
 
@@ -160,7 +162,7 @@ def test_r2_a_plain_account_under_a_changed_key_is_still_caught(tmp_path: Path) 
 
 
 def test_r2_the_packet_and_campaign_still_show_the_escaped_account(tmp_path: Path) -> None:
-    review_with_id_change(tmp_path, "avery​@corp.example")
+    review_with_id_change(tmp_path, "avery\u200b@corp.example")
     (row,) = rs.load(tmp_path).rows
     assert row.display["account"] == "avery\\u200b@corp.example"  # the visible escape stays
     # The identity comes from the raw text, so it is not the identity of the escape text.
@@ -317,8 +319,10 @@ def test_a_collection_never_replaces_a_file_it_was_told_to_use(used: str, tmp_pa
                 else ["--username", "CORP\\auditor", "--secret", f"file:{file}"]
             )
             args = parser.parse_args(
-                ["collect", "ad", "--host", "dc01.corp.example", "--privileged", "-o", str(out)]
-                + [*use, "--force"]
+                [
+                    *["collect", "ad", "--host", "dc01.corp.example", "--privileged"],
+                    *["-o", str(out), *use, "--force"],
+                ]
             )
             with pytest.raises(CollectionError, match="which this collection reads"):
                 ad.run_collect_ad(args)

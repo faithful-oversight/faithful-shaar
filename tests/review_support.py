@@ -110,7 +110,7 @@ def decide(root: Path, *packets: Path, out: str = "camp", to: str = "dec") -> in
     return main(["decisions", str(root / out), *map(str, packets), "-o", str(root / to)])
 
 
-def verify(
+def verify(  # noqa: PLR0913 - the parts of a small synthetic review
     root: Path,
     later: Path,
     *,
