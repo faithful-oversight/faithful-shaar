@@ -59,11 +59,19 @@ def ledger_map(root: Path, name: str, at: str, extra: str = "", columns: str | N
     return write(root / name, text)
 
 
-def start(root: Path, rows: str | bytes, *, extra: str = "", out: str = "camp") -> int:
+def start(  # noqa: PLR0913 - the parts of a small synthetic review
+    root: Path,
+    rows: str | bytes,
+    *,
+    extra: str = "",
+    out: str = "camp",
+    header: str = HEADER,
+    columns: str | None = None,
+) -> int:
     """Run ``shaar campaign`` on a ledger CSV with the standard header and ``rows``."""
-    body = HEADER.encode() + rows if isinstance(rows, bytes) else HEADER + rows
+    body = header.encode() + rows if isinstance(rows, bytes) else header + rows
     write(root / "before.csv", body)
-    ledger_map(root, "map.toml", BEFORE_AT, extra)
+    ledger_map(root, "map.toml", BEFORE_AT, extra, columns)
     write(root / "rmap.csv", REVIEWERS)
     return main(
         [

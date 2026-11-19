@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING
 
 from faithful_shaar import decide
 from faithful_shaar.errors import InputError
-from faithful_shaar.keys import entitlement_of, fold, system_of
+from faithful_shaar.keys import entitlement_of, identity, system_of
 
 if TYPE_CHECKING:
     from faithful_shaar.campaign import Campaign, Row
@@ -127,8 +127,9 @@ def _still_there(campaign: Campaign, as_of: str) -> tuple[str, str]:
 
 
 Holders = dict[tuple[str, str], dict[str, str]]
-"""For each (resource key, entitlement) of the later export: the folded account texts of
-the principals holding it, each with the name to report."""
+"""For each (resource key, entitlement) of the later export: the canonical identities
+(``keys.identity``, taken from the raw account texts) of the principals holding it, each with
+the name to report."""
 
 
 def _holders(later: Snapshot) -> Holders:
@@ -140,8 +141,8 @@ def _holders(later: Snapshot) -> Holders:
             continue
         slot = found.setdefault((grant.resource_key, entitlement_of(grant.key)), {})
         for text in (principal.upn, principal.email, principal.id):
-            if text and fold(text.strip()):
-                slot.setdefault(fold(text.strip()), principal.name or principal.id)
+            if found_identity := identity(text):
+                slot.setdefault(found_identity, principal.name or principal.id)
     return found
 
 
@@ -152,7 +153,9 @@ def _same_person(row: Row, holders: Holders) -> str:
     Their access is then absent under the old key but present under the new one, so the
     absence is no evidence of a removal.
     """
-    account = fold(row.display.get("account", "").strip())
+    # The identity kept from the raw account text, not the escaped text a reviewer saw. A
+    # campaign written before it was kept falls back to the displayed text, as it always did.
+    account = row.account_identity or identity(row.display.get("account", ""))
     if not account:
         return ""
     return holders.get((row.resource_key, entitlement_of(row.grant_key)), {}).get(account, "")

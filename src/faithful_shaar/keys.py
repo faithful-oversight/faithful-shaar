@@ -26,6 +26,7 @@ else (then the CSV reader records that the match is by name).
 
 from __future__ import annotations
 
+import hashlib
 import re
 import unicodedata
 
@@ -51,6 +52,22 @@ def fold(text: str) -> str:
     if text.isascii():
         return text.casefold()
     return unicodedata.normalize("NFKC", unicodedata.normalize("NFKC", text).casefold())
+
+
+def identity(text: str) -> str:
+    """Return the canonical identity of an account text: a digest of its folded, trimmed text.
+
+    Verification compares the account a campaign row was made for with the accounts of a
+    later export. The text a packet shows is escaped and cut to fit a cell, so it is not what
+    is compared; this is, taken from the raw text on both sides. A digest, rather than the
+    text, because the text may hold anything (a lone surrogate cannot be written as UTF-8)
+    and because it adds no second copy of the account to ``campaign.json``. The empty text
+    has the empty identity.
+    """
+    folded = fold(text.strip())
+    if not folded:
+        return ""
+    return hashlib.sha256(folded.encode("utf-8", "surrogatepass")).hexdigest()
 
 
 def sid(value: str, domain: str = "") -> str:

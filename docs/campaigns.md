@@ -113,6 +113,8 @@ shaar writes a packet only if it could read it back after the reviewer edits it:
 - **Packet digest.** Over the reviewer's key and the row checks of that reviewer's rows, in packet order, joined with line feeds. A packet made for one reviewer is never taken as another's.
 - **Campaign digest.** Over the canonical JSON of the whole campaign without the digest member.
 
+Each row also keeps `account_identity`: a SHA-256 of the folded, trimmed raw text of the account shown in its Account column (UPN, else email, else id). The Account column itself shows invisible characters as escapes and cuts a value at the cell limit, so `verify` matches on the identity, never on the shown text. It is not part of the row check, because the reviewer does not see it; it is part of the campaign digest. A campaign written before this member existed still verifies, by the shown text, as it always did.
+
 `shaar decisions` and `shaar verify` recompute the campaign digest when they load `campaign.json`. A campaign that was edited is refused with exit code `3`. The decision record has a digest of its own, and `verify` refuses a record that was edited or that belongs to another campaign.
 
 The campaign id is `C` and 16 hex digits over the canonical JSON of the name, the creation time, the digests of the inputs, the due date, the reviewer rule, and the reviewer map. Two campaigns that could assign a row differently never share an id, so a packet from one is rejected by the other. A row id is `R` and 12 hex digits over the campaign id and the grant key.

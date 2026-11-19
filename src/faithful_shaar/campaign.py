@@ -24,12 +24,12 @@ from faithful_shaar import limits
 from faithful_shaar.assign import MapEntry, MapIndex, assign
 from faithful_shaar.errors import InputError
 from faithful_shaar.formats.xlsx import cell_text
-from faithful_shaar.keys import fold
+from faithful_shaar.keys import fold, identity
 from faithful_shaar.model import InputFile, Problem, Source
 from faithful_shaar.outputs.safety import visible
 
 if TYPE_CHECKING:
-    from faithful_shaar.model import Grant, Snapshot
+    from faithful_shaar.model import Grant, Principal, Snapshot
 
 FORMAT = 1
 MAX_CAMPAIGN_BYTES = 256 * 1024 * 1024
@@ -61,6 +61,10 @@ class Row:
     display: dict[str, str]
     row_check: str
     source: str
+    account_identity: str = ""
+    """The canonical identity (:func:`faithful_shaar.keys.identity`) of the account shown in
+    ``display["account"]``, taken from the raw text. Verification matches on it, because the
+    display text is escaped and may be cut. Empty in a campaign written before it existed."""
 
 
 @dataclass(frozen=True)
@@ -156,6 +160,11 @@ def _status(enabled: bool | None) -> str:  # noqa: FBT001 - the value shown, not
     return "Enabled" if enabled else "Disabled"
 
 
+def account_of(principal: Principal) -> str:
+    """Return the raw account text a row shows for a principal, before any escaping."""
+    return principal.upn or principal.email or principal.id
+
+
 def display_for(
     grant: Grant, snapshot: Snapshot, co_owners: tuple[str, ...] = ()
 ) -> dict[str, str]:
@@ -166,7 +175,7 @@ def display_for(
         user, account, status, sign_in = grant.principal_key, "", "Unknown", ""
     else:
         user = principal.name or principal.id
-        account = principal.upn or principal.email or principal.id
+        account = account_of(principal)
         status = _status(principal.enabled)
         sign_in = principal.last_sign_in
         if principal.kind not in {"user", "unknown"}:
@@ -187,6 +196,11 @@ def display_for(
     # Invisible and reordering characters show as visible escapes, as in every report, so the
     # reviewer and the operator read the same text for the same row.
     return {name: cell_text(visible(value))[0].strip() for name, value in shown.items()}
+
+
+def _account_identity(grant: Grant, snapshot: Snapshot) -> str:
+    principal = snapshot.principals.get(grant.principal_key)
+    return identity(account_of(principal)) if principal is not None else ""
 
 
 def campaign_id(  # noqa: PLR0913 - everything that decides who reviews what
@@ -291,6 +305,7 @@ def build(  # noqa: PLR0913 - the parts of a campaign
                 display,
                 check,
                 str(grant.source),
+                _account_identity(grant, snapshot),
             )
         )
     by_reviewer: dict[str, list[Row]] = {}

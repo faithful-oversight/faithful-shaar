@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from faithful_shaar import keys
 from faithful_shaar.cli import ExitCode
 from faithful_shaar.inputs import csvmap, csvread
 from tests import review_support as rs
@@ -99,3 +100,68 @@ def test_r1_a_member_removal_is_still_verified_by_a_custom_map_without_entitleme
     assert rs.verify(tmp_path, later, columns=IDENTITY_ONLY) == ExitCode.OK
     assert removal_results(tmp_path) == ["removed"]  # a plain member's absence is real
     assert problems(rs.report(tmp_path, "ver", "verify")) == []
+
+
+# SH-R2 ---------------------------------------------------------------------------------------
+
+# An export whose person is keyed by an id that can change between exports.
+BY_ID_HEADER = "ID,Name,Email,Role\n"
+BY_ID = 'principal_id = "ID"\nemail = "Email"\nprincipal_name = "Name"\nentitlement = "Role"\n'
+
+
+def review_with_id_change(root: Path, account: str, later_account: str | None = None) -> None:
+    """Campaign and Remove decision for ``account``; later export keeps it under a new key."""
+    assert rs.start(
+        root, f"S-1001,Avery A,{account},Admin\n", header=BY_ID_HEADER, columns=BY_ID
+    ) == (ExitCode.OK)
+    assert rs.decide(root, rs.answer(root, "Remove")) == ExitCode.OK
+    rs.write(
+        root / "after.csv",
+        BY_ID_HEADER + f"CN=avery-new,Avery A,{later_account or account},Admin\n",
+    )
+
+
+@pytest.mark.parametrize(
+    "account",
+    [
+        pytest.param("avery​@corp.example", id="zero-width-space"),
+        pytest.param("avery‮@corp.example", id="right-to-left-override"),
+        pytest.param("avery@corp.example ", id="no-break-space-at-the-end"),
+        pytest.param("　avery@corp.example", id="ideographic-space-at-the-start"),
+        pytest.param("avery\x01@corp.example", id="a-control-character"),
+        pytest.param("a" * 40_000 + "@corp.example", id="longer-than-a-cell-holds"),
+    ],
+)
+def test_r2_the_same_account_under_a_changed_key_is_never_a_verified_removal(
+    tmp_path: Path, account: str
+) -> None:
+    review_with_id_change(tmp_path, account)
+    later = tmp_path / "after.csv"
+    assert rs.verify(tmp_path, later, columns=BY_ID) == ExitCode.FINDINGS
+    assert removal_results(tmp_path) == ["unknown"]
+    said = rs.report(tmp_path, "ver", "verify")
+    assert "the same account still holds this access under another key" in str(
+        said["sections"]["removals"][0]["reason"]
+    )
+
+
+def test_r2_literal_escape_text_is_not_the_character_it_spells(tmp_path: Path) -> None:
+    """``avery\\u200b@...`` typed out is a different account from one holding U+200B."""
+    review_with_id_change(tmp_path, "avery​@corp.example", later_account="avery\\u200b@corp.example")
+    assert rs.verify(tmp_path, tmp_path / "after.csv", columns=BY_ID) == ExitCode.OK
+    assert removal_results(tmp_path) == ["removed"]
+
+
+def test_r2_a_plain_account_under_a_changed_key_is_still_caught(tmp_path: Path) -> None:
+    review_with_id_change(tmp_path, "avery@corp.example")
+    assert rs.verify(tmp_path, tmp_path / "after.csv", columns=BY_ID) == ExitCode.FINDINGS
+    assert removal_results(tmp_path) == ["unknown"]
+
+
+def test_r2_the_packet_and_campaign_still_show_the_escaped_account(tmp_path: Path) -> None:
+    review_with_id_change(tmp_path, "avery​@corp.example")
+    (row,) = rs.load(tmp_path).rows
+    assert row.display["account"] == "avery\\u200b@corp.example"  # the visible escape stays
+    # The identity comes from the raw text, so it is not the identity of the escape text.
+    assert row.account_identity == keys.identity("avery\u200b@corp.example")
+    assert row.account_identity != keys.identity("avery\\u200b@corp.example")
