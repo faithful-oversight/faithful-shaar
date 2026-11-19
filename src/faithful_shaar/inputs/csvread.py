@@ -10,9 +10,10 @@ whatever it looks like (``=SUM(...)``, ``@x``, ``+1``).
 A blank entitlement cell means ``member``. A row that is shorter than the header is not
 padded: it is skipped as a problem (it may have been cut off), and so is a file whose last
 line is not ended by a line break. When the map has an entitlement column that the file
-lacks, the missing column is a problem if the map file lists it, and in every case the
-snapshot is marked entitlement-blind so ``verify`` never reads the absence of an
-entitlement as a removal.
+lacks, the missing column is a problem if the map file lists it. Whenever no entitlement
+column was read (the map names none, or the file lacks it), the snapshot is marked
+entitlement-blind so ``verify`` never reads the absence of an entitlement other than
+``member`` as a removal.
 
 Row numbers are 1-based file line numbers, the header counting as row 1 (a row that
 spans several lines is cited by its first line).
@@ -240,10 +241,10 @@ class _Reader:
                 reason += "; every grant is read as 'member', so no resource is treated as complete"
                 self.loss = True
             self.snapshot.problems.append(Problem(source, reason))
-        # Whether or not the map file asked for it, grants read from a file with no
-        # entitlement column are all `member`: nothing there can show another entitlement
-        # was removed.
-        self.blind = "entitlement" in cmap.columns and "entitlement" not in self.cols
+        # Whether or not the map, a preset or the map file asked for it, grants read from a
+        # file with no entitlement column are all `member`: nothing there can show another
+        # entitlement was removed. A removal of `member` itself is judged as before.
+        self.blind = "entitlement" not in self.cols
 
     # -- rows -----------------------------------------------------------------------
 

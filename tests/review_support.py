@@ -109,8 +109,9 @@ def verify(
     dec: str = "dec",
     to: str = "ver",
     extra: str = "",
+    columns: str | None = None,
 ) -> int:
-    ledger_map(root, "amap.toml", AFTER_AT, extra)
+    ledger_map(root, "amap.toml", AFTER_AT, extra, columns)
     return main(
         [
             "verify",

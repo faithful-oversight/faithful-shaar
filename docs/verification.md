@@ -21,7 +21,7 @@ Only accepted Remove decisions are checked. Each gets one result and a reason.
 | `removed` | The grant is absent from the later input, **and** the later input read the grant's resource completely, **and** the read has a time, **and** that time is not before the campaign began, **and** nobody else in the later input holds the same access under another key. See [what removed needs](#what-removed-needs). The reason adds a note when the principal's key is missing from the later input, or the principal is disabled. |
 | `pending` | The grant is still present, and the later input was read before the due date. |
 | `failed` | The grant is still present on or after the due date. Also when the campaign has no due date, or when the later input records no time and you gave no `--as-of`. |
-| `unknown` | The later input cannot show it: it is of another system, it does not include the resource, it did not read the resource completely, it is a CSV with no entitlement column (so every grant in it reads as `member`) and the removal is of another entitlement, or one of the other conditions for `removed` fails. The reason says which. |
+| `unknown` | The later input cannot show it: it is of another system, it does not include the resource, it did not read the resource completely, it is a CSV from which no entitlement column was read, whether the map names none, a preset supplies none, or the file lacks the one it names (so every grant in it reads as `member`) and the removal is of another entitlement, or one of the other conditions for `removed` fails. The reason says which. |
 
 Matching uses grant keys only. A grant reached through a different nesting path is still the same grant, so a changed `via` is not a failure. Names never match.
 
