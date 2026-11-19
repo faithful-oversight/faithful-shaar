@@ -34,7 +34,7 @@ from faithful_shaar.inputs import read_inputs
 from faithful_shaar.outputs.document import format_time
 from faithful_shaar.outputs.files import OutputError
 from faithful_shaar.outputs.render import render_all, write_outputs
-from faithful_shaar.outputs.safety import command_line, terminal
+from faithful_shaar.outputs.safety import command_line, terminal_line
 from faithful_shaar.schema import schema_text
 
 if TYPE_CHECKING:
@@ -394,13 +394,16 @@ def _campaign(args: argparse.Namespace) -> int:
         read=read,
     )
     code = ExitCode.FINDINGS if built.unassigned or built.problems else ExitCode.OK
-    say(terminal(document.headline))
-    say(terminal(f"Campaign written to {args.output}: {len(built.reviewers)} packets to send."))
+    say(terminal_line(document.headline))
+    say(
+        f"Campaign written to {terminal_line(str(args.output))}: "
+        f"{len(built.reviewers)} packets to send."
+    )
     if built.reviewers:
         returned = command_line(
             "shaar", "decisions", str(args.output), "PACKET...", "-o", "DECISIONS"
         )
-        say(terminal(f"When the packets come back:\n  {returned}"))
+        say(f"When the packets come back:\n  {terminal_line(returned)}")
     return int(code)
 
 
@@ -432,8 +435,8 @@ def _decisions(args: argparse.Namespace) -> int:
         read=args.packets,
     )
     code = ExitCode.FINDINGS if decide.gaps(built, record) else ExitCode.OK
-    say(terminal(document.headline))
-    say(terminal(f"Decision record written to {args.output}."))
+    say(terminal_line(document.headline))
+    say(f"Decision record written to {terminal_line(str(args.output))}.")
     return int(code)
 
 
@@ -461,8 +464,8 @@ def _verify(args: argparse.Namespace) -> int:
         read=read,
     )
     code = ExitCode.OK if outcome.complete else ExitCode.FINDINGS
-    say(terminal(document.headline))
-    say(terminal(f"Report written to {args.output}."))
+    say(terminal_line(document.headline))
+    say(f"Report written to {terminal_line(str(args.output))}.")
     return int(code)
 
 
@@ -474,14 +477,13 @@ def _schema(args: argparse.Namespace) -> int:
 def _example(args: argparse.Namespace) -> int:
     written = example.write(args.directory, force=args.force)
     say(
-        terminal(
-            f"Wrote synthetic access data to {args.directory}. Run these in order:\n{written}\n"
-            "The first command sets the time the campaign is made at, so it is the campaign "
-            "the returned packets answer; a campaign made at another time has another id and "
-            "refuses them. All three commands end with exit code 1 here on purpose: the "
-            "example has entries with no reviewer, an Unsure answer, a blank answer and a "
-            "removal that was not made."
-        )
+        f"Wrote synthetic access data to {terminal_line(str(args.directory))}. "
+        f"Run these in order:\n{written}\n"
+        "The first command sets the time the campaign is made at, so it is the campaign "
+        "the returned packets answer; a campaign made at another time has another id and "
+        "refuses them. All three commands end with exit code 1 here on purpose: the "
+        "example has entries with no reviewer, an Unsure answer, a blank answer and a "
+        "removal that was not made."
     )
     return int(ExitCode.OK)
 
@@ -513,11 +515,12 @@ def _run(argv: Sequence[str] | None) -> int:
         limits.configure(getattr(args, "limit", None))
         return int(args.run(args))
     except ShaarError as exc:
-        say(f"shaar: error: {terminal(redact(str(exc)))}", error=True)
+        say(f"shaar: error: {terminal_line(redact(str(exc)))}", error=True)
         return int(ExitCode.USAGE if isinstance(exc, UsageError) else ExitCode.INPUT_ERROR)
     except Exception as exc:  # noqa: BLE001 - last-resort handler keeps crashes distinct
+        shown = terminal_line(redact(str(exc)))[:200]
         say(
-            f"shaar: internal error: {type(exc).__name__}: {terminal(redact(str(exc)))[:200]}\n"
+            f"shaar: internal error: {type(exc).__name__}: {shown}\n"
             "This is a bug in shaar. Please report it.",
             error=True,
         )

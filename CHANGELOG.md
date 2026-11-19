@@ -42,6 +42,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - `scripts/check.sh workflows` prints a clear message instead of a stack trace when GitHub rejects the token.
 - `SECURITY.md` no longer says that no release has been published. It says the latest release is supported.
 - On Windows, a closed pipe (reported there as an invalid-argument error rather than a broken pipe) also stops the printing and keeps the real exit code, instead of ending with an internal error or exit 120.
+- A file name, report folder, resource name, or error message that contains a line break can no longer add a line to what shaar prints. Previously a resource named `Evil\nNo findings.` put a convincing line of its own into the summary printed by `shaar verify`, and a folder name with a line break split the commands printed by `shaar example`. These values now print on one line, with the line break shown as `\n`.
 
 ### Added
 

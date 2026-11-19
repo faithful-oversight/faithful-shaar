@@ -33,7 +33,7 @@ from faithful_shaar.formats.xlsx import Packet, PacketRow, write_packet
 from faithful_shaar.inputs import read_inputs
 from faithful_shaar.outputs.files import write_files
 from faithful_shaar.outputs.render import build_manifest, render_all, render_manifest
-from faithful_shaar.outputs.safety import command_line
+from faithful_shaar.outputs.safety import command_line, terminal_line
 from faithful_shaar.reports import campaign_document, packets
 
 CREATED = "2026-11-02T09:00:00Z"
@@ -403,7 +403,8 @@ def write(directory: Path, *, force: bool) -> str:
             f"{root}/verification",
         ),
     ]
-    return "\n".join(f"  {step}" for step in steps)
+    # A directory name with a line break must not turn one command into two printed lines.
+    return "\n".join(f"  {terminal_line(step)}" for step in steps)
 
 
 __all__ = ["build", "fill_packets", "write"]

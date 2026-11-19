@@ -825,3 +825,11 @@ def test_exporter_reports_a_directory_that_cannot_be_made(tmp_path: Path) -> Non
 def test_terminal_escapes_control_characters_and_removes_secrets() -> None:
     secrets.remember(SECRET)
     assert ad.terminal(f"a\x00b\x9fc {SECRET}") == "a\\x00b\\x9fc [redacted]"
+
+
+def test_the_exporter_messages_keep_a_line_break_in_a_name_off_the_terminal() -> None:
+    """The collectors' own escapers already show a line feed as text, so a gap is one line."""
+    from faithful_shaar.collect import entra  # noqa: PLC0415
+
+    assert "\n" not in ad.terminal("members of group x\nExported 0 records from y.")
+    assert "\n" not in entra._terminal("group x\nread 0 grants")  # noqa: SLF001
