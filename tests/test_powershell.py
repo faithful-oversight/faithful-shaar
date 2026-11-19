@@ -896,3 +896,106 @@ def test_the_real_script_exports_a_real_group(tmp_path: Path) -> None:  # pragma
     assert result.returncode == 0, result.stderr
     out = Export((tmp_path / "lab.jsonl").read_bytes())
     assert "Domain Admins" in out.resources
+
+
+# --- the script's own search code, with only the directory object and searcher replaced ----
+
+SEARCH_SEAMS = r"""
+$FakeRows = @{}
+function New-DirectoryEntry([string] $DistinguishedName) {
+    $entry = [pscustomobject] @{ DistinguishedName = $DistinguishedName }
+    Add-Member -InputObject $entry -MemberType ScriptMethod -Name Dispose -Value { }
+    $entry
+}
+function New-DirectorySearcher([string] $Filter) {
+    $searcher = [pscustomobject] @{
+        Filter = $Filter; SearchRoot = $null; PageSize = 0; SearchScope = $null
+        PropertiesToLoad = (New-Object System.Collections.ArrayList)
+    }
+    Add-Member -InputObject $searcher -MemberType ScriptMethod -Name Dispose -Value { }
+    Add-Member -InputObject $searcher -MemberType ScriptMethod -Name FindAll -Value {
+        $found = New-Object System.Collections.ArrayList
+        foreach ($row in $FakeRows[$this.Filter]) {
+            $properties = [ordered] @{}
+            foreach ($name in $row.Keys) { $properties[$name] = @($row[$name]) }
+            Add-Member -InputObject $properties -MemberType ScriptProperty -Name PropertyNames -Value { $this.Keys }
+            [void] $found.Add([pscustomobject] @{ Properties = $properties })
+        }
+        Add-Member -InputObject $found -MemberType ScriptMethod -Name Dispose -Value { }
+        , $found
+    }
+    $searcher
+}
+"""
+
+
+@needs_pwsh
+def test_search_directory_hands_its_callers_one_hashtable_per_object(tmp_path: Path) -> None:
+    """The row contract: ``@(Search-Directory ...)`` counts objects for none, one and several."""
+    body = (
+        SEARCH_SEAMS
+        + r"""
+$props = @('distinguishedName')
+$FakeRows['(none)'] = @()
+$FakeRows['(one)'] = @(@{ distinguishedname = 'CN=Only'; member = @('a') })
+$FakeRows['(many)'] = @(@{ distinguishedname = 'CN=A' }, @{ distinguishedname = 'CN=B' }, @{ distinguishedname = 'CN=C' })
+foreach ($filter in '(none)', '(one)', '(many)') {
+    $rows = @(Search-Directory 'DC=corp,DC=example' $filter $props 'Subtree')
+    $kinds = (@($rows | ForEach-Object { $_.GetType().Name }) | Sort-Object -Unique) -join ','
+    "$filter|$($rows.Count)|$kinds|" + ((@($rows | ForEach-Object { $_['distinguishedname'][0] })) -join ';')
+}
+$one = @(Search-Directory 'DC=corp,DC=example' '(one)' $props 'Base')[0]
+"$($one['member'].GetType().Name)|$($one['member'].Count)|" + (($one.Keys | Sort-Object) -join ',')
+"""
+    )
+    result = run_pwsh(tmp_path, body, stub=False)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        "(none)|0||",
+        "(one)|1|Hashtable|CN=Only",
+        "(many)|3|Hashtable|CN=A;CN=B;CN=C",
+        "Object[]|1|distinguishedname,member",
+    ]
+
+
+@needs_pwsh
+def test_find_groups_counts_the_groups_a_real_search_returns(tmp_path: Path) -> None:
+    body = (
+        SEARCH_SEAMS
+        + r"""
+$script:DomainDn = 'DC=corp,DC=example'
+$script:Gaps = New-Object System.Collections.Generic.List[object]
+$group = @{ distinguishedname = 'CN=G1,OU=Groups,DC=corp,DC=example'; objectclass = @('top', 'group'); name = 'G1'; samaccountname = 'G1' }
+$user = @{ distinguishedname = 'CN=U1,OU=People,DC=corp,DC=example'; objectclass = @('top', 'person', 'user'); name = 'U1' }
+$FakeRows['(none)'] = @()
+$FakeRows['(one)'] = @($group)
+$group2 = @{ distinguishedname = 'CN=G2,OU=Groups,DC=corp,DC=example'; objectclass = @('top', 'group'); name = 'G2' }
+$FakeRows['(mixed)'] = @($group, $user, $group2)
+foreach ($filter in '(none)', '(one)', '(mixed)') {
+    $found = @(Find-Groups $script:DomainDn $filter 'Subtree' 'test')
+    "$filter|$($found.Count)|" + ((@($found | ForEach-Object { $_.Kind })) -join ',')
+}
+"""
+    )
+    result = run_pwsh(tmp_path, body, stub=False)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == ["(none)|0|", "(one)|1|group", "(mixed)|2|group,group"]
+
+
+@needs_pwsh
+def test_sort_ordinal_gives_callers_items_not_a_wrapped_array(tmp_path: Path) -> None:
+    body = r"""
+$none = @(Sort-Ordinal @() 'k')
+$one = @(Sort-Ordinal @(@{ k = 'a' }) 'k')
+$many = @(Sort-Ordinal @(@{ k = 'b' }, @{ k = 'a' }) 'k')
+$objects = @(Sort-Ordinal @([pscustomobject] @{ k = 'z' }) 'k')
+"$($none.Count) $($one.Count) $($one[0].GetType().Name) $($many.Count) $($many[0].k) $($objects.Count) $($objects[0].k)"
+"""
+    result = run_pwsh(tmp_path, body, stub=False)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.split() == ["0", "1", "Hashtable", "2", "a", "1", "z"]
+
+
+def test_no_function_sends_a_whole_array_as_one_object() -> None:
+    """A leading comma before ``ToArray()`` hides every row inside one ``Object[]``."""
+    assert not re.search(r"^\s*,\s*\$\w+\.ToArray\(\)", code(), re.MULTILINE)

@@ -295,7 +295,7 @@ function Publish-Output($Writer, [string] $Path, [bool] $Replace) {
 }
 
 # --- Directory access ---------------------------------------------------------------
-# Everything that talks to Active Directory is in the three small functions of this
+# Everything that talks to Active Directory is in the small functions of this
 # section, so the tests can replace them. All reads are searches and gets; nothing here
 # writes.
 
@@ -331,12 +331,22 @@ function ConvertFrom-SearchResult($Result) {
     $row
 }
 
+function New-DirectoryEntry([string] $DistinguishedName) {
+    # The one place a directory object is opened, so a test can stand in for it.
+    [adsi] (Get-LdapPath $DistinguishedName)
+}
+
+function New-DirectorySearcher([string] $Filter) {
+    # The one place a searcher is created, so a test can stand in for it.
+    [adsisearcher] $Filter
+}
+
 function Search-Directory([string] $BaseDn, [string] $Filter, [string[]] $Properties, [string] $Scope) {
     # Returns one hashtable per object found (see ConvertFrom-SearchResult). A base that
     # does not exist returns nothing. $Scope is Base, OneLevel or Subtree. Any other
     # failure, such as access denied, is thrown.
-    $entry = [adsi] (Get-LdapPath $BaseDn)
-    $searcher = [adsisearcher] $Filter
+    $entry = New-DirectoryEntry $BaseDn
+    $searcher = New-DirectorySearcher $Filter
     $found = $null
     try {
         $searcher.SearchRoot = $entry
