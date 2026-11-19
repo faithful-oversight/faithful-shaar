@@ -2,8 +2,8 @@
   "files": [
     {
       "name": "campaign.json",
-      "sha256": "757db3feec4d1b1671c1b9603a737db727290fc840d1483c85a393f0ead55c03",
-      "size": 14378
+      "sha256": "d1f759bdb2329ab396e3a80424cbd822098915af06b1d0b9ba578ed76a2a912c",
+      "size": 15600
     },
     {
       "name": "packet-01-Casey-Owner-da089e.xlsx",
@@ -22,7 +22,7 @@
     },
     {
       "name": "campaign-report.json",
-      "sha256": "10feaf522e6d5c03edf69b6cf9f0de176e9a2a6f854ce0a6771c7e5b442ee040",
+      "sha256": "b641860923e228a62b66e7717fba3a61e58ea1d44428f006e97ff86d22320449",
       "size": 7693
     },
     {

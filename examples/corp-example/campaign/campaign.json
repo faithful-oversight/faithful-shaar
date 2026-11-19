@@ -9,7 +9,7 @@
     "entra:00000000-0000-4000-8000-000000000000:role:62e90394-69f5-4237-9190-012177145e10"
   ],
   "created_at": "2026-11-02T09:00:00Z",
-  "digest": "845bc3abbb627148cb2c8334fe009ca9559ba651ae8eb58b889133a3212c27e3",
+  "digest": "422589478d1407740bb02690ddf3a65cf9e8e3b600b783007e784ecf5ab6208e",
   "due": "2026-11-16",
   "id": "C61cedf912e16213a",
   "inputs": [
@@ -62,6 +62,7 @@
   ],
   "rows": [
     {
+      "account_identity": "6f9d0e6a7dca595e2fb115b42415133959364926f865a954111bd65adb229ef5",
       "display": {
         "access": "member",
         "account": "emery.contractor@corp.example",
@@ -82,6 +83,7 @@
       "source": "entra.jsonl, line 14"
     },
     {
+      "account_identity": "6f9d0e6a7dca595e2fb115b42415133959364926f865a954111bd65adb229ef5",
       "display": {
         "access": "member",
         "account": "emery.contractor@corp.example",
@@ -102,6 +104,7 @@
       "source": "ad.jsonl, line 18"
     },
     {
+      "account_identity": "4d439da2d33652a3fc61428d9e82470b94eccce07f48442fb76f0fda216ff230",
       "display": {
         "access": "whole directory",
         "account": "morgan.lead@corp.example",
@@ -122,6 +125,7 @@
       "source": "entra.jsonl, line 11"
     },
     {
+      "account_identity": "4d439da2d33652a3fc61428d9e82470b94eccce07f48442fb76f0fda216ff230",
       "display": {
         "access": "Approver",
         "account": "morgan.lead@corp.example",
@@ -142,6 +146,7 @@
       "source": "ledger.csv, row 3"
     },
     {
+      "account_identity": "019ddcff298a650d94509f798ccbaa0a5cda55ab118efd4c68c0d012b26b516b",
       "display": {
         "access": "member",
         "account": "avery.example@corp.example",
@@ -162,6 +167,7 @@
       "source": "ad.jsonl, line 13"
     },
     {
+      "account_identity": "4b031c62383b46797c53458e33c53539828b04cab63d02788d9452f30a1cdcaa",
       "display": {
         "access": "member",
         "account": "blake.sample@corp.example",
@@ -182,6 +188,7 @@
       "source": "ad.jsonl, line 17"
     },
     {
+      "account_identity": "019ddcff298a650d94509f798ccbaa0a5cda55ab118efd4c68c0d012b26b516b",
       "display": {
         "access": "Approver",
         "account": "avery.example@corp.example",
@@ -202,6 +209,7 @@
       "source": "ledger.csv, row 4"
     },
     {
+      "account_identity": "4b031c62383b46797c53458e33c53539828b04cab63d02788d9452f30a1cdcaa",
       "display": {
         "access": "Viewer",
         "account": "blake.sample@corp.example",
@@ -222,6 +230,7 @@
       "source": "ledger.csv, row 6"
     },
     {
+      "account_identity": "5b99b12b5ae9c8664030cabdf1c73b0f3f9486b2a0790eb3e7b37c90b1ae3f87",
       "display": {
         "access": "Viewer",
         "account": "drew.analyst@corp.example",
@@ -242,6 +251,7 @@
       "source": "ledger.csv, row 5"
     },
     {
+      "account_identity": "5b99b12b5ae9c8664030cabdf1c73b0f3f9486b2a0790eb3e7b37c90b1ae3f87",
       "display": {
         "access": "member",
         "account": "drew.analyst@corp.example",
@@ -262,6 +272,7 @@
       "source": "ad.jsonl, line 15"
     },
     {
+      "account_identity": "019ddcff298a650d94509f798ccbaa0a5cda55ab118efd4c68c0d012b26b516b",
       "display": {
         "access": "member",
         "account": "avery.example@corp.example",
@@ -282,6 +293,7 @@
       "source": "entra.jsonl, line 12"
     },
     {
+      "account_identity": "5b99b12b5ae9c8664030cabdf1c73b0f3f9486b2a0790eb3e7b37c90b1ae3f87",
       "display": {
         "access": "member",
         "account": "drew.analyst@corp.example",
@@ -302,6 +314,7 @@
       "source": "entra.jsonl, line 13"
     },
     {
+      "account_identity": "5b99b12b5ae9c8664030cabdf1c73b0f3f9486b2a0790eb3e7b37c90b1ae3f87",
       "display": {
         "access": "member",
         "account": "drew.analyst@corp.example",
