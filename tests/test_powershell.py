@@ -113,9 +113,14 @@ def test_the_output_file_is_never_overwritten_without_force() -> None:
 
 # --- running the script's functions -----------------------------------------------------
 
-_PWSH = shutil.which("pwsh") or shutil.which("powershell")
+# SHAAR_PWSH names the PowerShell to test with, such as "powershell" for Windows
+# PowerShell 5.1. Without it the tests use pwsh, then powershell.
+_PWSH_NAME = os.environ.get("SHAAR_PWSH")
+_PWSH = (
+    shutil.which(_PWSH_NAME) if _PWSH_NAME else shutil.which("pwsh") or shutil.which("powershell")
+)
 if _PWSH is None and os.environ.get("SHAAR_REQUIRE_PWSH") == "1":  # pragma: no cover
-    msg = "SHAAR_REQUIRE_PWSH is set but PowerShell is not installed"
+    msg = f"SHAAR_REQUIRE_PWSH is set but {_PWSH_NAME or 'PowerShell'} is not installed"
     raise RuntimeError(msg)
 needs_pwsh = pytest.mark.skipif(_PWSH is None, reason="PowerShell is not installed")
 
