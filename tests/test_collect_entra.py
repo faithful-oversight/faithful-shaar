@@ -28,9 +28,10 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from faithful_core.collect import secrets
 
 from faithful_shaar import __version__
-from faithful_shaar.collect import entra, fileout, graph, secrets
+from faithful_shaar.collect import entra, fileout, graph
 from faithful_shaar.collect.graph import CLOUDS, GraphClient, GraphGap
 from faithful_shaar.errors import CollectionError
 

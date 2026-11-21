@@ -1,19 +1,26 @@
 # SPDX-FileCopyrightText: 2026 Faithful Oversight, LLC
 # SPDX-License-Identifier: Apache-2.0
-"""Exceptions raised by shaar."""
+"""Exceptions raised by shaar.
 
+The classes come from faithful-core. ``ShaarError`` is its ``FaithfulError``, so
+one ``except ShaarError`` also catches an error raised inside the library.
+"""
 
-class ShaarError(Exception):
-    """Base class for errors shaar reports to the user."""
+from faithful_core.errors import (
+    CollectionError,
+    FaithfulError,
+    InputError,
+    OutputError,
+    UsageError,
+)
 
+__all__ = [
+    "CollectionError",
+    "InputError",
+    "OutputError",
+    "ShaarError",
+    "UsageError",
+]
 
-class InputError(ShaarError):
-    """An input file or configuration cannot be read or has the wrong shape."""
-
-
-class CollectionError(ShaarError):
-    """Live collection could not connect, authenticate, or read what it needs."""
-
-
-class UsageError(ShaarError):
-    """The command's options do not fit together, so nothing was attempted."""
+ShaarError = FaithfulError
+"""Base class for errors shaar reports to the user."""

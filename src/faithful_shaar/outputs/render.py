@@ -23,13 +23,13 @@ import json
 import re
 from typing import TYPE_CHECKING, Any
 
+from faithful_core.files import refuse_aliases
 from faithful_core.render import CSP, html_text, md_table, md_text, plural
 from faithful_core.safety import csv_cell
 
-from faithful_shaar.collision import first_collision
 from faithful_shaar.outputs.columns import SECTION_COLUMNS
 from faithful_shaar.outputs.document import KINDS, Cell, Section, cell_text
-from faithful_shaar.outputs.files import OutputError, write_files
+from faithful_shaar.outputs.files import write_files
 from faithful_shaar.outputs.schema import MANIFEST_NAME, TIME_PATTERN, schema_id
 
 if TYPE_CHECKING:
@@ -483,7 +483,11 @@ def write_outputs(  # noqa: PLR0913 - the documented API
         files, generated_at=generated_at, tool_version=tool_version, inputs=inputs, limits=limits
     )
     stale = [n for n in _earlier_files(directory) if removable and removable(n)] if force else []
-    _refuse_inputs(protect, directory, [*files, MANIFEST_FILE, *stale])
+    # The files a run takes away are checked too, not only the ones it writes.
+    refuse_aliases(
+        [directory / name for name in [*files, MANIFEST_FILE, *stale]],
+        [("input file", path) for path in protect],
+    )
     write_files(
         directory,
         {**files, MANIFEST_FILE: render_manifest(manifest)},
@@ -491,21 +495,6 @@ def write_outputs(  # noqa: PLR0913 - the documented API
         remove=stale,
     )
     return manifest
-
-
-def _refuse_inputs(inputs: Iterable[Path], directory: Path, names: Iterable[str]) -> None:
-    try:
-        found = first_collision(inputs, [directory / name for name in names])
-    except OSError as exc:
-        msg = f"cannot compare the inputs with the output folder {directory}: {exc.strerror}"
-        raise OutputError(msg) from exc
-    if found:
-        source, target = found
-        msg = (
-            f"the input {source} would be replaced or removed by the output file {target}; "
-            "choose another output folder (even --force never replaces an input)"
-        )
-        raise OutputError(msg)
 
 
 def _earlier_files(directory: Path) -> list[str]:
@@ -523,7 +512,6 @@ def _earlier_files(directory: Path) -> list[str]:
 
 
 __all__ = [
-    "OutputError",
     "build_manifest",
     "render_all",
     "render_csv",

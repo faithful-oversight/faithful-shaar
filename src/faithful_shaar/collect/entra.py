@@ -33,10 +33,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from faithful_core.clock import date_and_time
+from faithful_core.collect import secrets
 from faithful_core.console import say
+from faithful_core.files import refuse_aliases
 
 from faithful_shaar import __version__
-from faithful_shaar.collect import secrets
 from faithful_shaar.collect.fileout import write_private
 from faithful_shaar.collect.graph import (
     CLOUDS,
@@ -47,8 +48,7 @@ from faithful_shaar.collect.graph import (
     Pages,
     odata_string,
 )
-from faithful_shaar.collect.names import install_hint
-from faithful_shaar.collision import collection_collision, secret_file
+from faithful_shaar.collect.remote import install_hint, secret_file
 from faithful_shaar.errors import CollectionError, ShaarError, UsageError
 
 if TYPE_CHECKING:
@@ -834,10 +834,10 @@ def _sign_in(args: argparse.Namespace) -> SignIn:
         raise CollectionError(msg)
     password = secret = None
     if args.certificate_password:
-        password = secrets.resolve(args.certificate_password, keep=("entra",))
+        password = secrets.resolve(args.certificate_password, hint=install_hint, keep=("entra",))
         secrets.remember(password)
     if args.client_secret:
-        secret = secrets.resolve(args.client_secret, keep=("entra",))
+        secret = secrets.resolve(args.client_secret, hint=install_hint, keep=("entra",))
         secrets.remember(secret)
     return SignIn(
         tenant=args.tenant,
@@ -848,6 +848,20 @@ def _sign_in(args: argparse.Namespace) -> SignIn:
         client_secret=secret,
         device_code=bool(args.device_code),
     )
+
+
+def _read_files(args: argparse.Namespace) -> list[tuple[str, Path]]:
+    """The files ``collect entra`` reads, by role: the certificate and any ``file:`` secret."""
+    found: list[tuple[str, Path]] = []
+    if args.certificate:
+        found.append(("certificate", args.certificate))
+    for role, reference in (
+        ("client secret file", args.client_secret),
+        ("certificate password file", args.certificate_password),
+    ):
+        if (path := secret_file(reference)) is not None:
+            found.append((role, path))
+    return found
 
 
 def _terminal(text: str) -> str:
@@ -879,16 +893,9 @@ def _run(args: argparse.Namespace) -> None:
         msg = "choose what to read: --group, --all-security-groups, --roles, or --pim"
         raise UsageError(msg)
     output: Path = args.output
-    clash = collection_collision(
-        [
-            args.certificate,
-            secret_file(args.client_secret),
-            secret_file(args.certificate_password),
-        ],
-        output,
-    )
-    if clash:  # before any secret is read or any connection is made
-        raise CollectionError(clash)
+    # The files this command reads are never the file it writes, even with --force. This
+    # runs before any secret is read or any connection is made.
+    refuse_aliases([output], _read_files(args))
     if (output.exists() or output.is_symlink()) and not args.force:
         msg = f"{output} already exists; use --force to replace it"
         raise CollectionError(msg)

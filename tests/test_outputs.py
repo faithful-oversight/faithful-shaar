@@ -11,6 +11,7 @@ import io
 import json
 import os
 import re
+import tempfile
 from datetime import UTC, datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
@@ -21,7 +22,7 @@ import pytest
 from faithful_core.render import CSP
 from faithful_core.safety import escape_markdown
 
-from faithful_shaar.errors import UsageError
+from faithful_shaar.errors import OutputError, UsageError
 from faithful_shaar.model import InputFile, Problem, Source
 from faithful_shaar.outputs.columns import SECTION_COLUMNS
 from faithful_shaar.outputs.document import (
@@ -33,7 +34,7 @@ from faithful_shaar.outputs.document import (
     format_time,
     generated_now,
 )
-from faithful_shaar.outputs.files import OutputError
+from faithful_shaar.outputs.files import write_files
 from faithful_shaar.outputs.render import (
     _md_block,
     build_manifest,
@@ -848,3 +849,21 @@ def test_force_never_takes_away_a_listed_link(tmp_path: Path) -> None:
     write_outputs(out, {"a.txt": b"x"}, force=True, generated_at=WHEN, tool_version="1")
     assert (out / "b.txt").is_symlink()
     assert victim.read_bytes() == b"precious"
+
+
+def test_the_files_are_staged_under_shaars_own_temporary_names(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    prefixes: list[str] = []
+    real = tempfile.mkstemp
+
+    def record(*args: Any, **kwargs: Any) -> Any:
+        prefixes.append(kwargs["prefix"])
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr("faithful_core.files.tempfile.mkstemp", record)
+    out = tmp_path / "out"
+    write_files(out, {"a.txt": b"one"}, force=False)
+    write_files(out, {"a.txt": b"two"}, force=True)
+    assert set(prefixes) == {".shaar-", ".shaar-old-"}
+    assert sorted(path.name for path in out.iterdir()) == ["a.txt"]

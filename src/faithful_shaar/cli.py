@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from faithful_core.clock import now
+from faithful_core.collect.secrets import redact
 from faithful_core.console import finish, prepare, say
 from faithful_core.exitcodes import ExitCode
 from faithful_core.safety import command_line, terminal_line
@@ -28,12 +29,10 @@ from faithful_shaar import (
 from faithful_shaar.assign import RULES, read_map
 from faithful_shaar.collect import ad as collect_ad
 from faithful_shaar.collect import entra as collect_entra
-from faithful_shaar.collect.secrets import redact
-from faithful_shaar.errors import InputError, ShaarError, UsageError
+from faithful_shaar.errors import InputError, OutputError, ShaarError, UsageError
 from faithful_shaar.formats.xlsx import read_packet
 from faithful_shaar.inputs import read_inputs
 from faithful_shaar.outputs.document import format_time
-from faithful_shaar.outputs.files import OutputError
 from faithful_shaar.outputs.render import render_all, write_outputs
 from faithful_shaar.schema import schema_text
 

@@ -199,7 +199,7 @@ def test_force_never_replaces_an_access_export_with_a_report(
     access = rs.write(out / "rows.csv", rs.HEADER + rs.ROWS)  # a name the campaign writes
     before = tree(out)
     assert main(campaign_command(tmp_path, access, out, "--force")) == ExitCode.INPUT_ERROR
-    assert "would be replaced or removed" in capsys.readouterr().err
+    assert "is the same file as the input file" in capsys.readouterr().err
     assert tree(out) == before  # not replaced, and nothing else written
 
 
@@ -217,7 +217,7 @@ def test_force_never_replaces_a_map_with_a_report(
     held.write_bytes(source.read_bytes())
     argv[argv.index("--map" if which == "map" else "--reviewer-map") + 1] = str(held)
     assert main(argv) == ExitCode.INPUT_ERROR
-    assert "would be replaced or removed" in capsys.readouterr().err
+    assert "is the same file as the input file" in capsys.readouterr().err
     assert held.read_bytes() == source.read_bytes()
     assert sorted(tree(out)) == [held.name]
 
@@ -237,7 +237,7 @@ def test_force_never_removes_an_input_an_earlier_run_listed(
     capsys.readouterr()
     argv = campaign_command(tmp_path, stale, out, "--force")
     assert main(argv) == ExitCode.INPUT_ERROR
-    assert "would be replaced or removed" in capsys.readouterr().err
+    assert "is the same file as the input file" in capsys.readouterr().err
     assert stale.read_bytes() == kept
 
 
@@ -258,7 +258,7 @@ def test_a_link_to_an_input_is_refused_in_every_position(
     # The access file lives in the folder the output folder is a link to.
     rows = rs.write(tmp_path / "rows.csv", rs.HEADER + rs.ROWS)
     assert main(campaign_command(tmp_path, rows, via_folder, "--force")) == ExitCode.INPUT_ERROR
-    assert "would be replaced or removed" in capsys.readouterr().err
+    assert "is the same file as the input file" in capsys.readouterr().err
     assert access.read_bytes() == original
 
 
@@ -281,14 +281,16 @@ def test_force_never_replaces_a_returned_packet_or_a_later_export(
     kept = later.read_bytes()
     capsys.readouterr()
     assert rs.verify(tmp_path, later, to="ver") == ExitCode.INPUT_ERROR
-    assert "would be replaced or removed" in capsys.readouterr().err
+    assert "is the same file as the input file" in capsys.readouterr().err
     assert later.read_bytes() == kept
 
 
-@pytest.mark.parametrize("used", ["ca", "secret", "certificate"])
+@pytest.mark.parametrize(
+    "used", ["ca", "secret", "certificate", "client-secret", "certificate-password"]
+)
 def test_a_collection_never_replaces_a_file_it_was_told_to_use(used: str, tmp_path: Path) -> None:
     from faithful_shaar.collect import ad, entra  # noqa: PLC0415
-    from faithful_shaar.errors import CollectionError  # noqa: PLC0415
+    from faithful_shaar.errors import OutputError  # noqa: PLC0415
 
     file = tmp_path / "input.txt"
     file.write_bytes(b"line one\nline two\n")
@@ -298,7 +300,16 @@ def test_a_collection_never_replaces_a_file_it_was_told_to_use(used: str, tmp_pa
         (tmp_path / "alias.txt").symlink_to(file)
         outputs.append(tmp_path / "alias.txt")
     for out in outputs:
-        if used == "certificate":
+        if used in {"certificate", "client-secret", "certificate-password"}:
+            read = {
+                "certificate": ["--certificate", str(file)],
+                "client-secret": ["--client-secret", f"file:{file}"],
+                "certificate-password": [
+                    *["--certificate", str(tmp_path / "cert.pem")],
+                    *["--certificate-password", f"file:{file}"],
+                ],
+            }[used]
+            (tmp_path / "cert.pem").write_bytes(b"x")
             parser = argparse.ArgumentParser()
             sub = parser.add_subparsers(dest="c").add_parser("collect").add_subparsers(dest="s")
             entra.add_collect_entra_arguments(sub)
@@ -306,7 +317,7 @@ def test_a_collection_never_replaces_a_file_it_was_told_to_use(used: str, tmp_pa
                 [
                     *["collect", "entra", "--tenant", "contoso.example"],
                     *["--client-id", "00000000-0000-4000-8000-000000000001"],
-                    *["--certificate", str(file), "--group", "g", "-o", str(out), "--force"],
+                    *[*read, "--group", "g", "-o", str(out), "--force"],
                 ]
             )
             assert entra.run_collect_entra(args) == ExitCode.INPUT_ERROR
@@ -314,6 +325,7 @@ def test_a_collection_never_replaces_a_file_it_was_told_to_use(used: str, tmp_pa
             parser = argparse.ArgumentParser()
             sub = parser.add_subparsers(dest="c").add_parser("collect").add_subparsers(dest="s")
             ad.add_collect_ad_arguments(sub)
+            role = "CA file" if used == "ca" else "secret file"
             use = (
                 ["--ca-file", str(file)]
                 if used == "ca"
@@ -325,6 +337,6 @@ def test_a_collection_never_replaces_a_file_it_was_told_to_use(used: str, tmp_pa
                     *["-o", str(out), *use, "--force"],
                 ]
             )
-            with pytest.raises(CollectionError, match="which this collection reads"):
+            with pytest.raises(OutputError, match=f"is the same file as the {role}"):
                 ad.run_collect_ad(args)
         assert file.read_bytes() == original
