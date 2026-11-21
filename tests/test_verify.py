@@ -9,7 +9,7 @@ import dataclasses
 import pytest
 
 from faithful_shaar import keys
-from faithful_shaar.campaign import Campaign, digest
+from faithful_shaar.campaign import Campaign, build, digest, dump, load
 from faithful_shaar.decide import DecisionRecord, read_decisions
 from faithful_shaar.errors import InputError
 from faithful_shaar.model import Grant, Resource, Snapshot, Source
@@ -63,7 +63,9 @@ def test_removed_when_the_whole_membership_was_read() -> None:
         "the principal is disabled" in outcome.checks[1].reason
         or "disabled" in outcome.checks[0].reason
     )
-    assert outcome.complete
+    assert outcome.removals_made
+    assert not outcome.complete  # only one reviewer's packet was returned
+    assert outcome.record_gaps
     assert outcome.as_of == AFTER
 
 
@@ -193,3 +195,50 @@ def test_a_changed_key_is_not_a_removal() -> None:
         "unknown",
         "the same account still holds this access under another key (Avery Example)",
     )
+
+
+def test_a_changed_key_is_not_a_removal_when_the_account_holds_text_a_packet_escapes() -> None:
+    """SH-R2: the raw account is compared, whatever the campaign shows or cuts."""
+    for account in ("avery\u200b@corp.example", "a\ud800z@corp.example", "x" * 40_000):
+        snap, _ = standard()
+        avery = dataclasses.replace(snap.principals[sid(1102)], upn=account, email=account)
+        snap.principals[avery.key] = avery
+        camp = build(snap, name="T", created_at="2026-11-01T00:00:00Z", due="", rule="manager")
+        camp = load(dump(camp))  # what campaign.json holds must survive being written and read
+        record = read_decisions(
+            camp,
+            [("m.xlsx", b"")],
+            read=reader({"m.xlsx": returned(camp, 1101, DECIDE)}),
+            created_at="x",
+        )
+        rekeyed = dataclasses.replace(avery, key=keys.dn("cn=avery,dc=corp,dc=example"))
+        moved = Grant(
+            keys.grant(sid(2001), rekeyed.key, "member"), "ad", rekeyed.key, sid(2001), "member"
+        )
+        snap_later = later([grant(1103, 2001), moved, grant(1103, 2003)])
+        snap_later.principals[rekeyed.key] = rekeyed
+        check = verify(camp, record, snap_later).checks[0]
+        assert check.result == "unknown", account[:20]
+        assert "under another key" in check.reason
+
+
+def test_a_campaign_written_before_the_identity_was_kept_still_verifies() -> None:
+    _, camp = standard()
+    older = dataclasses.replace(
+        camp, rows=[dataclasses.replace(r, account_identity="") for r in camp.rows]
+    )
+    older.digest = digest(older)
+    record = read_decisions(
+        older,
+        [("m.xlsx", b"")],
+        read=reader({"m.xlsx": returned(older, 1101, DECIDE)}),
+        created_at="x",
+    )
+    avery = next(p for p in people() if p.key == sid(1102))
+    rekeyed = dataclasses.replace(avery, key=keys.dn("cn=avery,dc=corp,dc=example"), id="cn=avery")
+    moved = Grant(
+        keys.grant(sid(2001), rekeyed.key, "member"), "ad", rekeyed.key, sid(2001), "member"
+    )
+    snap = later([grant(1103, 2001), moved, grant(1103, 2003)])
+    snap.principals[rekeyed.key] = rekeyed
+    assert verify(older, record, snap).checks[0].result == "unknown"

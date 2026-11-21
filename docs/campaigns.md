@@ -103,7 +103,7 @@ A packet's zip entries are written in a fixed order with the campaign's creation
 
 ### Size
 
-shaar writes a packet only if it could read it back after the reviewer edits it: at most 90,000 rows and 48 MiB, below the 100,000 rows and 64 MiB that a returned packet may hold. A larger packet stops the campaign with exit code `3` before any file is written. Split the campaign, for example by system or with a reviewer map.
+shaar writes a packet only if it could read it back after the reviewer edits it: at most 90,000 rows and 48 MiB, below the 100,000 rows and 64 MiB that a returned packet may hold. A larger packet stops the campaign with exit code `3` before any file is written. Split the campaign, for example by system or with a reviewer map, or raise `xlsx-rows` or `xlsx-bytes` with [`--limit`](usage.md#size-limits).
 
 ## Row checks and digests
 
@@ -112,6 +112,8 @@ shaar writes a packet only if it could read it back after the reviewer edits it:
 - **Row check.** Over the canonical JSON of the campaign id, the row id, the grant key, and every field the reviewer sees. Canonical JSON has sorted keys, no extra spaces, and non-ASCII characters kept as they are.
 - **Packet digest.** Over the reviewer's key and the row checks of that reviewer's rows, in packet order, joined with line feeds. A packet made for one reviewer is never taken as another's.
 - **Campaign digest.** Over the canonical JSON of the whole campaign without the digest member.
+
+Each row also keeps `account_identity`: a SHA-256 of the folded, trimmed raw text of the account shown in its Account column (UPN, else email, else id). The Account column itself shows invisible characters as escapes and cuts a value at the cell limit, so `verify` matches on the identity, never on the shown text. It is not part of the row check, because the reviewer does not see it; it is part of the campaign digest. A campaign written before this member existed still verifies, by the shown text, as it always did.
 
 `shaar decisions` and `shaar verify` recompute the campaign digest when they load `campaign.json`. A campaign that was edited is refused with exit code `3`. The decision record has a digest of its own, and `verify` refuses a record that was edited or that belongs to another campaign.
 

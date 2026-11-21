@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -129,7 +130,7 @@ def test_a_bad_map_is_an_error_even_without_a_csv(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("kind", "message"),
     [
-        ("missing", "cannot read thing"),
+        ("missing", "cannot read .*thing"),
         ("directory", "thing is not a regular file"),
         ("fifo", "thing is not a regular file"),
     ],
@@ -168,7 +169,7 @@ def test_unreadable_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
         raise PermissionError(13, "Permission denied")
 
     monkeypatch.setattr(Path, "open", refuse)
-    with pytest.raises(InputError, match=r"cannot read locked\.jsonl: Permission denied"):
+    with pytest.raises(InputError, match=rf"cannot read {re.escape(str(path))}: Permission denied"):
         read_inputs([path], label="x")
 
 

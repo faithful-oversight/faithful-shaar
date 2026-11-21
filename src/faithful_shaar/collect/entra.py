@@ -26,7 +26,6 @@ import importlib
 import json
 import os
 import re
-import sys
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -46,6 +45,8 @@ from faithful_shaar.collect.graph import (
     Pages,
     odata_string,
 )
+from faithful_shaar.collision import collection_collision, secret_file
+from faithful_shaar.console import say
 from faithful_shaar.errors import CollectionError, ShaarError, UsageError
 
 if TYPE_CHECKING:
@@ -99,9 +100,10 @@ def _identity() -> Any:
 
 
 def _device_prompt(verification_uri: str, user_code: str, expires_on: datetime) -> None:
-    sys.stderr.write(
+    say(
         f"To sign in, open {verification_uri} and enter the code {user_code}. "
-        f"The code expires at {date_and_time(expires_on, ' ')} UTC.\n"
+        f"The code expires at {date_and_time(expires_on, ' ')} UTC.",
+        error=True,
     )
 
 
@@ -856,10 +858,10 @@ def run_collect_entra(args: argparse.Namespace) -> int:
     try:
         _run(args)
     except UsageError as exc:
-        sys.stderr.write(f"shaar: error: {_terminal(secrets.redact(str(exc)))}\n")
+        say(f"shaar: error: {_terminal(secrets.redact(str(exc)))}", error=True)
         return 2
     except ShaarError as exc:
-        sys.stderr.write(f"shaar: error: {_terminal(secrets.redact(str(exc)))}\n")
+        say(f"shaar: error: {_terminal(secrets.redact(str(exc)))}", error=True)
         return 3
     return 0
 
@@ -875,6 +877,16 @@ def _run(args: argparse.Namespace) -> None:
         msg = "choose what to read: --group, --all-security-groups, --roles, or --pim"
         raise UsageError(msg)
     output: Path = args.output
+    clash = collection_collision(
+        [
+            args.certificate,
+            secret_file(args.client_secret),
+            secret_file(args.certificate_password),
+        ],
+        output,
+    )
+    if clash:  # before any secret is read or any connection is made
+        raise CollectionError(clash)
     if (output.exists() or output.is_symlink()) and not args.force:
         msg = f"{output} already exists; use --force to replace it"
         raise CollectionError(msg)
@@ -883,9 +895,9 @@ def _run(args: argparse.Namespace) -> None:
     client = GraphClient(sign_in.cloud, build_credential(sign_in))
     export = collect(client, args.tenant, scope, collected_at())
     write_private(output, render(export), force=args.force)
-    sys.stdout.write(
+    say(
         f"Read {len(export.principals)} principals, {len(export.resources)} resources and "
-        f"{len(export.grants)} grants from tenant {export.tenant} into {_terminal(str(output))}.\n"
+        f"{len(export.grants)} grants from tenant {export.tenant} into {_terminal(str(output))}."
     )
     for what, reason in sorted(export.gaps):
-        sys.stdout.write(f"  not read: {_terminal(what)}: {_terminal(reason)}\n")
+        say(f"  not read: {_terminal(what)}: {_terminal(reason)}")

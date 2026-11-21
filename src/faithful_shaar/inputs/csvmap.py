@@ -17,7 +17,8 @@ owner_separator = ";"
 via_separator = ">"
 complete = true               # false: no resource in this file counts as complete
 collected_at = "2026-11-01T00:00:00Z"   # when the CSV was exported, if known
-optional = false              # true: mapped columns missing from the file are ignored
+optional = false              # true: a mapped column missing from the file is not an error;
+                              # one this file lists under [columns] is a recorded problem
 id_style = "csv"              # csv | sid | entra: how an id column becomes a key
 domain = "corp.example"       # id_style sid: the domain well-known SIDs belong to
 tenant = "00000000-0000-4000-8000-000000000000"  # id_style entra: the tenant id
@@ -44,7 +45,7 @@ import tomllib
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from faithful_shaar import keys
+from faithful_shaar import keys, limits
 from faithful_shaar.errors import InputError
 from faithful_shaar.inputs.combine import parse_time
 from faithful_shaar.model import PRINCIPAL_KINDS, RESOURCE_KINDS
@@ -168,6 +169,10 @@ class CsvMap:
     complete: bool = True
     collected_at: str = ""
     optional: bool = False
+    explicit: frozenset[str] = frozenset()
+    """The fields the map file itself names under ``[columns]``, as opposed to the ones a
+    preset supplies. A preset's column that a file lacks is ordinary; a column the person
+    who wrote the map asked for, and the file lacks, is a problem."""
 
 
 def _fail(message: str) -> InputError:
@@ -194,7 +199,7 @@ def _words(data: Mapping[str, Any], key: str, default: tuple[str, ...]) -> tuple
     if not isinstance(value, list) or not all(isinstance(v, str) and v.strip() for v in value):
         msg = f"{key!r} must be a list of non-empty text"
         raise _fail(msg)
-    return tuple(v.strip().casefold() for v in value)
+    return tuple(keys.fold(v.strip()) for v in value)
 
 
 def _columns(data: Mapping[str, Any]) -> dict[str, str]:
@@ -215,7 +220,7 @@ def _kinds(data: Mapping[str, Any]) -> dict[str, str]:
         if kind not in PRINCIPAL_KINDS:
             msg = f"principal_kinds {alias!r} must map to one of {', '.join(PRINCIPAL_KINDS)}"
             raise _fail(msg)
-    return {str(alias).strip().casefold(): kind for alias, kind in table.items()}
+    return {keys.fold(str(alias).strip()): kind for alias, kind in table.items()}
 
 
 def _extras(data: Mapping[str, Any]) -> dict[str, tuple[str, ...]]:
@@ -308,8 +313,11 @@ def _choices(data: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_map(data: Mapping[str, Any]) -> CsvMap:
-    """Validate map data (from TOML or a preset) and return the map."""
+def build_map(data: Mapping[str, Any], explicit: frozenset[str] = frozenset()) -> CsvMap:
+    """Validate map data (from TOML or a preset) and return the map.
+
+    ``explicit`` names the column fields the map file itself lists (see :class:`CsvMap`).
+    """
     unknown = set(data) - _TOP_KEYS
     if unknown:
         msg = f"unknown setting(s): {', '.join(sorted(map(str, unknown)))}"
@@ -328,6 +336,7 @@ def build_map(data: Mapping[str, Any]) -> CsvMap:
         extra_principal=extras["principal"],
         extra_resource=extras["resource"],
         extra_grant=extras["grant"],
+        explicit=explicit,
         **_scalars(data),
         **_choices(data),
     )
@@ -336,17 +345,20 @@ def build_map(data: Mapping[str, Any]) -> CsvMap:
 def _read_toml(path: Path) -> dict[str, Any]:
     try:
         with path.open("rb") as handle:
-            raw = handle.read(MAX_MAP_BYTES + 1)
+            raw = handle.read(limits.get("column-map-bytes") + 1)
     except OSError as exc:
-        msg = f"cannot read the column map {path.name}: {exc.strerror}"
+        msg = f"cannot read the column map {path}: {exc.strerror}"
         raise InputError(msg) from exc
-    if len(raw) > MAX_MAP_BYTES:
-        msg = f"the column map {path.name} is larger than {MAX_MAP_BYTES} bytes"
+    if len(raw) > limits.get("column-map-bytes"):
+        msg = (
+            f"the column map {path} is larger than {limits.get('column-map-bytes')} bytes; "
+            f"{limits.hint('column-map-bytes')}"
+        )
         raise InputError(msg)
     try:
         return tomllib.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
-        msg = f"the column map {path.name} is not valid TOML: {exc}"
+        msg = f"the column map {path} is not valid TOML: {exc}"
         raise InputError(msg) from exc
 
 
@@ -384,4 +396,6 @@ def load_map(path: Path | None, preset: str | None, resource: str | None) -> Csv
             data[key] = value
     if resource:
         data["resource"] = resource
-    return build_map(data)
+    listed = file_data.get("columns")
+    explicit = frozenset(str(k) for k in listed) if isinstance(listed, dict) else frozenset()
+    return build_map(data, explicit)

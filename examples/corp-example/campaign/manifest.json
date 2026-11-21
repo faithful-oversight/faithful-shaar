@@ -2,38 +2,38 @@
   "files": [
     {
       "name": "campaign.json",
-      "sha256": "4fa5d4ff7679245e1dfc803c1ced8407e8bb733d632c39ae9c88dc1c7293276c",
-      "size": 14378
+      "sha256": "d1f759bdb2329ab396e3a80424cbd822098915af06b1d0b9ba578ed76a2a912c",
+      "size": 15600
     },
     {
       "name": "packet-01-Casey-Owner-da089e.xlsx",
-      "sha256": "f45a5a9f137a16f01fe99cff59abffa90a81022d92ca08bf22badcc348f39bf0",
+      "sha256": "7d06abc82466ff1267931199840ad7f1fa3c8a38a160d8e5fa5856de46042623",
       "size": 14218
     },
     {
       "name": "packet-02-Jordan-Director-24304a.xlsx",
-      "sha256": "8a444f11b66d3d5cdd9a4b84be12c183293a02d659025bc5a801f5a6d5809f13",
+      "sha256": "f5badf28f7aa33a36f88dbc0c2b78dbf3aae80031112ac9d2534b0c8ea6c8418",
       "size": 14205
     },
     {
       "name": "packet-03-Morgan-Lead-e16dc6.xlsx",
-      "sha256": "7d83d2861c5f2f6059dd3758209722a1e921235c496d741f563e40cd6dd3c651",
+      "sha256": "50202f69690bf6fac8755ee2b92b7fb15f56383dd48b2533456c31779e60faf0",
       "size": 20751
     },
     {
       "name": "campaign-report.json",
-      "sha256": "2c3ccf06eee3db0bbdbc3d793a11c376851b878fd31ebced74a8e0d45e0ff3cd",
-      "size": 7695
+      "sha256": "b641860923e228a62b66e7717fba3a61e58ea1d44428f006e97ff86d22320449",
+      "size": 7693
     },
     {
       "name": "campaign-report.md",
-      "sha256": "a19df3cf39ff4e1ea32b3fa7f57208918a18bfe1b24171b09678aa0af6424bdc",
-      "size": 4502
+      "sha256": "7a37f905da381cb73253521194c21dc17cbca701d99d39fe1eecd8809360786e",
+      "size": 4500
     },
     {
       "name": "campaign-report.html",
-      "sha256": "df6b92c86e70c070db0158688a5f20ae8bf906645cf81c5cb74d5d927d7938ad",
-      "size": 9589
+      "sha256": "8f43b0f9a78a359a4c58fd036cd6b2353e407c88b8c3de70f6a9ab8132e6f360",
+      "size": 9587
     },
     {
       "name": "unassigned.csv",
@@ -42,7 +42,7 @@
     },
     {
       "name": "rows.csv",
-      "sha256": "4674ee249d3bacd6f6ad23276b99d0d3c79994aa5a0a8dd4dae7d5071723def4",
+      "sha256": "4b5f4693043baadfede638db0dcedc90a00017f7695084e5874fcdcb8c9b9d9c",
       "size": 1844
     }
   ],
@@ -51,13 +51,13 @@
     {
       "kind": "shaar-export",
       "name": "ad.jsonl",
-      "sha256": "f248f8e56d8926cf7baf6b489a600d0266df95b241b21f9b27df521dacb68733",
+      "sha256": "d8eb004a3f5ca775810261e976401b7fef1acbdba35707cb476afff9683d5e1f",
       "size": 4029
     },
     {
       "kind": "shaar-export",
       "name": "entra.jsonl",
-      "sha256": "dfe2df70b884bcd6e3c5633ddf34601f073d2dd89cdec19691455798b547b0ff",
+      "sha256": "4eefc1bf5d6a328849907ac57b4ac79c56845e8ed9668084d45a0d01bb47559c",
       "size": 3485
     },
     {
@@ -67,9 +67,24 @@
       "size": 478
     }
   ],
+  "limits": {
+    "campaign-bytes": 268435456,
+    "column-map-bytes": 1048576,
+    "csv-bytes": 268435456,
+    "csv-rows": 2000000,
+    "decisions-bytes": 268435456,
+    "export-bytes": 536870912,
+    "line-bytes": 1048576,
+    "map-bytes": 16777216,
+    "packet-bytes": 67108864,
+    "xlsx-bytes": 67108864,
+    "xlsx-cells": 1600000,
+    "xlsx-rows": 100000,
+    "xml-elements": 6400000
+  },
   "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/manifest-v1.schema.json",
   "tool": {
     "name": "shaar",
-    "version": "example"
+    "version": "0.1.1"
   }
 }

@@ -23,11 +23,14 @@ from __future__ import annotations
 
 import csv
 import io
+import stat
 from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from faithful_shaar import limits
 from faithful_shaar.errors import InputError
+from faithful_shaar.keys import fold
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -72,7 +75,7 @@ class MapEntry:
 
 def _reviewer(principal: Principal) -> Reviewer:
     email = principal.email.strip()
-    key = f"mail:{email.casefold()}" if email else principal.key
+    key = f"mail:{fold(email)}" if email else principal.key
     return Reviewer(key, principal.name or principal.id, email)
 
 
@@ -82,20 +85,18 @@ def _same_person(one: Principal, other: Principal | None) -> bool:
         return False
     if one.key == other.key:
         return True
-    return (
-        bool(one.email.strip()) and one.email.strip().casefold() == other.email.strip().casefold()
-    )
+    return bool(one.email.strip()) and fold(one.email.strip()) == fold(other.email.strip())
 
 
 def _names(principal: Principal) -> set[str]:
     """Every text that may name a principal in a reviewer map, case-folded."""
     found = {principal.key, principal.id, principal.name, principal.upn, principal.email}
-    return {value.strip().casefold() for value in found if value.strip()}
+    return {fold(value.strip()) for value in found if value.strip()}
 
 
 def _resource_names(resource: Resource) -> set[str]:
     found = {resource.key, resource.id, resource.name}
-    return {value.strip().casefold() for value in found if value.strip()}
+    return {fold(value.strip()) for value in found if value.strip()}
 
 
 def by_manager(grant: Grant, snapshot: Snapshot) -> Assignment:
@@ -150,7 +151,7 @@ def _map_table(name: str, text: str) -> tuple[list[str], list[list[str]]]:
     except csv.Error as exc:
         msg = f"the reviewer map {name} cannot be read as CSV: {exc}"
         raise InputError(msg) from None
-    header = [name.strip().casefold() for name in records[0]] if records else []
+    header = [fold(name.strip()) for name in records[0]] if records else []
     counts = Counter(name for name in header if name)
     repeated = sorted(name for name, count in counts.items() if count > 1)
     if repeated:
@@ -173,10 +174,8 @@ def _check_same_person(
 ) -> None:
     """Refuse a reviewer id that names two people: one packet would go to only one of them."""
     first, first_line = seen.setdefault(reviewer.key, (reviewer, line))
-    same_email = first.email.strip().casefold() == reviewer.email.strip().casefold()
-    same_name = (
-        " ".join(first.name.split()).casefold() == " ".join(reviewer.name.split()).casefold()
-    )
+    same_email = fold(first.email.strip()) == fold(reviewer.email.strip())
+    same_name = fold(" ".join(first.name.split())) == fold(" ".join(reviewer.name.split()))
     if not (same_email and same_name):
         msg = (
             f"the reviewer map {name}: rows {first_line} and {line} give reviewer_id "
@@ -193,17 +192,24 @@ def read_map(path: Path) -> list[MapEntry]:
         InputError: The file cannot be read, is not UTF-8 CSV, or lacks a needed column.
     """
     try:
-        data = path.read_bytes()
+        if not stat.S_ISREG(path.stat().st_mode):
+            msg = f"the reviewer map {path} is not a regular file"
+            raise InputError(msg)
+        with path.open("rb") as handle:
+            data = handle.read(limits.get("map-bytes") + 1)
     except OSError as exc:
-        msg = f"cannot read the reviewer map {path.name}: {exc.strerror}"
+        msg = f"cannot read the reviewer map {path}: {exc.strerror}"
         raise InputError(msg) from None
-    if len(data) > MAX_MAP_BYTES:
-        msg = f"the reviewer map {path.name} is larger than {MAX_MAP_BYTES} bytes"
+    if len(data) > limits.get("map-bytes"):
+        msg = (
+            f"the reviewer map {path} is larger than {limits.get('map-bytes')} bytes; "
+            f"{limits.hint('map-bytes')}"
+        )
         raise InputError(msg)
     try:
         text = data.decode("utf-8-sig")
     except UnicodeDecodeError:
-        msg = f"the reviewer map {path.name} is not UTF-8 text"
+        msg = f"the reviewer map {path} is not UTF-8 text"
         raise InputError(msg) from None
     header, records = _map_table(path.name, text)
     seen: dict[str, tuple[Reviewer, int]] = {}
@@ -226,15 +232,15 @@ def read_map(path: Path) -> list[MapEntry]:
             )
             raise InputError(msg)
         reviewer = Reviewer(
-            f"map:{reviewer_id.casefold()}",
+            f"map:{fold(reviewer_id)}",
             values.get("reviewer_name") or reviewer_id,
             values.get("reviewer_email", ""),
         )
         _check_same_person(path.name, reviewer, line, seen)
         entries.append(
             MapEntry(
-                values.get("resource", "").casefold(),
-                values.get("principal", "").casefold(),
+                fold(values.get("resource", "")),
+                fold(values.get("principal", "")),
                 reviewer,
                 line,
             )
@@ -242,14 +248,39 @@ def read_map(path: Path) -> list[MapEntry]:
     return entries
 
 
-def by_map(grant: Grant, snapshot: Snapshot, entries: list[MapEntry]) -> Assignment:
+class MapIndex:
+    """A reviewer map indexed by the text each line matches, so a grant is a lookup.
+
+    Scanning every line for every grant is quadratic; a large directory and a large map
+    would take hours.
+    """
+
+    def __init__(self, entries: list[MapEntry]) -> None:
+        """Index ``entries`` by the resource and principal text they match."""
+        self.resource: dict[str, list[MapEntry]] = {}
+        self.principal: dict[str, list[MapEntry]] = {}
+        for entry in entries:
+            if entry.resource:
+                self.resource.setdefault(entry.resource, []).append(entry)
+            if entry.principal:
+                self.principal.setdefault(entry.principal, []).append(entry)
+
+    def matches(self, wanted: str, names: set[str]) -> list[MapEntry]:
+        """Return the lines whose ``wanted`` field is one of ``names``, in line order."""
+        table = self.resource if wanted == "resource" else self.principal
+        found = {id(e): e for name in names for e in table.get(name, ())}
+        return sorted(found.values(), key=lambda e: e.line)
+
+
+def by_map(grant: Grant, snapshot: Snapshot, entries: list[MapEntry] | MapIndex) -> Assignment:
     """Assign a grant by the reviewer map: a resource match first, then a principal match."""
+    index = entries if isinstance(entries, MapIndex) else MapIndex(entries)
     resource = snapshot.resources.get(grant.resource_key)
     principal = snapshot.principals.get(grant.principal_key)
     resource_names = _resource_names(resource) if resource else {grant.resource_key}
     principal_names = _names(principal) if principal else {grant.principal_key}
     for wanted, names in (("resource", resource_names), ("principal", principal_names)):
-        matches = [e for e in entries if getattr(e, wanted) and getattr(e, wanted) in names]
+        matches = index.matches(wanted, names)
         reviewers = {e.reviewer for e in matches}
         if len(reviewers) > 1:
             lines = ", ".join(str(e.line) for e in matches)
@@ -258,7 +289,7 @@ def by_map(grant: Grant, snapshot: Snapshot, entries: list[MapEntry]) -> Assignm
             )
         if reviewers:
             reviewer = reviewers.pop()
-            mine = {reviewer.key.removeprefix("map:"), reviewer.email.strip().casefold()} - {""}
+            mine = {reviewer.key.removeprefix("map:"), fold(reviewer.email.strip())} - {""}
             if mine & principal_names:
                 return Assignment(
                     None, "the mapped reviewer is the principal, who cannot review their own access"
@@ -268,7 +299,7 @@ def by_map(grant: Grant, snapshot: Snapshot, entries: list[MapEntry]) -> Assignm
 
 
 def assign(
-    grant: Grant, snapshot: Snapshot, rule: str, entries: list[MapEntry] | None = None
+    grant: Grant, snapshot: Snapshot, rule: str, entries: list[MapEntry] | MapIndex | None = None
 ) -> Assignment:
     """Assign one grant by ``rule`` (one of :data:`RULES`)."""
     if rule == "manager":
@@ -276,6 +307,6 @@ def assign(
     if rule == "owner":
         return by_owner(grant, snapshot)
     if rule == "map":
-        return by_map(grant, snapshot, entries or [])
+        return by_map(grant, snapshot, entries if entries is not None else [])
     msg = f"unknown reviewer rule {rule!r}; use one of {', '.join(RULES)}"
     raise ValueError(msg)

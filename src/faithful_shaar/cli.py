@@ -13,21 +13,32 @@ from enum import IntEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from faithful_shaar import __version__, campaign, decide, example, reports, verify
+from faithful_shaar import (
+    __version__,
+    campaign,
+    console,
+    decide,
+    example,
+    limits,
+    reports,
+    verify,
+)
 from faithful_shaar.assign import RULES, read_map
 from faithful_shaar.collect import ad as collect_ad
 from faithful_shaar.collect import entra as collect_entra
 from faithful_shaar.collect.secrets import redact
+from faithful_shaar.console import say
 from faithful_shaar.errors import InputError, ShaarError, UsageError
 from faithful_shaar.formats.xlsx import read_packet
 from faithful_shaar.inputs import read_inputs
 from faithful_shaar.outputs.document import format_time
+from faithful_shaar.outputs.files import OutputError
 from faithful_shaar.outputs.render import render_all, write_outputs
-from faithful_shaar.outputs.safety import command_line, terminal
+from faithful_shaar.outputs.safety import command_line, terminal_line
 from faithful_shaar.schema import schema_text
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
     from faithful_shaar.model import InputFile
 
@@ -36,6 +47,11 @@ MAX_PACKET_BYTES = 64 * 1024 * 1024
 CAMPAIGN_FILE = "campaign.json"
 DECISIONS_FILE = "decisions.json"
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_CAMPAIGN_CSV = ("unassigned", "rows")
+_DECISIONS_CSV = ("removals", "attention", "decisions")
+_VERIFY_CSV = ("removals", "kept_but_gone", "new_since_review")
+_RECORDS = {"campaign": CAMPAIGN_FILE, "decisions": DECISIONS_FILE}
+_PACKET_FILE = re.compile(r"packet-\d+-[A-Za-z0-9-]*\.xlsx")
 
 
 class ExitCode(IntEnum):
@@ -68,6 +84,20 @@ def _time(text: str) -> str:
     if moment.tzinfo is None:
         moment = moment.replace(tzinfo=UTC)
     return format_time(moment.astimezone(UTC))
+
+
+def _limit_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--limit",
+        action="append",
+        default=[],
+        metavar="NAME=VALUE",
+        help=(
+            "raise a size limit (repeatable). A file over a limit stops the run with exit "
+            "code 3 and names the limit. The limits in force are recorded in manifest.json. "
+            f"NAME is one of: {', '.join(limits.NAMES)}."
+        ),
+    )
 
 
 def _csv_options(parser: argparse.ArgumentParser) -> None:
@@ -134,6 +164,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="when decisions and removals are due",
     )
     _csv_options(start)
+    _limit_option(start)
     start.add_argument("--force", action="store_true", help="replace existing files")
     start.set_defaults(run=_campaign)
 
@@ -165,6 +196,7 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="DECISION",
         help="a decision that needs a comment (repeatable): Keep, Remove or Unsure",
     )
+    _limit_option(take)
     take.add_argument("--force", action="store_true", help="replace existing files")
     take.set_defaults(run=_decisions)
 
@@ -197,6 +229,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="when the later access was read; overrides the time the inputs record",
     )
     _csv_options(check)
+    _limit_option(check)
     check.add_argument("--force", action="store_true", help="replace existing files")
     check.set_defaults(run=_verify)
 
@@ -242,29 +275,90 @@ def _now() -> datetime:
     return datetime.now(UTC).replace(microsecond=0)
 
 
-def _read(path: Path, limit: int, what: str) -> bytes:
+def _read(path: Path, limit: str, what: str) -> bytes:
+    """Read a whole file, refusing one larger than the limit called ``limit``."""
     try:
         if not path.is_file():
-            msg = f"cannot read {path.name}: it is not a file"
+            msg = f"cannot read {path}: it is not a file"
             raise InputError(msg)
-        if path.stat().st_size > limit:
-            msg = f"{path.name} is larger than {limit} bytes, so it is not read as {what}"
+        if path.stat().st_size > limits.get(limit):
+            msg = (
+                f"{path} is larger than {limits.get(limit)} bytes, so it is not read as {what}; "
+                f"{limits.hint(limit)}"
+            )
             raise InputError(msg)
         return path.read_bytes()
     except OSError as exc:
-        msg = f"cannot read {path.name}: {exc.strerror}"
+        msg = f"cannot read {path}: {exc.strerror}"
         raise InputError(msg) from None
 
 
-def _record(path: Path, name: str, limit: int) -> bytes:
+def _record(path: Path, name: str, limit: str) -> bytes:
     return _read(path / name if path.is_dir() else path, limit, name)
 
 
-def _write(
-    directory: Path, files: dict[str, bytes], *, force: bool, inputs: Sequence[InputFile], when: str
+def _owned(command: str) -> Callable[[str], bool]:
+    """Return which file names ``command`` writes, so ``--force`` takes away no others."""
+    names = {
+        "campaign": {CAMPAIGN_FILE, "campaign-report.json", "campaign-report.md"}
+        | {"campaign-report.html"}
+        | {f"{key}.csv" for key in _CAMPAIGN_CSV},
+        "decisions": {DECISIONS_FILE, "decisions-report.json", "decisions-report.md"}
+        | {"decisions-report.html"}
+        | {f"{key}.csv" for key in _DECISIONS_CSV},
+        "verify": {"verify-report.json", "verify-report.md", "verify-report.html"}
+        | {f"{key}.csv" for key in _VERIFY_CSV},
+    }[command]
+    packets = command == "campaign"
+    return lambda name: name in names or (packets and _PACKET_FILE.fullmatch(name) is not None)
+
+
+def _guard_output(directory: Path, command: str, records: Sequence[Path] = ()) -> None:
+    """Refuse an output folder that would put new files among the records a run rests on.
+
+    ``records`` are the campaign and decision records the command was given (a folder or a
+    ``campaign.json``/``decisions.json`` path). The output folder may not be one of their
+    folders or contain one, and may not already hold a record that this command does not
+    write, whatever ``--force`` says: those records cannot be made again.
+    """
+    here = directory.resolve()
+    for record in records:
+        folder = (record if record.is_dir() else record.parent).resolve()
+        if here == folder or here in folder.parents:
+            msg = (
+                f"the output folder {directory} is, or contains, the folder of {record}; "
+                "write the result to a new folder so that record is never replaced"
+            )
+            raise OutputError(msg)
+    for kind, name in _RECORDS.items():
+        if kind != command and (directory / name).exists():
+            msg = (
+                f"{directory / name} is a {kind} record, which shaar {command} does not write; "
+                "choose another output folder (even --force never replaces it)"
+            )
+            raise OutputError(msg)
+
+
+def _write(  # noqa: PLR0913 - one call per command, all keywords
+    directory: Path,
+    files: dict[str, bytes],
+    *,
+    command: str,
+    force: bool,
+    inputs: Sequence[InputFile],
+    when: str,
+    read: Sequence[Path],
 ) -> None:
     write_outputs(
-        directory, files, force=force, generated_at=when, tool_version=__version__, inputs=inputs
+        directory,
+        files,
+        force=force,
+        generated_at=when,
+        tool_version=__version__,
+        inputs=inputs,
+        removable=_owned(command),
+        limits=limits.effective(),
+        protect=read,
     )
 
 
@@ -272,6 +366,7 @@ def _campaign(args: argparse.Namespace) -> int:
     if (args.reviewers == "map") != (args.reviewer_map is not None):
         msg = "use --reviewer-map with --reviewers map, and only then"
         raise UsageError(msg)
+    _guard_output(args.output, "campaign")
     entries = read_map(args.reviewer_map) if args.reviewer_map else None
     snapshot = read_inputs(
         args.inputs, label="campaign", csv_map=args.map, preset=args.preset, resource=args.resource
@@ -287,26 +382,40 @@ def _campaign(args: argparse.Namespace) -> int:
     )
     document = reports.campaign_document(built, generated_at=when, version=__version__)
     files = {CAMPAIGN_FILE: campaign.dump(built), **reports.packets(built)}
-    files |= render_all(document, ["unassigned", "rows"] if built.unassigned else ["rows"])
-    _write(args.output, files, force=args.force, inputs=built.inputs, when=when)
-    print(terminal(document.headline))  # noqa: T201
-    print(terminal(f"Campaign written to {args.output}: {len(built.reviewers)} packets to send."))  # noqa: T201
+    files |= render_all(document, list(_CAMPAIGN_CSV) if built.unassigned else ["rows"])
+    read = [*args.inputs, *(p for p in (args.map, args.reviewer_map) if p)]
+    _write(
+        args.output,
+        files,
+        command="campaign",
+        force=args.force,
+        inputs=built.inputs,
+        when=when,
+        read=read,
+    )
+    code = ExitCode.FINDINGS if built.unassigned or built.problems else ExitCode.OK
+    say(terminal_line(document.headline))
+    say(
+        f"Campaign written to {terminal_line(str(args.output))}: "
+        f"{len(built.reviewers)} packets to send."
+    )
     if built.reviewers:
         returned = command_line(
             "shaar", "decisions", str(args.output), "PACKET...", "-o", "DECISIONS"
         )
-        print(terminal(f"When the packets come back:\n  {returned}"))  # noqa: T201
-    return int(ExitCode.FINDINGS if built.unassigned or built.problems else ExitCode.OK)
+        say(f"When the packets come back:\n  {terminal_line(returned)}")
+    return int(code)
 
 
 def _decisions(args: argparse.Namespace) -> int:
-    built = campaign.load(_record(args.campaign, CAMPAIGN_FILE, campaign.MAX_CAMPAIGN_BYTES))
+    _guard_output(args.output, "decisions", [args.campaign])
+    built = campaign.load(_record(args.campaign, CAMPAIGN_FILE, "campaign-bytes"))
     names = [path.name for path in args.packets]
     repeated = sorted({name for name in names if names.count(name) > 1})
     if repeated:
         msg = f"two packets are named {repeated[0]}; rename one so each decision's source is clear"
         raise UsageError(msg)
-    files = [(path.name, _read(path, MAX_PACKET_BYTES, "a packet")) for path in args.packets]
+    files = [(path.name, _read(path, "packet-bytes", "a packet")) for path in args.packets]
     when = format_time(_now())
     record = decide.read_decisions(
         built, files, read=read_packet, created_at=when, require_comment=args.require_comment
@@ -314,17 +423,27 @@ def _decisions(args: argparse.Namespace) -> int:
     document = reports.decisions_document(built, record, generated_at=when, version=__version__)
     out = {
         DECISIONS_FILE: decide.dump(record),
-        **render_all(document, ["removals", "attention", "decisions"]),
+        **render_all(document, [*_DECISIONS_CSV]),
     }
-    _write(args.output, out, force=args.force, inputs=built.inputs, when=when)
-    print(terminal(document.headline))  # noqa: T201
-    print(terminal(f"Decision record written to {args.output}."))  # noqa: T201
-    return int(ExitCode.OK if record.complete else ExitCode.FINDINGS)
+    _write(
+        args.output,
+        out,
+        command="decisions",
+        force=args.force,
+        inputs=built.inputs,
+        when=when,
+        read=args.packets,
+    )
+    code = ExitCode.FINDINGS if decide.gaps(built, record) else ExitCode.OK
+    say(terminal_line(document.headline))
+    say(f"Decision record written to {terminal_line(str(args.output))}.")
+    return int(code)
 
 
 def _verify(args: argparse.Namespace) -> int:
-    built = campaign.load(_record(args.campaign, CAMPAIGN_FILE, campaign.MAX_CAMPAIGN_BYTES))
-    record = decide.load(_record(args.decisions, DECISIONS_FILE, decide.MAX_DECISIONS_BYTES))
+    _guard_output(args.output, "verify", [args.campaign, args.decisions])
+    built = campaign.load(_record(args.campaign, CAMPAIGN_FILE, "campaign-bytes"))
+    record = decide.load(_record(args.decisions, DECISIONS_FILE, "decisions-bytes"))
     later = read_inputs(
         args.inputs, label="later", csv_map=args.map, preset=args.preset, resource=args.resource
     )
@@ -333,26 +452,56 @@ def _verify(args: argparse.Namespace) -> int:
     document = reports.verify_document(
         built, outcome, later, generated_at=when, version=__version__
     )
-    files = render_all(document, ["removals", "kept_but_gone", "new_since_review"])
-    _write(args.output, files, force=args.force, inputs=later.inputs, when=when)
-    print(terminal(document.headline))  # noqa: T201
-    print(terminal(f"Report written to {args.output}."))  # noqa: T201
-    return int(ExitCode.OK if outcome.complete else ExitCode.FINDINGS)
+    files = render_all(document, [*_VERIFY_CSV])
+    read = [*args.inputs, *([args.map] if args.map else [])]
+    _write(
+        args.output,
+        files,
+        command="verify",
+        force=args.force,
+        inputs=later.inputs,
+        when=when,
+        read=read,
+    )
+    code = ExitCode.OK if outcome.complete else ExitCode.FINDINGS
+    say(terminal_line(document.headline))
+    say(f"Report written to {terminal_line(str(args.output))}.")
+    return int(code)
 
 
 def _schema(args: argparse.Namespace) -> int:
-    sys.stdout.write(schema_text(args.name))
+    say(schema_text(args.name), end="")
     return int(ExitCode.OK)
 
 
 def _example(args: argparse.Namespace) -> int:
     written = example.write(args.directory, force=args.force)
-    print(terminal(f"Wrote synthetic access data to {args.directory}. Try:\n{written}"))  # noqa: T201
+    say(
+        f"Wrote synthetic access data to {terminal_line(str(args.directory))}. "
+        f"Run these in order:\n{written}\n"
+        "The first command sets the time the campaign is made at, so it is the campaign "
+        "the returned packets answer; a campaign made at another time has another id and "
+        "refuses them. All three commands end with exit code 1 here on purpose: the "
+        "example has entries with no reviewer, an Unsure answer, a blank answer and a "
+        "removal that was not made."
+    )
     return int(ExitCode.OK)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the command line and return an exit code."""
+    """Run the command line and return an exit code.
+
+    The exit code is decided by the command before it prints its summary, and printing
+    cannot change it: a closed pipe or an output that cannot encode a character never turns
+    a finished run into an internal error (see :mod:`faithful_shaar.console`).
+    """
+    console.prepare()
+    code = _run(argv)
+    console.finish()
+    return code
+
+
+def _run(argv: Sequence[str] | None) -> int:
     parser = build_parser()
     try:
         args = parser.parse_args(argv)
@@ -363,14 +512,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.print_help(sys.stderr)
         return int(ExitCode.USAGE)
     try:
+        limits.configure(getattr(args, "limit", None))
         return int(args.run(args))
     except ShaarError as exc:
-        print(f"shaar: error: {terminal(redact(str(exc)))}", file=sys.stderr)  # noqa: T201
+        say(f"shaar: error: {terminal_line(redact(str(exc)))}", error=True)
         return int(ExitCode.USAGE if isinstance(exc, UsageError) else ExitCode.INPUT_ERROR)
     except Exception as exc:  # noqa: BLE001 - last-resort handler keeps crashes distinct
-        print(  # noqa: T201
-            f"shaar: internal error: {type(exc).__name__}: {terminal(redact(str(exc)))[:200]}\n"
+        shown = terminal_line(redact(str(exc)))[:200]
+        say(
+            f"shaar: internal error: {type(exc).__name__}: {shown}\n"
             "This is a bug in shaar. Please report it.",
-            file=sys.stderr,
+            error=True,
         )
         return int(ExitCode.INTERNAL_ERROR)
+    finally:
+        limits.reset()

@@ -12,7 +12,7 @@ The risks are mostly ordinary. A reviewer sorts the sheet and a row moves. Someo
 Options considered:
 
 - **Trust the workbook.** Fast, but a changed row would silently change what a decision applies to.
-- **Sign each packet or the campaign with a key.** It would defeat a determined forger. It needs key generation, storage, distribution, and rotation, and a reviewer who never touches a key cannot sign. Filip chose not to build it for this release.
+- **Sign each packet or the campaign with a key.** It would defeat a determined forger. It needs key generation, storage, distribution, and rotation, and a reviewer who never touches a key cannot sign. The maintainer chose not to build it for this release.
 - **Bind everything with hashes.** No keys. It detects accidental and casual changes, and it is cheap for operators to understand.
 - **Rely on sheet protection.** It has no password, it is easy to remove, and a spreadsheet program does not enforce it on a program that reads the file.
 
@@ -24,7 +24,7 @@ Options considered:
 - **Checks on return.** A returned packet must carry the campaign's id and a packet digest of one reviewer. Each row must belong to that reviewer, carry the right check, and show the same text as the campaign. A row that fails is `altered` and its decision is not used. Rows that are not the packet's own are strays. Copies that disagree are a `conflict`.
 - **The reviewer of record** is the one the campaign assigned to the packet. The author and time a workbook reports about itself are recorded as claims, in a separate field, and never used.
 - **Sheet protection** guards against accidents only, with no password.
-- **No signing in 0.1.0.** Filip chose hash binding over signatures.
+- **No signing in 0.1.0.** The maintainer chose hash binding over signatures.
 
 ## Consequences
 

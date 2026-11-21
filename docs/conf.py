@@ -40,6 +40,7 @@ html_theme_options = {
 
 NAVIGATION = {
     "index": [
+        "quickstart",
         "usage",
         "campaigns",
         "verification",

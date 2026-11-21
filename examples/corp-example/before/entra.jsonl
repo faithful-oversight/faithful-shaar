@@ -1,4 +1,4 @@
-{"collected_at": "2026-11-01T22:00:00Z", "collector": {"name": "shaar example", "version": "0.1.0"}, "scope": {"groups": ["Payroll App Users"], "roles": true}, "shaar_export": 1, "system": "entra", "tenant": "00000000-0000-4000-8000-000000000000"}
+{"collected_at": "2026-11-01T22:00:00Z", "collector": {"name": "shaar example", "version": "0.1.1"}, "scope": {"groups": ["Payroll App Users"], "roles": true}, "shaar_export": 1, "system": "entra", "tenant": "00000000-0000-4000-8000-000000000000"}
 {"principal": {"email": "jordan.director@corp.example", "enabled": true, "extra": {}, "id": "00000000-0000-4000-8000-000000000001", "kind": "user", "last_sign_in": "2026-10-30T08:15:00Z", "manager_id": "", "name": "Jordan Director", "upn": "jordan.director@corp.example"}}
 {"principal": {"email": "morgan.lead@corp.example", "enabled": true, "extra": {}, "id": "00000000-0000-4000-8000-000000000002", "kind": "user", "last_sign_in": "2026-10-30T08:15:00Z", "manager_id": "00000000-0000-4000-8000-000000000001", "name": "Morgan Lead", "upn": "morgan.lead@corp.example"}}
 {"principal": {"email": "avery.example@corp.example", "enabled": true, "extra": {}, "id": "00000000-0000-4000-8000-000000000003", "kind": "user", "last_sign_in": "2026-10-30T08:15:00Z", "manager_id": "00000000-0000-4000-8000-000000000002", "name": "Avery Example", "upn": "avery.example@corp.example"}}
@@ -12,4 +12,4 @@
 {"grant": {"entitlement": "member", "extra": {}, "principal_id": "00000000-0000-4000-8000-000000000003", "resource_id": "00000000-0000-4000-8000-000000003001", "via": []}}
 {"grant": {"entitlement": "member", "extra": {}, "principal_id": "00000000-0000-4000-8000-000000000006", "resource_id": "00000000-0000-4000-8000-000000003001", "via": []}}
 {"grant": {"entitlement": "member", "extra": {}, "principal_id": "00000000-0000-4000-8000-000000000007", "resource_id": "00000000-0000-4000-8000-000000003001", "via": []}}
-{"end": true, "records": 13, "sha256": "e38d93d18a248bc6803d012c20f812709b2be83794a7c7b19862f4d10e22ef56"}
+{"end": true, "records": 13, "sha256": "669778ac36ec04a8edce7fde270fbdeeabbcc9bc2e33e482906ab355b9041ed6"}

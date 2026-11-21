@@ -22,6 +22,7 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 
+from faithful_shaar import limits
 from faithful_shaar.campaign import DISPLAY, canonical
 from faithful_shaar.errors import InputError
 
@@ -303,9 +304,20 @@ def _outcome(row: Row, seen: _Seen | None, returned: bool, unreadable: bool) -> 
         comments = sorted({comment for _, comment, *_ in seen.decisions if comment})
         _, _, packet, citation = seen.decisions[0]
         reason = "another copy of this row is not valid" if seen.invalid else ""
-        state = "conflict" if seen.invalid else "accepted"
+        if seen.invalid:
+            # Nothing is accepted, so no decision is recorded for a consumer to act on.
+            return RowDecision(
+                row.row_id,
+                key,
+                "conflict",
+                "",
+                " | ".join(comments),
+                packet,
+                citation,
+                f"{reason} (a copy says {decision})",
+            )
         return RowDecision(
-            row.row_id, key, state, decision, " | ".join(comments), packet, citation, reason
+            row.row_id, key, "accepted", decision, " | ".join(comments), packet, citation, reason
         )
     packet, citation = seen.blank[0]
     reason = "missing from the returned packet" if citation.endswith(": missing") else "no decision"
@@ -357,6 +369,76 @@ def read_decisions(
     return record
 
 
+def _names(items: list[str], limit: int = 3) -> str:
+    """Join up to ``limit`` names, then say how many more there are."""
+    shown = ", ".join(items[:limit])
+    return f"{shown} and {len(items) - limit} more" if len(items) > limit else shown
+
+
+def campaign_gaps(campaign: Campaign) -> list[str]:
+    """Return why the campaign itself may not have put every access entry in a packet.
+
+    A decision record can only cover what the campaign sent for review. Problems recorded
+    while reading the inputs, a resource whose membership was not read in full, and a
+    campaign with no entries at all each mean the review may be missing people.
+    """
+    gaps = []
+    if campaign.problems:
+        gaps.append(
+            f"the campaign recorded {_plural(len(campaign.problems), 'problem')} reading its "
+            "inputs (see Not read), so some access may never have reached a packet"
+        )
+    shown = {row.resource_key: row.display.get("resource", "") for row in campaign.rows}
+    shown |= {u.resource_key: u.display.get("resource", "") for u in campaign.unassigned}
+    partial = sorted(
+        (name or key) for key, name in shown.items() if key not in campaign.complete_resources
+    )
+    if partial:
+        gaps.append(
+            f"{_plural(len(partial), 'resource')} not read in full when the campaign began "
+            f"({_names(partial)}), so members the input did not list were never reviewed"
+        )
+    if not campaign.rows and not campaign.unassigned:
+        gaps.append("the campaign has no access entries, so there was nothing to review")
+    return gaps
+
+
+def _plural(n: int, one: str, many: str = "") -> str:
+    return f"{n} {one if n == 1 else many or one + 's'}"
+
+
+def record_gaps(record: DecisionRecord) -> list[str]:
+    """Return why the decisions themselves are not final: what lacks a firm accepted decision."""
+    gaps = []
+    counts = {state: sum(1 for r in record.rows if r.state == state) for state in STATES}
+    open_states = [f"{state} {counts[state]}" for state in STATES[1:] if counts[state]]
+    if open_states:
+        total = sum(counts[state] for state in STATES[1:])
+        gaps.append(
+            f"{_plural(total, 'entry', 'entries')} "
+            f"{'has' if total == 1 else 'have'} no accepted decision ({', '.join(open_states)})"
+        )
+    unsure = sum(1 for r in record.rows if r.state == "accepted" and r.decision == "Unsure")
+    if unsure:
+        gaps.append(f"{_plural(unsure, 'entry', 'entries')} marked Unsure")
+    if record.strays:
+        gaps.append(f"{_plural(len(record.strays), 'row')} came in a packet it does not belong to")
+    unused = sum(1 for p in record.packets if p.status != "read")
+    if unused:
+        gaps.append(f"{_plural(unused, 'returned file')} could not be used")
+    return gaps
+
+
+def gaps(campaign: Campaign, record: DecisionRecord) -> list[str]:
+    """Return every reason the decision record cannot stand for the whole review.
+
+    It is empty only when the campaign read all of its input and every entry has a firm
+    accepted decision. ``shaar decisions`` and ``shaar verify`` both take their exit code
+    and their wording from this one list.
+    """
+    return [*campaign_gaps(campaign), *record_gaps(record)]
+
+
 def _plain(record: DecisionRecord) -> dict[str, Any]:
     data = asdict(record)
     data.pop("digest")
@@ -381,12 +463,15 @@ def load(raw: bytes) -> DecisionRecord:
         InputError: The file is not a decision record, has the wrong shape, or was changed
             after it was written.
     """
-    if len(raw) > MAX_DECISIONS_BYTES:
-        msg = f"decisions.json is larger than {MAX_DECISIONS_BYTES} bytes"
+    if len(raw) > limits.get("decisions-bytes"):
+        msg = (
+            f"decisions.json is larger than {limits.get('decisions-bytes')} bytes; "
+            f"{limits.hint('decisions-bytes')}"
+        )
         raise InputError(msg)
     try:
         data = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
+    except (UnicodeDecodeError, ValueError, RecursionError):
         msg = "decisions.json is not JSON"
         raise InputError(msg) from None
     if not isinstance(data, dict) or data.get("shaar_decisions") != FORMAT:

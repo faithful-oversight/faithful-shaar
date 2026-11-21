@@ -20,13 +20,16 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from faithful_shaar.assign import MapEntry, assign
+from faithful_shaar import limits
+from faithful_shaar.assign import MapEntry, MapIndex, assign
 from faithful_shaar.errors import InputError
 from faithful_shaar.formats.xlsx import cell_text
+from faithful_shaar.keys import fold, identity
 from faithful_shaar.model import InputFile, Problem, Source
+from faithful_shaar.outputs.safety import visible
 
 if TYPE_CHECKING:
-    from faithful_shaar.model import Grant, Snapshot
+    from faithful_shaar.model import Grant, Principal, Snapshot
 
 FORMAT = 1
 MAX_CAMPAIGN_BYTES = 256 * 1024 * 1024
@@ -58,6 +61,10 @@ class Row:
     display: dict[str, str]
     row_check: str
     source: str
+    account_identity: str = ""
+    """The canonical identity (:func:`faithful_shaar.keys.identity`) of the account shown in
+    ``display["account"]``, taken from the raw text. Verification matches on it, because the
+    display text is escaped and may be cut. Empty in a campaign written before it existed."""
 
 
 @dataclass(frozen=True)
@@ -102,10 +109,19 @@ class Campaign:
     problems: list[Problem]
     complete_resources: list[str] = field(default_factory=list)
     digest: str = ""
+    _by_reviewer: dict[str, list[Row]] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _counted: int = field(default=0, init=False, repr=False, compare=False)
 
     def rows_for(self, reviewer_key: str) -> list[Row]:
         """Return a reviewer's rows in packet order."""
-        return [row for row in self.rows if row.reviewer_key == reviewer_key]
+        if self._by_reviewer is None or self._counted != len(self.rows):
+            grouped: dict[str, list[Row]] = {}
+            for row in self.rows:
+                grouped.setdefault(row.reviewer_key, []).append(row)
+            self._by_reviewer, self._counted = grouped, len(self.rows)
+        return list(self._by_reviewer.get(reviewer_key, []))
 
 
 def _sha256(text: str) -> str:
@@ -144,17 +160,22 @@ def _status(enabled: bool | None) -> str:  # noqa: FBT001 - the value shown, not
     return "Enabled" if enabled else "Disabled"
 
 
+def account_of(principal: Principal) -> str:
+    """Return the raw account text a row shows for a principal, before any escaping."""
+    return principal.upn or principal.email or principal.id
+
+
 def display_for(
     grant: Grant, snapshot: Snapshot, co_owners: tuple[str, ...] = ()
 ) -> dict[str, str]:
-    """Return what a reviewer sees for a grant."""
+    """Return what a reviewer sees for a grant (invisible characters shown as escapes)."""
     principal = snapshot.principals.get(grant.principal_key)
     resource = snapshot.resources.get(grant.resource_key)
     if principal is None:
         user, account, status, sign_in = grant.principal_key, "", "Unknown", ""
     else:
         user = principal.name or principal.id
-        account = principal.upn or principal.email or principal.id
+        account = account_of(principal)
         status = _status(principal.enabled)
         sign_in = principal.last_sign_in
         if principal.kind not in {"user", "unknown"}:
@@ -172,7 +193,14 @@ def display_for(
     }
     # The campaign keeps exactly the text a packet cell holds, so a returned packet can be
     # compared with it character for character.
-    return {name: cell_text(value)[0].strip() for name, value in shown.items()}
+    # Invisible and reordering characters show as visible escapes, as in every report, so the
+    # reviewer and the operator read the same text for the same row.
+    return {name: cell_text(visible(value))[0].strip() for name, value in shown.items()}
+
+
+def _account_identity(grant: Grant, snapshot: Snapshot) -> str:
+    principal = snapshot.principals.get(grant.principal_key)
+    return identity(account_of(principal)) if principal is not None else ""
 
 
 def campaign_id(  # noqa: PLR0913 - everything that decides who reviews what
@@ -223,8 +251,9 @@ def build(  # noqa: PLR0913 - the parts of a campaign
     placed: list[tuple[Grant, Any, dict[str, str]]] = []
     unassigned: list[Unassigned] = []
     reviewers: dict[str, Any] = {}
+    map_index = MapIndex(entries) if entries is not None else None
     for grant in sorted(snapshot.grants.values(), key=lambda g: g.key):
-        result = assign(grant, snapshot, rule, entries)
+        result = assign(grant, snapshot, rule, map_index)
         display = display_for(grant, snapshot, result.co_owners)
         if result.reviewer is None:
             unassigned.append(
@@ -239,7 +268,7 @@ def build(  # noqa: PLR0913 - the parts of a campaign
             )
             continue
         known = reviewers.setdefault(result.reviewer.key, result.reviewer)
-        if known.email.strip().casefold() != result.reviewer.email.strip().casefold():
+        if fold(known.email.strip()) != fold(result.reviewer.email.strip()):
             # Never reached through the reviewer map, which refuses this; a guard so a
             # packet's rows always belong to the one person it is sent to.
             msg = (
@@ -276,12 +305,16 @@ def build(  # noqa: PLR0913 - the parts of a campaign
                 display,
                 check,
                 str(grant.source),
+                _account_identity(grant, snapshot),
             )
         )
+    by_reviewer: dict[str, list[Row]] = {}
+    for row in rows:
+        by_reviewer.setdefault(row.reviewer_key, []).append(row)
     entries_out = []
     ordered = sorted(reviewers.values(), key=lambda r: (r.name.casefold(), r.key))
     for index, reviewer in enumerate(ordered, start=1):
-        mine = [row for row in rows if row.reviewer_key == reviewer.key]
+        mine = by_reviewer.get(reviewer.key, [])
         entries_out.append(
             ReviewerEntry(
                 reviewer.key,
@@ -292,6 +325,12 @@ def build(  # noqa: PLR0913 - the parts of a campaign
                 len(mine),
             )
         )
+    problems = list(snapshot.problems)
+    if not rows and not unassigned:
+        # A header-only export, a filter that matched nothing or the wrong file looks like
+        # a clean review of nobody; say so instead.
+        first = snapshot.inputs[0].name if snapshot.inputs else name
+        problems.append(Problem(Source(first), "no access entries were found in the inputs"))
     built = Campaign(
         id=cid,
         name=name,
@@ -311,7 +350,7 @@ def build(  # noqa: PLR0913 - the parts of a campaign
                 u.grant_key,
             ),
         ),
-        problems=list(snapshot.problems),
+        problems=problems,
         complete_resources=sorted(snapshot.complete_resources),
     )
     built.digest = digest(built)
@@ -320,7 +359,8 @@ def build(  # noqa: PLR0913 - the parts of a campaign
 
 def _plain(campaign: Campaign) -> dict[str, Any]:
     data = asdict(campaign)
-    data.pop("digest")
+    for name in ("digest", "_by_reviewer", "_counted"):
+        data.pop(name)
     data["problems"] = [{"source": str(p.source), "reason": p.reason} for p in campaign.problems]
     return data
 
@@ -355,12 +395,15 @@ def load(raw: bytes) -> Campaign:
         InputError: The file is not a campaign, has the wrong shape, or was changed after
             it was written (its digest does not match).
     """
-    if len(raw) > MAX_CAMPAIGN_BYTES:
-        msg = f"campaign.json is larger than {MAX_CAMPAIGN_BYTES} bytes"
+    if len(raw) > limits.get("campaign-bytes"):
+        msg = (
+            f"campaign.json is larger than {limits.get('campaign-bytes')} bytes; "
+            f"{limits.hint('campaign-bytes')}"
+        )
         raise InputError(msg)
     try:
         data = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
+    except (UnicodeDecodeError, ValueError, RecursionError):
         msg = "campaign.json is not JSON"
         raise InputError(msg) from None
     if not isinstance(data, dict) or data.get("shaar_campaign") != FORMAT:

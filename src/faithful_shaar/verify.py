@@ -11,20 +11,28 @@ For every accepted Remove decision the result is one of:
 - ``failed``: the grant is still there on or after the due date (or the campaign has no
   due date).
 - ``unknown``: the later export cannot show it: the resource is missing from the export,
-  its membership was not read in full, or the export is of another system.
+  its membership was not read in full, the export is of another system, or it has no
+  entitlement column (every grant in it reads as ``member``) and the removal is of another
+  entitlement.
 
 Two further lists are information, not failures: kept access that has gone anyway, and
 access on the reviewed resources that was not part of the review.
+
+Removals are only part of a review. When the decision record is not complete (entries
+without an accepted decision, Unsure answers, packets never returned, or input the
+campaign could not read), the verification says so and does not count as complete, however
+many of the removals that were decided have been made.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from faithful_shaar import decide
 from faithful_shaar.errors import InputError
-from faithful_shaar.keys import entitlement_of, system_of
+from faithful_shaar.keys import entitlement_of, identity, system_of
 
 if TYPE_CHECKING:
     from faithful_shaar.campaign import Campaign, Row
@@ -64,11 +72,17 @@ class Verification:
     checks: list[Check]
     kept_but_gone: list[Note]
     new_since_review: list[Note]
+    record_gaps: list[str] = field(default_factory=list)
+
+    @property
+    def removals_made(self) -> bool:
+        """Whether every accepted removal was verified as made."""
+        return all(check.result == "removed" for check in self.checks)
 
     @property
     def complete(self) -> bool:
-        """Whether every removal was verified as made."""
-        return all(check.result == "removed" for check in self.checks)
+        """Whether every removal was verified as made and the decision record is complete."""
+        return self.removals_made and not self.record_gaps
 
 
 def _check_record(campaign: Campaign, record: DecisionRecord) -> None:
@@ -112,35 +126,58 @@ def _still_there(campaign: Campaign, as_of: str) -> tuple[str, str]:
     return "failed", "still present; the campaign has no due date"
 
 
-def _same_person(row: Row, later: Snapshot) -> str:
+Holders = dict[tuple[str, str], dict[str, str]]
+"""For each (resource key, entitlement) of the later export: the canonical identities
+(``keys.identity``, taken from the raw account texts) of the principals holding it, each with
+the name to report."""
+
+
+def _holders(later: Snapshot) -> Holders:
+    """Index the later grants once, so each absent removal is a lookup, not a scan."""
+    found: Holders = {}
+    for grant in later.grants.values():
+        principal = later.principals.get(grant.principal_key)
+        if principal is None:
+            continue
+        slot = found.setdefault((grant.resource_key, entitlement_of(grant.key)), {})
+        for text in (principal.upn, principal.email, principal.id):
+            if found_identity := identity(text):
+                slot.setdefault(found_identity, principal.name or principal.id)
+    return found
+
+
+def _same_person(row: Row, holders: Holders) -> str:
     """Return who in the later export holds this access under another key, or ``""``.
 
     A person can change key between exports, for example when a CSV's id column changes.
     Their access is then absent under the old key but present under the new one, so the
     absence is no evidence of a removal.
     """
-    account = row.display.get("account", "").strip().casefold()
-    entitlement = entitlement_of(row.grant_key)
-    for grant in later.grants.values():
-        if grant.resource_key != row.resource_key or entitlement_of(grant.key) != entitlement:
-            continue
-        principal = later.principals.get(grant.principal_key)
-        if principal is None or not account:
-            continue
-        names = {v.strip().casefold() for v in (principal.upn, principal.email, principal.id) if v}
-        if account in names:
-            return principal.name or principal.id
-    return ""
+    # The identity kept from the raw account text, not the escaped text a reviewer saw. A
+    # campaign written before it was kept falls back to the displayed text, as it always did.
+    account = row.account_identity or identity(row.display.get("account", ""))
+    if not account:
+        return ""
+    return holders.get((row.resource_key, entitlement_of(row.grant_key)), {}).get(account, "")
 
 
-def _absent(campaign: Campaign, row: Row, later: Snapshot, when: str) -> tuple[str, str]:
+def _absent(
+    campaign: Campaign, row: Row, later: Snapshot, when: str, holders: Holders
+) -> tuple[str, str]:
     """Judge access absent from a fully read resource: removed only with a dated, later read."""
     taken, started = _instant(when), _instant(campaign.created_at)
     if taken is None:
         return "unknown", "the later export does not say when it was read; give --as-of"
     if started is not None and taken < started:
         return "unknown", "the later export was read before the campaign began"
-    holder = _same_person(row, later)
+    if entitlement_of(row.grant_key) != "member" and system_of(row.resource_key) in (
+        later.entitlement_blind
+    ):
+        return "unknown", (
+            "the later export has no entitlement column, so every grant in it reads as "
+            "'member' and it cannot show that this entitlement was removed"
+        )
+    holder = _same_person(row, holders)
     if holder:
         return "unknown", f"the same account still holds this access under another key ({holder})"
     reason = "not in the later export, which read the whole membership"
@@ -152,14 +189,20 @@ def _absent(campaign: Campaign, row: Row, later: Snapshot, when: str) -> tuple[s
     return "removed", reason
 
 
-def _removal(
-    campaign: Campaign, row: Row, later: Snapshot, when: str, systems: set[str]
+def _removal(  # noqa: PLR0913 - the evidence one judgement rests on
+    campaign: Campaign,
+    row: Row,
+    later: Snapshot,
+    when: str,
+    *,
+    systems: set[str],
+    holders: Holders,
 ) -> tuple[str, str]:
     """Return the result and reason for one accepted Remove decision."""
     if row.grant_key in later.grants:
         return _still_there(campaign, when)
     if row.resource_key in later.complete_resources:
-        return _absent(campaign, row, later, when)
+        return _absent(campaign, row, later, when, holders)
     if system_of(row.resource_key) not in systems:
         return "unknown", "the later export is not of the system this access is on"
     if row.resource_key not in later.resources:
@@ -188,6 +231,7 @@ def verify(
     systems = set(later.systems) | {
         system_of(key) for key in later.complete_resources | set(later.resources)
     }
+    holders = _holders(later)
     checks: list[Check] = []
     kept_but_gone: list[Note] = []
     for row_id, decision in sorted(decided.items()):
@@ -200,7 +244,9 @@ def verify(
             # Each resource is judged by when its own inputs read it, not by another
             # input's time; --as-of, when given, is the operator's statement for all.
             read_at = as_of or later.resource_times.get(row.resource_key, later.collected_at)
-            result, reason = _removal(campaign, row, later, read_at, systems)
+            result, reason = _removal(
+                campaign, row, later, read_at, systems=systems, holders=holders
+            )
             checks.append(Check(row_id, row.grant_key, result, reason, decision.citation))
         elif decision.decision == "Keep" and not present and complete:
             kept_but_gone.append(
@@ -215,4 +261,6 @@ def verify(
         for grant in sorted(later.grants.values(), key=lambda g: g.key)
         if grant.resource_key in resources and grant.key not in reviewed
     ]
-    return Verification(campaign.id, when, checks, kept_but_gone, new)
+    return Verification(
+        campaign.id, when, checks, kept_but_gone, new, decide.gaps(campaign, record)
+    )

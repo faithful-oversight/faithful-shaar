@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from pathlib import Path
 from typing import Any
@@ -16,12 +17,14 @@ from faithful_shaar import cli, example
 from faithful_shaar.cli import ExitCode, main
 from faithful_shaar.formats.xlsx import read_packet
 from faithful_shaar.schema import schema_text
+from tests import review_support as rs
 
 
 @pytest.fixture(scope="module")
 def sample(tmp_path_factory: pytest.TempPathFactory) -> Path:
     root = tmp_path_factory.mktemp("example")
-    assert main(["example", str(root / "ex")]) == ExitCode.OK
+    first = rs.example_commands(root / "ex")[0]
+    assert rs.run_command(first) == ExitCode.FINDINGS  # two entries have no manager
     return root / "ex"
 
 
@@ -308,3 +311,80 @@ def test_now_falls_back_to_the_clock(epoch: str, monkeypatch: pytest.MonkeyPatch
 def test_as_of_is_normalized() -> None:
     assert cli._time("2026-11-20T09:00:00+02:00") == "2026-11-20T07:00:00Z"  # noqa: SLF001
     assert cli._time("2026-11-20T09:00:00") == "2026-11-20T09:00:00Z"  # noqa: SLF001
+
+
+FORGED = "No findings."
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows does not allow line breaks in names")
+def test_names_with_line_breaks_cannot_add_a_terminal_line(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A directory or resource name is one printed line, however it is written."""
+    root = tmp_path / f"ex\n{FORGED}"
+    assert main(["example", str(root)]) == ExitCode.OK
+    lines = capsys.readouterr().out.splitlines()
+    assert FORGED not in lines
+    assert not any(line.strip().startswith(FORGED) for line in lines)
+    assert lines[0].startswith("Wrote synthetic access data to ")
+    commands = [line for line in lines if line.startswith("  ")]
+    assert [line.split()[0] for line in commands].count("shaar") == 2  # decisions and verify
+    assert len(commands) == 3
+    assert all("\\n" in line for line in commands)
+
+    # The campaign lists its output folder and the next command on lines of their own.
+    safe = tmp_path / "safe"
+    assert main(["example", str(safe)]) == ExitCode.OK
+    capsys.readouterr()
+    before = safe / "before"
+    out = tmp_path / f"out\r\n{FORGED}"
+    args = ["campaign", str(before / "ad.jsonl"), str(before / "entra.jsonl")]
+    args += ["--name", "n", "--reviewers", "manager", "-o", str(out)]
+    assert main(args) == ExitCode.FINDINGS
+    lines = capsys.readouterr().out.splitlines()
+    assert FORGED not in lines
+    assert not any(line.strip().startswith(FORGED) for line in lines)
+    written = next(line for line in lines if line.startswith("Campaign written to "))
+    assert "\\r\\n" in written
+    assert lines[lines.index("When the packets come back:") + 1].startswith("  shaar decisions ")
+    assert len(lines) == 4
+
+    missing = tmp_path / f"m\n{FORGED}.jsonl"
+    assert main(["campaign", str(missing), "-o", str(tmp_path / "x"), "--name", "n",
+                 "--reviewers", "manager"]) == ExitCode.INPUT_ERROR  # fmt: skip
+    err = capsys.readouterr().err
+    assert err.count("\n") == 1
+    assert "\\n" in err
+
+
+def test_a_resource_name_with_a_line_break_cannot_add_a_line_to_the_headline(
+    sample: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The verify headline names resources that were not read in full; one line, always."""
+    from faithful_shaar import campaign as cmod  # noqa: PLC0415
+
+    folder = tmp_path / "campaign"
+    shutil.copytree(sample / "campaign", folder)
+    path = folder / "campaign.json"
+    built = cmod.load(path.read_bytes())
+    raw = json.loads(path.read_text("utf-8"))
+    name = f"Evil\n{FORGED}"
+    for row, plain in zip(built.rows, raw["rows"], strict=True):
+        row.display["resource"] = plain["display"]["resource"] = name
+    built.complete_resources = raw["complete_resources"] = []
+    raw["digest"] = cmod.digest(built)
+    path.write_text(json.dumps(raw), "utf-8")
+    packets = sorted(str(p) for p in (sample / "returned").iterdir())
+    decisions = tmp_path / "decisions"
+    assert main(["decisions", str(folder), *packets, "-o", str(decisions)]) == ExitCode.FINDINGS
+    after = sample / "after"
+    args = ["verify", str(path), str(decisions / "decisions.json")]
+    args += [str(after / "ad.jsonl"), str(after / "entra.jsonl"), str(after / "ledger.csv")]
+    args += ["--map", str(after / "ledger-map.toml"), "-o", str(tmp_path / "verified")]
+    capsys.readouterr()
+    assert main(args) == ExitCode.FINDINGS
+    lines = capsys.readouterr().out.splitlines()
+    assert FORGED not in lines
+    assert not any(line.startswith(FORGED) for line in lines)
+    assert len(lines) == 2  # the headline, then where the report was written
+    assert f"Evil\\n{FORGED}" in lines[0]

@@ -8,7 +8,9 @@ the files; ``shaar example DIR`` writes them:
 - ``before/``: what access looked like when the review began: an Active Directory export,
   an Entra ID export, and a CSV from a fictional finance application, "Ledger", with its
   column map.
-- ``campaign/``: the campaign shaar built from them (reviewers chosen by manager).
+- ``campaign/``: the campaign shaar builds from them (reviewers chosen by manager). It is
+  not written by ``shaar example``: the first printed command makes it, at the fixed time
+  the returned packets were prepared for.
 - ``returned/``: the packets as the reviewers sent them back, decisions filled in. One
   reviewer marked an entry Unsure; another left one blank.
 - ``after/``: access read again after the due date. Most removals were made; one was not,
@@ -20,7 +22,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +33,7 @@ from faithful_shaar.formats.xlsx import Packet, PacketRow, write_packet
 from faithful_shaar.inputs import read_inputs
 from faithful_shaar.outputs.files import write_files
 from faithful_shaar.outputs.render import build_manifest, render_all, render_manifest
-from faithful_shaar.outputs.safety import command_line
+from faithful_shaar.outputs.safety import command_line, terminal_line
 from faithful_shaar.reports import campaign_document, packets
 
 CREATED = "2026-11-02T09:00:00Z"
@@ -72,7 +76,7 @@ def _export(
     header = {
         "shaar_export": 1,
         "system": system,
-        "collector": {"name": "shaar example", "version": "0.1.0"},
+        "collector": {"name": "shaar example", "version": "0.1.1"},
         "collected_at": at,
         "scope": scope,
         **place,
@@ -338,30 +342,45 @@ def build() -> dict[str, dict[str, bytes]]:
     }
 
 
+def epoch() -> int:
+    """The campaign's time as ``SOURCE_DATE_EPOCH`` seconds."""
+    return int(datetime.fromisoformat(CREATED).timestamp())
+
+
 def write(directory: Path, *, force: bool) -> str:
-    """Write the example under ``directory`` and return the commands to try, one per line."""
+    """Write the example under ``directory`` and return the commands to run, one per line.
+
+    The commands, run in order, make the campaign, read the returned packets and verify the
+    later export. The returned packets answer one campaign, whose id depends on the time it
+    was made, so the first command sets ``SOURCE_DATE_EPOCH`` to that time.
+    """
     folders = build()
     for name, files in folders.items():
-        write_files(directory / name, files, force=force)
+        if name != "campaign":
+            write_files(directory / name, files, force=force)
     root = str(directory)
-    steps = [
-        command_line(
-            "shaar",
-            "campaign",
-            f"{root}/before/ad.jsonl",
-            f"{root}/before/entra.jsonl",
-            f"{root}/before/ledger.csv",
-            "--map",
-            f"{root}/before/ledger-map.toml",
-            "--name",
-            NAME,
-            "--reviewers",
-            "manager",
-            "--due",
-            DUE,
-            "-o",
-            f"{root}/my-campaign",
-        ),
+    pin = f"SOURCE_DATE_EPOCH={epoch()}"
+    make = command_line(
+        "shaar",
+        "campaign",
+        f"{root}/before/ad.jsonl",
+        f"{root}/before/entra.jsonl",
+        f"{root}/before/ledger.csv",
+        "--map",
+        f"{root}/before/ledger-map.toml",
+        "--name",
+        NAME,
+        "--reviewers",
+        "manager",
+        "--due",
+        DUE,
+        "-o",
+        f"{root}/campaign",
+    )
+    # An environment variable ahead of a command is the shell's own syntax on Linux and macOS;
+    # the Windows command prompt sets it on a line of its own.
+    steps = [f"set {pin}", make] if os.name == "nt" else [f"{pin} {make}"]
+    steps += [
         command_line(
             "shaar",
             "decisions",
@@ -384,7 +403,8 @@ def write(directory: Path, *, force: bool) -> str:
             f"{root}/verification",
         ),
     ]
-    return "\n".join(f"  {step}" for step in steps)
+    # A directory name with a line break must not turn one command into two printed lines.
+    return "\n".join(f"  {terminal_line(step)}" for step in steps)
 
 
 __all__ = ["build", "fill_packets", "write"]

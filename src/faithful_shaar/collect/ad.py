@@ -18,7 +18,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from faithful_shaar.collect import names, remote, script, secrets
+from faithful_shaar.collision import collection_collision, secret_file
+from faithful_shaar.console import say
 from faithful_shaar.errors import CollectionError, UsageError
+from faithful_shaar.outputs.safety import terminal_line
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -60,9 +63,12 @@ def _search_base(text: str) -> str:
 
 
 def terminal(text: str) -> str:
-    """Make text safe to print: the secrets are removed and control characters escaped."""
-    clean = secrets.redact(text)
-    return _CONTROL.sub(lambda m: f"\\x{ord(m.group()):02x}", clean)
+    """Make text safe to print on one line.
+
+    Secrets are removed, and control, format and bidirectional characters are shown
+    as escapes by the shared ``terminal_line``.
+    """
+    return terminal_line(secrets.redact(text))
 
 
 def _quoted(*parts: str) -> str:
@@ -146,6 +152,9 @@ def run_collect_ad(args: argparse.Namespace) -> int:
     if username and not args.secret:
         msg = "--username needs --secret; leave both out to use the current Kerberos ticket"
         raise UsageError(msg)
+    clash = collection_collision([args.ca_file, secret_file(args.secret)], args.output)
+    if clash:  # before any secret is read or any connection is made
+        raise CollectionError(clash)
     target = remote.Target(
         server=host,
         auth=args.auth,
@@ -163,13 +172,13 @@ def run_collect_ad(args: argparse.Namespace) -> int:
     if args.secret:
         target = remote.Target(**{**vars(target), "secret": secrets.resolve(args.secret)})
     result = remote.collect(target, script.text(), values, args.output, force=args.force)
-    print(terminal(f"Exported {result.records} records from {host} into {result.path}."))  # noqa: T201
+    say(terminal(f"Exported {result.records} records from {host} into {result.path}."))
     for name in result.incomplete:
-        print(terminal(f"  incomplete: {name}"))  # noqa: T201
+        say(terminal(f"  incomplete: {name}"))
     for gap in result.gaps:
-        print(terminal(f"  not read: {gap}"))  # noqa: T201
+        say(terminal(f"  not read: {gap}"))
     command = _quoted("shaar", "campaign", str(result.path), "-o", "review", "--name", "NAME")
-    print(terminal(f"Start a review with: {command} --reviewers manager"))  # noqa: T201
+    say(terminal(f"Start a review with: {command} --reviewers manager"))
     return 0
 
 
@@ -184,6 +193,6 @@ def run_exporter(args: argparse.Namespace) -> int:
     path = directory / script.NAME
     remote.write_private(path, script.text().encode("ascii"), force=args.force)
     command = f".\\{script.NAME} -Privileged -OutFile corp-access.jsonl"
-    print(terminal(f"Wrote {path}. In PowerShell on a domain-joined computer:"))  # noqa: T201
-    print(terminal(f"  {command}"))  # noqa: T201
+    say(terminal(f"Wrote {path}. In PowerShell on a domain-joined computer:"))
+    say(terminal(f"  {command}"))
     return 0

@@ -96,7 +96,7 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
 $CollectorName = 'Export-ShaarAccess.ps1'
-$CollectorVersion = '0.1.0'
+$CollectorVersion = '0.1.1'
 $Invariant = [System.Globalization.CultureInfo]::InvariantCulture
 $LookupBatch = 25
 $MaxRanges = 100000
@@ -295,7 +295,7 @@ function Publish-Output($Writer, [string] $Path, [bool] $Replace) {
 }
 
 # --- Directory access ---------------------------------------------------------------
-# Everything that talks to Active Directory is in the three small functions of this
+# Everything that talks to Active Directory is in the small functions of this
 # section, so the tests can replace them. All reads are searches and gets; nothing here
 # writes.
 
@@ -331,12 +331,22 @@ function ConvertFrom-SearchResult($Result) {
     $row
 }
 
+function New-DirectoryEntry([string] $DistinguishedName) {
+    # The one place a directory object is opened, so a test can stand in for it.
+    [adsi] (Get-LdapPath $DistinguishedName)
+}
+
+function New-DirectorySearcher([string] $Filter) {
+    # The one place a searcher is created, so a test can stand in for it.
+    [adsisearcher] $Filter
+}
+
 function Search-Directory([string] $BaseDn, [string] $Filter, [string[]] $Properties, [string] $Scope) {
     # Returns one hashtable per object found (see ConvertFrom-SearchResult). A base that
     # does not exist returns nothing. $Scope is Base, OneLevel or Subtree. Any other
     # failure, such as access denied, is thrown.
-    $entry = [adsi] (Get-LdapPath $BaseDn)
-    $searcher = [adsisearcher] $Filter
+    $entry = New-DirectoryEntry $BaseDn
+    $searcher = New-DirectorySearcher $Filter
     $found = $null
     try {
         $searcher.SearchRoot = $entry
@@ -1070,7 +1080,7 @@ function Build-Records($Roots) {
 
 # --- Export -------------------------------------------------------------------------
 
-function Get-HeaderLine([string] $DomainDn) {
+function Get-HeaderLine([string] $DomainDn, [datetime] $StartedAt) {
     $groups = @()
     if ($Group) { $groups = @($Group | Where-Object { $_ }) }
     $baseJson = 'null'
@@ -1080,7 +1090,7 @@ function Get-HeaderLine([string] $DomainDn) {
     $note = 'last_sign_in is lastLogonTimestamp, which controllers replicate with up to about 14 days of lag'
     '{"shaar_export":1,"system":"ad"' +
     ',"collector":{"name":"' + $CollectorName + '","version":"' + $CollectorVersion + '"}' +
-    ',"collected_at":"' + (Format-UtcTime (Get-Date)) + '"' +
+    ',"collected_at":"' + (Format-UtcTime $StartedAt) + '"' +
     ',"scope":{"groups":' + (ConvertTo-JsonTextArray $groups) +
     ',"search_base":' + $baseJson +
     ',"privileged":' + (ConvertTo-JsonBool ([bool] $Privileged)) +
@@ -1099,6 +1109,9 @@ function Invoke-Export {
             throw "$OutFile already exists. Use -Force to replace it."
         }
     }
+    # The export is dated when the reading starts: a long export must not look newer than
+    # the oldest thing it read.
+    $startedAt = Get-Date
     # Everything that can fail on the choice of scope happens before a file is made.
     $facts = Get-DomainFacts
     Initialize-State $facts.DomainDn
@@ -1112,7 +1125,7 @@ function Invoke-Export {
     $writer = New-LineWriter $OutFile ([bool] $ToPipeline)
     $published = $false
     try {
-        Write-Line $writer (Get-HeaderLine $facts.DomainDn)
+        Write-Line $writer (Get-HeaderLine $facts.DomainDn $startedAt)
         foreach ($line in $lines) {
             Write-Line $writer $line
             $writer.Count++

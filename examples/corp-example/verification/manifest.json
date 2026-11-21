@@ -2,27 +2,27 @@
   "files": [
     {
       "name": "verify-report.json",
-      "sha256": "ca637491dc203edbaf25be53399a51a32da6977a46fdc41748c49549f6defe6d",
-      "size": 3945
+      "sha256": "e16b42c7b526f6841da0e595de511daf448cf702a95a239afc13886eaf3b63ee",
+      "size": 4649
     },
     {
       "name": "verify-report.md",
-      "sha256": "685312250fa8c739f45649ca47dfc2120a5a02b8d6a3e06630b543e75d8c001b",
-      "size": 2948
+      "sha256": "4bc3ccffca6683e5a68270b0684fe9d7fce766c2c84e96c0e1f62c60e3322c94",
+      "size": 3345
     },
     {
       "name": "verify-report.html",
-      "sha256": "aac67f530c38dad25eb95cdc44b70d3f120cf7f55a58eb0232925a9ee3585fc2",
-      "size": 7181
+      "sha256": "4b583ebd54430923744e14feecaa8ba91d0a3de3ffdba9b546305f102c065546",
+      "size": 7776
     },
     {
       "name": "removals.csv",
-      "sha256": "15e6284560e9199f9762cb68042d655b963615a938f24c6784ba7a21872ea105",
+      "sha256": "85e19bd61b878e7f35ff99a67dc9687ceefebc2b3fe9c4bc3f1a058344d561d1",
       "size": 1000
     },
     {
       "name": "kept_but_gone.csv",
-      "sha256": "25917a6db17fd8fc2143501ea0ca95b5a506c4784e779e4c82236d63202abc53",
+      "sha256": "529bf59d0b095d308250790a4af35ef1af5f3ecdf58970971b0a9d197675c5df",
       "size": 137
     },
     {
@@ -36,13 +36,13 @@
     {
       "kind": "shaar-export",
       "name": "ad.jsonl",
-      "sha256": "e5d96356d61ef233f7ff4740c9971bdca0129482dc2e1c47ce25529e39b41276",
+      "sha256": "665745390f6255f2bdec34fb43bd02993935c4616b5c924e430e28cf75059824",
       "size": 4029
     },
     {
       "kind": "shaar-export",
       "name": "entra.jsonl",
-      "sha256": "9eb13b7c3d6a5b2f2a7954ed43b105391b436a4764d62c3fd6d5363bb1dd8924",
+      "sha256": "797ecf83636af87862fa04091a4c7e951044744caed95f32c9fcafadc3343d1a",
       "size": 3142
     },
     {
@@ -52,9 +52,24 @@
       "size": 305
     }
   ],
+  "limits": {
+    "campaign-bytes": 268435456,
+    "column-map-bytes": 1048576,
+    "csv-bytes": 268435456,
+    "csv-rows": 2000000,
+    "decisions-bytes": 268435456,
+    "export-bytes": 536870912,
+    "line-bytes": 1048576,
+    "map-bytes": 16777216,
+    "packet-bytes": 67108864,
+    "xlsx-bytes": 67108864,
+    "xlsx-cells": 1600000,
+    "xlsx-rows": 100000,
+    "xml-elements": 6400000
+  },
   "schema": "https://faithful-oversight.github.io/faithful-shaar/schema/manifest-v1.schema.json",
   "tool": {
     "name": "shaar",
-    "version": "0.1.0"
+    "version": "0.1.1"
   }
 }

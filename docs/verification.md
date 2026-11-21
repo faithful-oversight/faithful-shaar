@@ -8,6 +8,10 @@ shaar verify campaign decisions after/ad.jsonl after/entra.jsonl -o verification
 
 shaar refuses a decision record that does not match the campaign as written (the campaign id and digest must agree), with exit code `3`.
 
+## The decision record must be complete
+
+Removals are only part of a review. `shaar verify` also looks at the decision record it was given. When any entry has no accepted decision (undecided, invalid, altered, in conflict, or unassigned), any accepted decision is Unsure, a row came in the wrong packet, a returned file was unusable, or the campaign recorded problems reading its inputs or did not read a resource in full, the headline says that the decision record is not complete, each reason is listed under Not read, `decision_record_complete` in the JSON report is `false`, and the exit code is `1`. That holds even when every decided removal was made, and even when nothing was decided: `0 of 0 removals verified` is not a clean result for a review in which nobody answered.
+
 ## The four results
 
 Only accepted Remove decisions are checked. Each gets one result and a reason.
@@ -17,7 +21,7 @@ Only accepted Remove decisions are checked. Each gets one result and a reason.
 | `removed` | The grant is absent from the later input, **and** the later input read the grant's resource completely, **and** the read has a time, **and** that time is not before the campaign began, **and** nobody else in the later input holds the same access under another key. See [what removed needs](#what-removed-needs). The reason adds a note when the principal's key is missing from the later input, or the principal is disabled. |
 | `pending` | The grant is still present, and the later input was read before the due date. |
 | `failed` | The grant is still present on or after the due date. Also when the campaign has no due date, or when the later input records no time and you gave no `--as-of`. |
-| `unknown` | The later input cannot show it: it is of another system, it does not include the resource, it did not read the resource completely, or one of the other conditions for `removed` fails. The reason says which. |
+| `unknown` | The later input cannot show it: it is of another system, it does not include the resource, it did not read the resource completely, it is a CSV from which no entitlement column was read, whether the map names none, a preset supplies none, or the file lacks the one it names (so every grant in it reads as `member`) and the removal is of another entitlement, or one of the other conditions for `removed` fails. The reason says which. |
 
 Matching uses grant keys only. A grant reached through a different nesting path is still the same grant, so a changed `via` is not a failure. Names never match.
 
@@ -30,7 +34,7 @@ An absent grant is `removed` only when all of these hold. Otherwise it is `unkno
 1. **A complete read.** The later input read the resource's whole membership. See [what complete means](formats.md#what-complete-means).
 2. **A time.** The later inputs that hold the resource have a time: the `collected_at` of their exports, or the `--as-of` you give. Without one the reason is `the later export does not say when it was read; give --as-of`.
 3. **Not before the campaign.** The time is not before the campaign's `created_at`. Otherwise the reason is `the later export was read before the campaign began`, because an older export cannot show a removal that followed the review.
-4. **The same account is not still there.** Nobody else in the later input holds the same entitlement on the same resource with a UPN, email, or id equal to the row's Account. A person can change key between exports, for example when a CSV's id column changes. Their access is then absent under the old key but present under the new one. The reason is "the same account still holds this access under another key" and names the holder.
+4. **The same account is not still there.** Nobody else in the later input holds the same entitlement on the same resource with a UPN, email, or id equal to the row's account. The comparison is on the raw account text (trimmed, Unicode-normalized and case-folded), kept in the campaign as `account_identity`, not on the escaped text the Account column shows. Text that spells an escape, such as `\u200b` typed out, is therefore a different account from one that holds that character. A person can change key between exports, for example when a CSV's id column changes. Their access is then absent under the old key but present under the new one. The reason is "the same account still holds this access under another key" and names the holder.
 
 ### Complete resources only
 

@@ -4,6 +4,7 @@ shaar runs an access review from files: it reads who holds access, writes one Ex
 
 ## Start here
 
+- [Quickstart](quickstart.md): a whole review on made-up data, in five minutes.
 - [Usage](usage.md): every command, option, and exit code.
 - [Campaigns](campaigns.md): how reviewers are chosen, the packet workbook, and which returned decisions count.
 - [Verification](verification.md): the results of checking a later export.

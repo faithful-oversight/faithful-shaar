@@ -9,20 +9,20 @@
     "entra:00000000-0000-4000-8000-000000000000:role:62e90394-69f5-4237-9190-012177145e10"
   ],
   "created_at": "2026-11-02T09:00:00Z",
-  "digest": "18ac49946693d4befda6e8a6a7d6a976f13cdfa29616bdce80e9325b0903a8dc",
+  "digest": "422589478d1407740bb02690ddf3a65cf9e8e3b600b783007e784ecf5ab6208e",
   "due": "2026-11-16",
-  "id": "C21f06e77d8c77003",
+  "id": "C61cedf912e16213a",
   "inputs": [
     {
       "kind": "shaar-export",
       "name": "ad.jsonl",
-      "sha256": "f248f8e56d8926cf7baf6b489a600d0266df95b241b21f9b27df521dacb68733",
+      "sha256": "d8eb004a3f5ca775810261e976401b7fef1acbdba35707cb476afff9683d5e1f",
       "size": 4029
     },
     {
       "kind": "shaar-export",
       "name": "entra.jsonl",
-      "sha256": "dfe2df70b884bcd6e3c5633ddf34601f073d2dd89cdec19691455798b547b0ff",
+      "sha256": "4eefc1bf5d6a328849907ac57b4ac79c56845e8ed9668084d45a0d01bb47559c",
       "size": 3485
     },
     {
@@ -40,7 +40,7 @@
       "key": "mail:casey.owner@corp.example",
       "name": "Casey Owner",
       "packet": "packet-01-Casey-Owner-da089e.xlsx",
-      "packet_digest": "f3513dd6577fb5e8c7ec5df59526664dcd823c0443e4535f57f2ccce8944252e",
+      "packet_digest": "4f760fe0cbc498cf43a9e27af8d591fd84b2466927733af0f1dbbb099fd6d334",
       "rows": 2
     },
     {
@@ -48,7 +48,7 @@
       "key": "mail:jordan.director@corp.example",
       "name": "Jordan Director",
       "packet": "packet-02-Jordan-Director-24304a.xlsx",
-      "packet_digest": "f728e8671b0f9e9b26c4b51e0c9d94f771a2dca91be8c86e350b494bebc0793a",
+      "packet_digest": "d0c432598d80574b26c2703986115c13f5653e3c9446d2accec262a8422c3aea",
       "rows": 2
     },
     {
@@ -56,12 +56,13 @@
       "key": "mail:morgan.lead@corp.example",
       "name": "Morgan Lead",
       "packet": "packet-03-Morgan-Lead-e16dc6.xlsx",
-      "packet_digest": "0186b4350d3e748d5a4f40d916bee9dd7bfd065d74396d04a4cc7c5596532c8d",
+      "packet_digest": "5f22893f6b04122f0f06cdb47068a879f22d5748574f7c6646ae388144a76962",
       "rows": 9
     }
   ],
   "rows": [
     {
+      "account_identity": "6f9d0e6a7dca595e2fb115b42415133959364926f865a954111bd65adb229ef5",
       "display": {
         "access": "member",
         "account": "emery.contractor@corp.example",
@@ -77,11 +78,12 @@
       "principal_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000007",
       "resource_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001",
       "reviewer_key": "mail:casey.owner@corp.example",
-      "row_check": "f6f95c270c3c16a3508a08492c8f57b3ec8742d139338df62a7190fd8c2e6927",
-      "row_id": "R72d2dc2d4e95",
+      "row_check": "1085a6f95d1bbdc4630d4552c7cf21a034263b05b82f64db26143c620de6ef7a",
+      "row_id": "R443b3280ba40",
       "source": "entra.jsonl, line 14"
     },
     {
+      "account_identity": "6f9d0e6a7dca595e2fb115b42415133959364926f865a954111bd65adb229ef5",
       "display": {
         "access": "member",
         "account": "emery.contractor@corp.example",
@@ -97,11 +99,12 @@
       "principal_key": "ad:sid:S-1-5-21-1000-1000-1000-1106",
       "resource_key": "ad:sid:S-1-5-21-1000-1000-1000-2002",
       "reviewer_key": "mail:casey.owner@corp.example",
-      "row_check": "d7b54db36e42dbc42bd10c4c3f9c38e9f7ab71893d21b307b9aa4601d062e8cb",
-      "row_id": "Radff3f4f68d7",
+      "row_check": "857688f9aedb97ae9de926d8a748587dff2b54750f7d5fd772fbbf94a974ef75",
+      "row_id": "R680526a4e83a",
       "source": "ad.jsonl, line 18"
     },
     {
+      "account_identity": "4d439da2d33652a3fc61428d9e82470b94eccce07f48442fb76f0fda216ff230",
       "display": {
         "access": "whole directory",
         "account": "morgan.lead@corp.example",
@@ -117,11 +120,12 @@
       "principal_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000002",
       "resource_key": "entra:00000000-0000-4000-8000-000000000000:role:62e90394-69f5-4237-9190-012177145e10",
       "reviewer_key": "mail:jordan.director@corp.example",
-      "row_check": "c86d33b1984d524081d6d830cc4732a547afeaf75f75b301d8b4e093285960be",
-      "row_id": "R8b4b33a23130",
+      "row_check": "0d4c1b98b334619619ab9c2441ff91f4d97b88cea6b956067f8ee5dd92994a55",
+      "row_id": "R49a2752ed2a4",
       "source": "entra.jsonl, line 11"
     },
     {
+      "account_identity": "4d439da2d33652a3fc61428d9e82470b94eccce07f48442fb76f0fda216ff230",
       "display": {
         "access": "Approver",
         "account": "morgan.lead@corp.example",
@@ -137,11 +141,12 @@
       "principal_key": "csv:ledger:morgan.lead@corp.example",
       "resource_key": "csv:ledger:ledger",
       "reviewer_key": "mail:jordan.director@corp.example",
-      "row_check": "7e0c799fb5f865bc1bf8c9ff0f329292d7fc958e7e80b55a91848cdfffdd8d61",
-      "row_id": "R7e70501da446",
+      "row_check": "9cfa8118bc89b668d41b9670d8bc6877752ae5ce573889e4b226322504c8a54f",
+      "row_id": "R9ef3b18c9723",
       "source": "ledger.csv, row 3"
     },
     {
+      "account_identity": "019ddcff298a650d94509f798ccbaa0a5cda55ab118efd4c68c0d012b26b516b",
       "display": {
         "access": "member",
         "account": "avery.example@corp.example",
@@ -157,11 +162,12 @@
       "principal_key": "ad:sid:S-1-5-21-1000-1000-1000-1102",
       "resource_key": "ad:sid:S-1-5-21-1000-1000-1000-2001",
       "reviewer_key": "mail:morgan.lead@corp.example",
-      "row_check": "f55ffb0c142dd5ec7d55bbe4886041146df5f038f4fb917418e69c44b2a82be8",
-      "row_id": "Rce931cefa50a",
+      "row_check": "fb5a1138b09bc5e2d65beaa6675d1f172fb3cec9170f4eb2355e030d0deac754",
+      "row_id": "R9a7456ddfe9c",
       "source": "ad.jsonl, line 13"
     },
     {
+      "account_identity": "4b031c62383b46797c53458e33c53539828b04cab63d02788d9452f30a1cdcaa",
       "display": {
         "access": "member",
         "account": "blake.sample@corp.example",
@@ -177,11 +183,12 @@
       "principal_key": "ad:sid:S-1-5-21-1000-1000-1000-1103",
       "resource_key": "ad:sid:S-1-5-21-1000-1000-1000-2001",
       "reviewer_key": "mail:morgan.lead@corp.example",
-      "row_check": "b7a43c733cba6e54aa5ebe956b412c3fd0589cf56c0c50e79168b65a6baa93b1",
-      "row_id": "R070a8260809e",
+      "row_check": "6891dccd9a48c0a64e410bba12b2c780a5d7a8e98fe2362999d7e7fc39f68edc",
+      "row_id": "R07aa66e0c960",
       "source": "ad.jsonl, line 17"
     },
     {
+      "account_identity": "019ddcff298a650d94509f798ccbaa0a5cda55ab118efd4c68c0d012b26b516b",
       "display": {
         "access": "Approver",
         "account": "avery.example@corp.example",
@@ -197,11 +204,12 @@
       "principal_key": "csv:ledger:avery.example@corp.example",
       "resource_key": "csv:ledger:ledger",
       "reviewer_key": "mail:morgan.lead@corp.example",
-      "row_check": "ba370404def13ee791b383644c971461c45e2cb71d38509de46e44b1b0b90fd0",
-      "row_id": "R3dd2ac32ff3d",
+      "row_check": "30a155cc18db999b3e357002d749db58c80e38d50415bc53e6e15af96887245d",
+      "row_id": "R87624d83ac88",
       "source": "ledger.csv, row 4"
     },
     {
+      "account_identity": "4b031c62383b46797c53458e33c53539828b04cab63d02788d9452f30a1cdcaa",
       "display": {
         "access": "Viewer",
         "account": "blake.sample@corp.example",
@@ -217,11 +225,12 @@
       "principal_key": "csv:ledger:blake.sample@corp.example",
       "resource_key": "csv:ledger:ledger",
       "reviewer_key": "mail:morgan.lead@corp.example",
-      "row_check": "6805298a87138c81fab1d355910e8f45d8d4758ddaab5c11cc6b863635e83547",
-      "row_id": "R3c13774fa103",
+      "row_check": "caace0e2a27a636172439b922c72d9e8d3573c231ef30ae3ead4bf2675dda758",
+      "row_id": "Rd60d89a91c37",
       "source": "ledger.csv, row 6"
     },
     {
+      "account_identity": "5b99b12b5ae9c8664030cabdf1c73b0f3f9486b2a0790eb3e7b37c90b1ae3f87",
       "display": {
         "access": "Viewer",
         "account": "drew.analyst@corp.example",
@@ -237,11 +246,12 @@
       "principal_key": "csv:ledger:drew.analyst@corp.example",
       "resource_key": "csv:ledger:ledger",
       "reviewer_key": "mail:morgan.lead@corp.example",
-      "row_check": "ebb3d14da8051f1bd4c1b5bc485ec6f5796b74c9172778845f0b171e295f921d",
-      "row_id": "R954d0306e234",
+      "row_check": "7e834ff35a78cbf7e5ce516bed3a8988a38be7d30f32c841f6433e8bb4edc682",
+      "row_id": "R776d2e37f927",
       "source": "ledger.csv, row 5"
     },
     {
+      "account_identity": "5b99b12b5ae9c8664030cabdf1c73b0f3f9486b2a0790eb3e7b37c90b1ae3f87",
       "display": {
         "access": "member",
         "account": "drew.analyst@corp.example",
@@ -257,11 +267,12 @@
       "principal_key": "ad:sid:S-1-5-21-1000-1000-1000-1105",
       "resource_key": "ad:sid:S-1-5-21-1000-1000-1000-2003",
       "reviewer_key": "mail:morgan.lead@corp.example",
-      "row_check": "b19c86fbab4db51027eee92b49baa6922790bd7ae5062fedc54b2c1679dc007b",
-      "row_id": "R60b815364cb6",
+      "row_check": "a0de0e7fd135b1fb14a71584f0b5ae625f1ec3a9db096e0dfe50daa47bedf616",
+      "row_id": "Rc739c1246ece",
       "source": "ad.jsonl, line 15"
     },
     {
+      "account_identity": "019ddcff298a650d94509f798ccbaa0a5cda55ab118efd4c68c0d012b26b516b",
       "display": {
         "access": "member",
         "account": "avery.example@corp.example",
@@ -277,11 +288,12 @@
       "principal_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000003",
       "resource_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001",
       "reviewer_key": "mail:morgan.lead@corp.example",
-      "row_check": "35e497e02f984a5c1a1cc1249e473494fc8bde147ee2ac0598586e5f6f1626ad",
-      "row_id": "R119eb45d6c64",
+      "row_check": "07b62123a1b3198509812d4323f11e1a33dfe6d8ff44bdb4ba0d7c0f7fde6d5b",
+      "row_id": "Rb6abd756a67e",
       "source": "entra.jsonl, line 12"
     },
     {
+      "account_identity": "5b99b12b5ae9c8664030cabdf1c73b0f3f9486b2a0790eb3e7b37c90b1ae3f87",
       "display": {
         "access": "member",
         "account": "drew.analyst@corp.example",
@@ -297,11 +309,12 @@
       "principal_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000000006",
       "resource_key": "entra:00000000-0000-4000-8000-000000000000:id:00000000-0000-4000-8000-000000003001",
       "reviewer_key": "mail:morgan.lead@corp.example",
-      "row_check": "9855b55472cf13a998863d4be776f783876c435c5f5ae637f41af63707ecb2f4",
-      "row_id": "R01318e99338d",
+      "row_check": "adc85e2312fd9bf3ee9a181e756bf0bbf2a04e8ece70739b782dd82c991d511e",
+      "row_id": "R20a314c4d7b5",
       "source": "entra.jsonl, line 13"
     },
     {
+      "account_identity": "5b99b12b5ae9c8664030cabdf1c73b0f3f9486b2a0790eb3e7b37c90b1ae3f87",
       "display": {
         "access": "member",
         "account": "drew.analyst@corp.example",
@@ -317,8 +330,8 @@
       "principal_key": "ad:sid:S-1-5-21-1000-1000-1000-1105",
       "resource_key": "ad:sid:S-1-5-21-1000-1000-1000-2002",
       "reviewer_key": "mail:morgan.lead@corp.example",
-      "row_check": "b711dbb8d5c22c1d739934b2e919314a1b6a2dfc1a021c855beb78ef94270e34",
-      "row_id": "R2a6be5aaf266",
+      "row_check": "f54d038b3131153ee31fdf64ef113a9c3e849d533d5a6a9f33a18a16b055307d",
+      "row_id": "R452dd559b7f8",
       "source": "ad.jsonl, line 14"
     }
   ],

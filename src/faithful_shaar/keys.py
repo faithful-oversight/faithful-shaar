@@ -26,13 +26,48 @@ else (then the CSV reader records that the match is by name).
 
 from __future__ import annotations
 
+import hashlib
 import re
+import unicodedata
 
 _SID = re.compile(r"S-1-\d+(-\d+)+", re.IGNORECASE)
 _DOMAIN_SID = re.compile(r"S-1-5-21-\d+-\d+-\d+(-\d+)?", re.IGNORECASE)
 _GUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 UNKNOWN = "?"
 _SYSTEM = re.compile(r"[a-z0-9][a-z0-9._-]{0,39}")
+
+
+def fold(text: str) -> str:
+    """Return text the way identity matching compares it.
+
+    Text that looks the same can be written in different ways: ``é`` as one character or
+    as ``e`` plus a combining accent (macOS and some directory exports use the second),
+    full-width letters, ligatures. Matching normalizes with NFKC, folds case, and
+    normalizes again (case folding can leave text unnormalized). Only the comparison text
+    changes: names and ids are shown and written exactly as the input gave them.
+
+    Characters that merely resemble each other, such as Cyrillic a (U+0430) and Latin a, are
+    different letters and stay different.
+    """
+    if text.isascii():
+        return text.casefold()
+    return unicodedata.normalize("NFKC", unicodedata.normalize("NFKC", text).casefold())
+
+
+def identity(text: str) -> str:
+    """Return the canonical identity of an account text: a digest of its folded, trimmed text.
+
+    Verification compares the account a campaign row was made for with the accounts of a
+    later export. The text a packet shows is escaped and cut to fit a cell, so it is not what
+    is compared; this is, taken from the raw text on both sides. A digest, rather than the
+    text, because the text may hold anything (a lone surrogate cannot be written as UTF-8)
+    and because it adds no second copy of the account to ``campaign.json``. The empty text
+    has the empty identity.
+    """
+    folded = fold(text.strip())
+    if not folded:
+        return ""
+    return hashlib.sha256(folded.encode("utf-8", "surrogatepass")).hexdigest()
 
 
 def sid(value: str, domain: str = "") -> str:
@@ -47,12 +82,12 @@ def sid(value: str, domain: str = "") -> str:
         raise ValueError(msg)
     if _DOMAIN_SID.fullmatch(text):
         return f"ad:sid:{text.upper()}"
-    return f"ad:sid:{text.upper()}@{domain.strip().casefold() or UNKNOWN}"
+    return f"ad:sid:{text.upper()}@{fold(domain.strip()) or UNKNOWN}"
 
 
 def dn(value: str) -> str:
     """Return the key of an Active Directory distinguished name."""
-    return f"ad:dn:{value.strip().casefold()}"
+    return f"ad:dn:{fold(value.strip())}"
 
 
 def tenant(value: str) -> str:
@@ -86,7 +121,7 @@ def system_name(value: str) -> str:
     ``-``, starting with a letter or digit. ``ad`` and ``entra`` are reserved for the
     collectors' exports.
     """
-    text = value.strip().casefold()
+    text = fold(value.strip())
     if not _SYSTEM.fullmatch(text):
         msg = f"{value[:80]!r} is not a system name (letters, digits, '.', '_' or '-')"
         raise ValueError(msg)
@@ -98,7 +133,7 @@ def system_name(value: str) -> str:
 
 def csv(system: str, value: str) -> str:
     """Return the key of an identifier from a CSV of ``system`` (see :func:`system_name`)."""
-    return f"csv:{system_name(system)}:{value.strip().casefold()}"
+    return f"csv:{system_name(system)}:{fold(value.strip())}"
 
 
 def _part(text: str) -> str:
@@ -111,7 +146,7 @@ def grant(resource_key: str, principal_key: str, entitlement: str) -> str:
     Each part has ``%`` and ``|`` escaped, so two different grants never share a key,
     whatever their identifiers hold.
     """
-    parts = (resource_key, principal_key, entitlement.strip().casefold())
+    parts = (resource_key, principal_key, fold(entitlement.strip()))
     return "|".join(_part(p) for p in parts)
 
 

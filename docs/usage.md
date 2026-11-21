@@ -34,7 +34,7 @@ shaar campaign INPUT... -o DIR --name NAME --reviewers {manager,owner,map} [opti
 | `--map` | A TOML column map for CSV inputs. See [CSV column maps](formats.md#the-column-map). |
 | `--preset` | A built-in column map: `generic`, `ad-users-groups`, or `entra-members`. |
 | `--resource` | The one resource a members-only CSV lists, such as the group an Entra portal download came from. |
-| `--force` | Replace files that already exist. |
+| `--force` | Replace this command's own files that already exist. See [what `--force` does](#replacing-existing-files). |
 
 `--map`, `--preset`, and `--resource` apply to every CSV input of the command. Run a different command, or write one map that fits all the CSV files, when your CSV files differ.
 
@@ -156,7 +156,11 @@ Prints a JSON Schema for the installed version, with no network access. See [Rep
 shaar example DIR [--force]
 ```
 
-Writes a synthetic review into `DIR`: exports for a made-up domain, `corp.example`, an Entra export, a CSV from a made-up finance application with its column map, a finished campaign, returned packets, and a later export. It then prints the three commands that run the campaign, decisions, and verify steps. Without `--force`, shaar refuses to replace existing files.
+Writes a synthetic review into `DIR`: exports for a made-up domain, `corp.example`, an Entra export, a CSV from a made-up finance application with its column map, returned packets, and a later export. It then prints three commands to run in order: the first makes the campaign (it sets `SOURCE_DATE_EPOCH` to the time the returned packets were prepared for, because a campaign made at another time has another id and refuses them), the second reads the returned packets, and the third verifies. All three exit with code `1` on purpose; the [quickstart](quickstart.md) shows each result. Without `--force`, shaar refuses to replace existing files.
+
+### Replacing existing files
+
+Without `--force`, shaar never replaces a file. With it, shaar replaces the files the command writes and takes away files an earlier run of **the same command** wrote there that this run does not (a packet for a reviewer who no longer has entries, for example). It never takes away `campaign.json`, `decisions.json`, or a packet when another command is writing, and it refuses an output folder that is, or contains, the folder of the campaign or decision record the command was given, or that already holds a record the command does not write. It also never replaces or takes away a file the command read: an access export, a column map, a reviewer map, a returned packet, or a later export. If an input is, or is linked to (a symbolic link either way, or a hard link), a file the run would write or take away, the run stops with exit code `3` before anything is written, with or without `--force`. `shaar collect` does the same for its CA file, certificate and `file:` secrets, before it reads a secret or connects. Use a new folder for each run.
 
 ## Exit codes
 
@@ -174,11 +178,39 @@ Exit code `1` never means the tool failed. It means read the report.
 
 | Command | Exit code `1` when |
 | --- | --- |
-| `campaign` | At least one entry has no reviewer, or any input could not be read in full (a problem is recorded). The files are written either way. |
-| `decisions` | The record is not complete: any entry lacks an accepted decision (undecided, invalid, altered, conflict, or unassigned), any accepted decision is Unsure, any row did not belong to its packet, or any returned file was rejected or unreadable. |
-| `verify` | Any accepted Remove is not verified as removed: it is pending, failed, or unknown. Kept-but-gone and new-since-review entries, and problems in the later inputs, never change the code. |
+| `campaign` | At least one entry has no reviewer, any input could not be read in full (a problem is recorded), or the inputs hold no access entries at all. The files are written either way. |
+| `decisions` | The record is not complete: any entry lacks an accepted decision (undecided, invalid, altered, conflict, or unassigned), any accepted decision is Unsure, any row did not belong to its packet, any returned file was rejected or unreadable, or the campaign itself recorded problems reading its inputs or had a resource it did not read in full (entries may be missing from the review). |
+| `verify` | Any accepted Remove is not verified as removed (pending, failed, or unknown), **or the decision record is not complete** for any of the reasons in the `decisions` row. Kept-but-gone and new-since-review entries, and problems in the later inputs, never change the code. |
 
-A `verify` run with no accepted removals exits with `0`.
+A `verify` run exits with `0` only when the decision record is complete and every accepted removal is verified. With a complete record and no accepted removals it exits with `0`. With an incomplete record it exits with `1` even if no removal was decided, and says so in its headline and in the report.
+
+## Size limits
+
+Every file shaar reads has a size limit, so that a damaged or hostile file cannot use all of a machine's memory. A limit is never silent. When an input is over a limit, the command stops, names the limit and how to raise it, and exits with code `3`; nothing is written. When a returned packet is over a limit, `shaar decisions` records the packet as unreadable with that reason, so the decision record is incomplete and the command exits with code `1`.
+
+The defaults are well above the size of any realistic enterprise review. To read something larger, raise the limit for that run with `--limit NAME=VALUE`, which `campaign`, `decisions` and `verify` accept and which can be repeated. A value is a whole number from 1 to 1,099,511,627,776 (`_` may separate digits). Anything else is a usage error (exit code `2`), and so is an unknown name.
+
+```shell
+shaar campaign export.csv --map map.toml --limit csv-rows=5000000 --limit csv-bytes=2147483648 ...
+```
+
+| Name | What it limits | Default |
+| --- | --- | --- |
+| `csv-bytes` | The size of one CSV input, in bytes. | 268,435,456 |
+| `csv-rows` | The data rows in one CSV input. | 2,000,000 |
+| `export-bytes` | The size of one shaar export (JSON Lines), in bytes. | 536,870,912 |
+| `line-bytes` | The length of one line of a shaar export. A longer line is skipped and recorded as a problem, so the run cannot be clean. | 1,048,576 |
+| `map-bytes` | The size of a reviewer map. | 16,777,216 |
+| `column-map-bytes` | The size of a column map. | 1,048,576 |
+| `campaign-bytes` | The size of `campaign.json`. | 268,435,456 |
+| `decisions-bytes` | The size of `decisions.json`. | 268,435,456 |
+| `packet-bytes` | The size of one returned packet file. | 67,108,864 |
+| `xlsx-rows` | The rows on a packet's sheet. Packets are written with 10 percent fewer, so every packet can be read when it comes back. | 100,000 |
+| `xlsx-cells` | The cells with content in a packet. Follows `xlsx-rows` (16 for each row) unless set. | 1,600,000 |
+| `xlsx-bytes` | The size of a packet once unzipped. Packets are written 25 percent smaller. | 67,108,864 |
+| `xml-elements` | The XML elements in one part of a packet. Follows `xlsx-rows` (64 for each row) unless set. | 6,400,000 |
+
+Every run records the limits it used in `limits` in its `manifest.json`, whether or not it raised any, so a reader of the output can see what the run would have refused. The fixed safety limits that no realistic file reaches (zip entries, the 200 to 1 expansion ratio, nesting depth, cell text length) have no option.
 
 ## Repeatable output
 

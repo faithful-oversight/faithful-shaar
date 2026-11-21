@@ -14,6 +14,7 @@ from faithful_shaar.outputs.safety import (
     escape_markdown,
     neutralize_formula,
     terminal,
+    terminal_line,
     visible,
 )
 
@@ -52,7 +53,6 @@ ORDINARY = [
     chr(0x65E5) + chr(0x672C),  # CJK
     chr(0x41F) + chr(0x440),  # Cyrillic
     chr(0x1F600),  # an emoji without joiners
-    "a" + chr(0xA0) + "b",  # no-break space is visible spacing
 ]
 
 
@@ -132,3 +132,64 @@ def test_command_line_quotes_for_the_shell(monkeypatch: pytest.MonkeyPatch) -> N
 def test_command_line_quotes_for_windows(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("faithful_shaar.outputs.safety.os.name", "nt")
     assert command_line("shaar", "my file") == 'shaar "my file"'
+
+
+@pytest.mark.parametrize(
+    "code",
+    [0x00A0, 0x1680, 0x2000, 0x2003, 0x200A, 0x202F, 0x205F, 0x2800, 0x3000],
+)
+def test_look_alike_spaces_are_escaped(code: int) -> None:
+    assert visible(f"admin{chr(code)}") == f"admin\\u{code:04x}"
+
+
+def test_every_space_separator_except_the_ascii_space_is_escaped() -> None:
+    spaces = [chr(code) for code in range(0x110000) if unicodedata.category(chr(code)) == "Zs"]
+    assert " " in spaces
+    for char in spaces:
+        assert (visible(char) == char) is (char == " ")
+
+
+def test_a_look_alike_space_cannot_hide_a_formula() -> None:
+    assert csv_cell("\u00a0=1+1") == "\\u00a0=1+1"
+    assert not csv_cell("\u00a0=1+1").startswith(("=", "+", "-", "@"))
+
+
+@pytest.mark.parametrize("value", ["-1", "-42", "-0.5", "-1000000"])
+def test_a_plain_negative_number_stays_a_number(value: str) -> None:
+    assert neutralize_formula(value) == value
+    assert csv_cell(value) == value
+
+
+@pytest.mark.parametrize(
+    "value", ["-1+1", "-cmd|x", "--1", "-", "-1e5", "-1,5", "-\u0661", "- 1", "-1\n", "=-1"]
+)
+def test_anything_else_starting_with_a_minus_is_still_neutralized(value: str) -> None:
+    assert neutralize_formula(value) == "'" + value
+
+
+@pytest.mark.parametrize("code", [0x17B4, 0x17B5, 0x180B, 0x180C, 0x180D, 0x180F])
+def test_khmer_and_mongolian_invisible_marks_are_escaped(code: int) -> None:
+    assert visible(f"admin{chr(code)}") == f"admin\\u{code:04x}"
+
+
+def test_an_issue_reference_from_the_input_is_not_linked() -> None:
+    joiner = "\u2060"
+    assert escape_markdown("see #123") == f"see #{joiner}123"
+    assert escape_markdown("owner/repo#7") == f"owner/repo#{joiner}7"
+    assert escape_markdown("item #a") == "item #a"
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["a\nb", "a\r\nb", "a\rb", "a\tb", "a\x0bb\x0cb\x85b", "a\u2028b\u2029b", "\n\n", "a\x1b[2Jb"],
+)
+def test_terminal_line_never_contains_a_line_break_or_control(value: str) -> None:
+    shown = terminal_line(value)
+    assert len(shown.splitlines()) <= 1
+    assert all(ord(c) >= 0x20 and ord(c) != 0x7F for c in shown)
+
+
+def test_terminal_line_shows_a_line_feed_as_an_escape_and_keeps_text() -> None:
+    assert terminal_line("a\nb\r\nc\td") == "a\\nb\\r\\nc\\td"
+    assert terminal_line("plain text") == "plain text"
+    assert terminal("a\nb") == "a\nb"  # terminal itself still keeps line feeds

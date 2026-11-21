@@ -48,6 +48,7 @@ def merge(label: str, snapshots: list[Snapshot]) -> Snapshot:
     for snap in snapshots:
         out.inputs.extend(snap.inputs)
         out.systems |= snap.systems
+        out.entitlement_blind |= snap.entitlement_blind
         out.context.update(snap.context)
         out.problems.extend(snap.problems)
         for key, principal in snap.principals.items():

@@ -1,4 +1,4 @@
-{"collected_at": "2026-11-20T22:00:00Z", "collector": {"name": "shaar example", "version": "0.1.0"}, "scope": {"groups": ["Payroll App Users"], "roles": true}, "shaar_export": 1, "system": "entra", "tenant": "00000000-0000-4000-8000-000000000000"}
+{"collected_at": "2026-11-20T22:00:00Z", "collector": {"name": "shaar example", "version": "0.1.1"}, "scope": {"groups": ["Payroll App Users"], "roles": true}, "shaar_export": 1, "system": "entra", "tenant": "00000000-0000-4000-8000-000000000000"}
 {"principal": {"email": "jordan.director@corp.example", "enabled": true, "extra": {}, "id": "00000000-0000-4000-8000-000000000001", "kind": "user", "last_sign_in": "2026-10-30T08:15:00Z", "manager_id": "", "name": "Jordan Director", "upn": "jordan.director@corp.example"}}
 {"principal": {"email": "morgan.lead@corp.example", "enabled": true, "extra": {}, "id": "00000000-0000-4000-8000-000000000002", "kind": "user", "last_sign_in": "2026-10-30T08:15:00Z", "manager_id": "00000000-0000-4000-8000-000000000001", "name": "Morgan Lead", "upn": "morgan.lead@corp.example"}}
 {"principal": {"email": "avery.example@corp.example", "enabled": true, "extra": {}, "id": "00000000-0000-4000-8000-000000000003", "kind": "user", "last_sign_in": "2026-10-30T08:15:00Z", "manager_id": "00000000-0000-4000-8000-000000000002", "name": "Avery Example", "upn": "avery.example@corp.example"}}
@@ -10,4 +10,4 @@
 {"resource": {"complete": true, "extra": {}, "id": "62e90394-69f5-4237-9190-012177145e10", "kind": "role", "name": "Global Administrator", "owner_ids": []}}
 {"grant": {"entitlement": "whole directory", "extra": {}, "principal_id": "00000000-0000-4000-8000-000000000002", "resource_id": "62e90394-69f5-4237-9190-012177145e10", "via": []}}
 {"grant": {"entitlement": "member", "extra": {}, "principal_id": "00000000-0000-4000-8000-000000000003", "resource_id": "00000000-0000-4000-8000-000000003001", "via": []}}
-{"end": true, "records": 11, "sha256": "716d9accdace8da5422b543397b7f7bb7451f58d92233cbf12d7946e75dc1223"}
+{"end": true, "records": 11, "sha256": "02c05aaedee21d4ff7252a4c91f94c1e1002c892a9c3eba5a7df622f6254bbd2"}

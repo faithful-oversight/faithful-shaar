@@ -136,6 +136,6 @@ def test_the_campaign_keeps_the_text_a_packet_cell_holds() -> None:
     )
     shown = display_for(grant(1110, 2001), snap)["user"]
     assert "\x07" not in shown
-    assert "�" in shown
+    assert "\\u0007" in shown  # shown as a visible escape, as in every report
     assert shown.endswith("[truncated]")
     assert len(shown) <= 32767

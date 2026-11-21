@@ -6,8 +6,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-14
+
 ### Fixed
 
+- `shaar decisions` now carries the problems the campaign recorded while reading its inputs into the decision record and its report, notes resources that were not read in full, and exits with code 1 when the review may be missing entries. Before, it said "No problems were recorded" and exited 0.
+- `shaar verify` now says when the decision record it is given is not complete (undecided, Unsure, unassigned, unusable packets, input problems) and exits with code 1. Before, `0 of 0 removals verified` was a clean result for a review in which nobody had answered.
+- A CSV row shorter than the header is now skipped as a problem and leaves no resource complete, instead of being padded with blanks. A file whose last line has no line break is a problem too. A cut-off row used to turn an `Approver` into a `member` and a verified removal.
+- A column that the map file asks for and the file lacks is now a recorded problem. A later export with no entitlement column can no longer show that an entitlement other than `member` was removed: `shaar verify` says unknown.
+- A later CSV read with a column map that names no entitlement column at all (only who the person is) is now entitlement-blind too. `shaar verify` used to call the absence of an `Admin` grant a verified removal; it now says unknown. A removal of `member` itself is still judged as before.
+- `shaar verify` now recognises the same account under a changed key when the account holds invisible characters, non-ASCII spaces or more than a cell can hold. The campaign compared the escaped text a reviewer sees with raw text from the later export, so the check never fired and the removal was called verified. The campaign now keeps a separate `account_identity` (a digest of the raw account), and the packet still shows the visible escapes. Campaigns written before this still load.
+- Identity text (ids, names, emails, the reviewer map) is now matched after Unicode normalization, so an address in a composed or decomposed form is the same person: not a removal, not a second packet, not a missed self-review. Names are still shown exactly as read.
+- `--force` can no longer delete `campaign.json`, packets, or the decision record. shaar refuses an output folder that is, or contains, the folder of the campaign or decision record it was given, and with `--force` removes only files the same command wrote. The refusal message says what `--force` does.
+- `--force` can no longer replace or remove a file a run read. An access export, column map, reviewer map, returned packet or later export that is, or is linked to, a file the run would write (or take away because an earlier manifest lists it) now stops the run with exit code 3 before anything is written. `shaar collect ad` and `shaar collect entra` likewise refuse an output file that is their CA file, certificate or `file:` secret.
+- A campaign with no access entries now records a problem and exits with code 1.
+- A conflicting row no longer keeps a decision in `decisions.json`.
+- Invisible and reordering characters in names are now shown as visible escapes in packets and `campaign.json`, as in the reports.
+- A closed pipe or an output that cannot encode a character (for example an ASCII terminal and a path with an accent) no longer turns a finished run into exit code 4. The exit code is decided before the summary is printed.
+- Error messages about an unreadable input, reviewer map or column map now name the path as given.
+- A returned workbook is read one row at a time and empty cells are not kept, so a 12 MB file of empty cells no longer needs about 3 GB of memory. `xmlsafe` limits the elements it holds at once.
+- `shaar verify`, reviewer-map assignment and per-reviewer row lookup no longer scan every row for every row, which took hours on large inputs.
+- Deeply nested `campaign.json` or `decisions.json` is a bad input (exit code 3), not an internal error.
+- The reviewer map is read with a size limit from a regular file only, so `/dev/zero` or a named pipe is refused.
+- The Active Directory exporter dates its export when reading starts, not when it ends.
+- The commands printed by `shaar example` now run in order into a full campaign, decisions and verify run. The first sets `SOURCE_DATE_EPOCH` so the campaign matches the returned packets.
 - The source archive's own tests now run in the build check: it unpacks the archive outside the checkout and runs the whole suite there, instead of only collecting the tests.
 - Editing a pull request title now reruns the title check, so a corrected title clears the required check.
 - The dependency audit writes its export to a private temporary directory, so a planted link or a second run at the same time cannot interfere.
@@ -15,6 +37,37 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - The release script now treats only a clean "not found" answer as an absent tag; an authentication, rate-limit, network, or malformed answer stops the release.
 - The dependency audit always includes every optional extra, and a new check fails it when a package named by an extra is missing from the audited export.
 - The release evidence is now one SBOM per scope: `sbom-base.cdx.json` for the base install, and `sbom-all-extras.cdx.json` when the project defines optional extras. Each states its scope, and tests check what each one holds.
+- The sign-off check no longer lets a commit skip sign-off by claiming Dependabot as its author. Dependabot is exempt only on its own pull requests.
+- The required "All checks passed" check now fails if a CI job is missing, and a skipped title or sign-off check no longer counts as a pass on a pull request.
+- `scripts/check.sh workflows` prints a clear message instead of a stack trace when GitHub rejects the token.
+- `SECURITY.md` no longer says that no release has been published. It says the latest release is supported.
+- On Windows, a closed pipe (reported there as an invalid-argument error rather than a broken pipe) also stops the printing and keeps the real exit code, instead of ending with an internal error or exit 120.
+- A file name, report folder, resource name, or error message that contains a line break can no longer add a line to what shaar prints. Previously a resource named `Evil\nNo findings.` put a convincing line of its own into the summary printed by `shaar verify`, and a folder name with a line break split the commands printed by `shaar example`. These values now print on one line, with the line break shown as `\n`.
+
+### Added
+
+- `--limit NAME=VALUE` on `campaign`, `decisions` and `verify` raises any of the size limits (CSV, export, line, reviewer map, column map, `campaign.json`, `decisions.json`, returned packets, workbook rows, cells, bytes and XML elements). A file over a limit stops the run with exit code 3 and says which limit to raise; a returned packet over a limit is recorded as unreadable. Every run records the limits it used in `limits` in `manifest.json` (an optional field of `manifest-v1`).
+
+### Changed
+
+- The README now has a status line, a short account of how shaar differs from other kinds of tools, a runnable five-minute example with real output, and install instructions that work today (from GitHub, with `pipx ensurepath`). There is a new quickstart and an examples page.
+- `shaar example` no longer writes a `campaign/` folder; the first printed command makes it.
+- The package keyword `compliance` is now `audit-evidence`.
+- The documentation no longer names the maintainer.
+- The committed example and its reports are regenerated.
+- Dependabot groups minor and patch updates of runtime dependencies into one pull request.
+- `CONTRIBUTING.md` lists every tool a clean machine needs and which checks need network access or a token.
+- The releasing guide covers the first PyPI publish, a failed PyPI step, scheduled checks that stop after 60 idle days, both SBOM files, and the pinned tools.
+- CI on a private repository tests Python 3.11 and 3.14 on pull requests and runs macOS only on schedule and before releases, to save metered Actions minutes; a public repository keeps the full matrix.
+
+### Security
+
+- Closed the three ways shaar could report a clean or complete result when it was not (campaign problems dropped by `decisions`, a short or cut-off CSV row, an incomplete record verified).
+- Khmer and Mongolian marks that draw nothing (U+17B4, U+17B5, U+180B to U+180D, U+180F) now print as visible escapes, and an issue reference such as `#123` from the input is no longer turned into a link in the Markdown report.
+- A release now stops with a clear message when the `FO_PUBLIC` setting disagrees with whether the repository is public, so a public release cannot skip provenance and PyPI by mistake.
+- Release jobs check the built files against `SHA256SUMS` before attesting, uploading or publishing.
+- uv and the Vale style packages used in CI are pinned to exact versions, and the style packages are checked against a SHA-256 before use.
+- The dependency audit now covers every locked package and version, including Windows-only packages and versions only another Python installs, and fails if the auditor leaves any out. The license check now reads the license of such packages from their exact locked artifact, checked against the sha256 in `uv.lock`, and fails if it cannot, instead of skipping them. The docs theme is limited to Python 3.11.5 and later, so the lock no longer pulls in a `soupsieve` with known advisories.
 
 ## [0.1.0] - 2026-11-13
 

@@ -100,7 +100,11 @@ def _check_targets(targets: list[Path], *, force: bool) -> None:
     existing = [str(t) for t in targets if t.exists() or t.is_symlink()]
     if existing and not force:
         noun = "exists" if len(existing) == 1 else "exist"
-        msg = f"{', '.join(existing)} already {noun}; use --force to replace"
+        msg = (
+            f"{', '.join(existing)} already {noun}; use --force to replace "
+            f"{'it' if len(existing) == 1 else 'them'}, or choose another folder (--force "
+            "also removes files an earlier run of this command wrote and this run does not)"
+        )
         raise OutputError(msg)
 
 

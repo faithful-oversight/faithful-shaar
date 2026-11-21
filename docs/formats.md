@@ -7,7 +7,7 @@ shaar reads two kinds of access input: its own export, and CSV files. It detects
 The export is JSON Lines: one JSON object per line, UTF-8, `\n` line ends. The PowerShell exporter, `shaar collect ad`, and `shaar collect entra` all write it. A file has a header, any number of records, and a trailer.
 
 ```text
-{"shaar_export":1,"system":"ad","collector":{"name":"Export-ShaarAccess.ps1","version":"0.1.0"},"collected_at":"2026-11-01T22:00:00Z","scope":{"groups":["Finance Admins"]},"domain":"corp.example"}
+{"shaar_export":1,"system":"ad","collector":{"name":"Export-ShaarAccess.ps1","version":"0.1.1"},"collected_at":"2026-11-01T22:00:00Z","scope":{"groups":["Finance Admins"]},"domain":"corp.example"}
 {"principal":{"id":"S-1-5-21-1000-1000-1000-1102","name":"Avery Example","kind":"user","enabled":true,"email":"avery.example@corp.example","upn":"avery.example@corp.example","manager_id":"S-1-5-21-1000-1000-1000-1101","last_sign_in":"2026-10-30T08:15:00Z","extra":{}}}
 {"resource":{"id":"S-1-5-21-1000-1000-1000-2001","name":"Finance Admins","kind":"group","owner_ids":[],"complete":true,"extra":{}}}
 {"grant":{"principal_id":"S-1-5-21-1000-1000-1000-1102","resource_id":"S-1-5-21-1000-1000-1000-2001","entitlement":"member","via":[],"extra":{}}}
@@ -57,7 +57,7 @@ The last line: `{"end":true,"records":N,"sha256":"HEX"}`.
 
 If the trailer is missing, is not last, or has a wrong count or hash, shaar records a problem and treats **no resource as complete**. Data after the trailer is also a problem and makes the file untrusted.
 
-Limits: a line may be at most 1 MiB and a file at most 512 MiB. A file over the limit is refused. A line over the limit is skipped, and the loss means no resource is complete.
+Limits: a line may be at most 1 MiB and a file at most 512 MiB. A file over the limit is refused. Both limits can be raised with [`--limit`](usage.md#size-limits) (`export-bytes`, `line-bytes`). A line over the limit is skipped, and the loss means no resource is complete.
 
 ### What shaar does with a damaged export
 
@@ -103,7 +103,7 @@ A system name is 1 to 40 characters: lower-case letters, digits, `.`, `_`, and `
 
 A CSV needs a column map, given with `--map FILE.toml`, a built-in preset with `--preset NAME`, or both. shaar decodes the file by its byte order mark (UTF-8, UTF-16 little or big endian), else as strict UTF-8. A file that cannot be decoded, or holds NUL characters, is refused. Set `encoding` in the map for any other encoding. The delimiter is the one of `,`, `;`, tab, and `|` that splits the header line most, unless the map sets it. A delimiter under which the header is not valid CSV (as `"a","b"` is not under `;`) is passed over; if the header is valid under none, the file is refused.
 
-A CSV is read as text. Cells that look like formulas are data, and shaar never evaluates them. A row with more cells than the header, or that lacks a needed id, is skipped with a problem, and its resource is then not complete. Quoting is read strictly: a quoted cell may span lines, but a quote that is never closed, or text right after a closing quote, is a problem, and then no resource in the file is complete, because the rows after it may have been swallowed. A file is limited to 256 MiB and 2,000,000 data rows.
+A CSV is read as text. Cells that look like formulas are data, and shaar never evaluates them. A row with more cells than the header, or that lacks a needed id, is skipped with a problem, and its resource is then not complete. Quoting is read strictly: a quoted cell may span lines, but a quote that is never closed, or text right after a closing quote, is a problem, and then no resource in the file is complete, because the rows after it may have been swallowed. A file is limited to 256 MiB and 2,000,000 data rows by default; raise `csv-bytes` or `csv-rows` with [`--limit`](usage.md#size-limits).
 
 ### The column map
 
@@ -172,7 +172,10 @@ Rules that apply to every CSV:
 - The map must name a `principal_id` or a `principal_name` column that is in the file. Without an id column, principals are matched by name, which is weaker, and a problem says so.
 - There must be a resource: a fixed `resource`, or a `resource_id` or `resource_name` column. With a `resource_name` column and no `resource_id`, the resource is matched by name, and a problem says so. A fixed resource gives no problem: you name it, and the same name keys it in every export.
 - There must be a system: a `system` column or `system = ...` in the map.
-- A blank entitlement means `member`.
+- A blank entitlement cell means `member`. This is the one place a blank is filled in, and it is not a problem.
+- Every row must have exactly as many cells as the header. A shorter row may have been cut off, so it is skipped with a problem and no resource in the file is complete (it is never padded with blanks, which would turn an `Approver` into a `member`). A file whose last line does not end with a line break is a problem with the same effect: its last row may be cut. Add the final line break once you know the export is whole.
+- A column that the map file lists under `[columns]` and the file lacks is a problem when `optional = true` (otherwise it is an error). For `entitlement` it also leaves no resource in the file complete. A column that only a preset supplies and the file lacks is not a problem, and neither is a map that names no entitlement column at all, except that an export from which no entitlement column was read cannot show that any entitlement other than `member` was removed: `shaar verify` reports such a removal as `unknown`.
+- Text that identifies people and things (ids, names, emails, the reviewer map) is compared after Unicode normalization (NFKC) and case folding, so the same text in a composed or decomposed form, or in full-width letters, is one value. Values are shown and written exactly as read. Letters of different scripts that look alike are different letters.
 - `manager_id` and each entry of `owner_ids` are written the way principal ids are, so they match principals.
 - A row with a blank id, or with a name that makes an unusable system or key, is skipped with a problem.
 - Rows are cited by line number, with the header as row 1.

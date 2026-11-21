@@ -5,7 +5,7 @@
 | Item | Value |
 | --- | --- |
 | Campaign | Q4 2026 access review |
-| Campaign ID | C21f06e77d8c77003 |
+| Campaign ID | C61cedf912e16213a |
 | Reviewers chosen by | manager |
 | Due | 2026-11-16 |
 | Access read at | 2026-11-01T22:00:00Z |
@@ -43,19 +43,19 @@ Every entry sent for review, by reviewer.
 
 | Row ID | Reviewer | User | Account | Status | Access to | Type | Access | Granted through | Source |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| R72d2dc2d4e95 | Casey Owner | Emery Contractor | emery.contractor@⁠corp.example | Enabled | Payroll App Users | group | member | Direct | entra.jsonl, line 14 |
-| Radff3f4f68d7 | Casey Owner | Emery Contractor | emery.contractor@⁠corp.example | Enabled | Server Operators | group | member | Direct | ad.jsonl, line 18 |
-| R8b4b33a23130 | Jordan Director | Morgan Lead | morgan.lead@⁠corp.example | Enabled | Global Administrator | role | whole directory | Direct | entra.jsonl, line 11 |
-| R7e70501da446 | Jordan Director | Morgan Lead | morgan.lead@⁠corp.example | Enabled | Ledger | application | Approver | Direct | ledger.csv, row 3 |
-| Rce931cefa50a | Morgan Lead | Avery Example | avery.example@⁠corp.example | Enabled | Finance Admins | group | member | Direct | ad.jsonl, line 13 |
-| R070a8260809e | Morgan Lead | Blake Sample | blake.sample@⁠corp.example | Disabled | Finance Admins | group | member | Direct | ad.jsonl, line 17 |
-| R3dd2ac32ff3d | Morgan Lead | Avery Example | avery.example@⁠corp.example | Enabled | Ledger | application | Approver | Direct | ledger.csv, row 4 |
-| R3c13774fa103 | Morgan Lead | Blake Sample | blake.sample@⁠corp.example | Disabled | Ledger | application | Viewer | Direct | ledger.csv, row 6 |
-| R954d0306e234 | Morgan Lead | Drew Analyst | drew.analyst@⁠corp.example | Enabled | Ledger | application | Viewer | Direct | ledger.csv, row 5 |
-| R60b815364cb6 | Morgan Lead | Drew Analyst | drew.analyst@⁠corp.example | Enabled | Ops Helpers | group | member | Direct | ad.jsonl, line 15 |
-| R119eb45d6c64 | Morgan Lead | Avery Example | avery.example@⁠corp.example | Enabled | Payroll App Users | group | member | Direct | entra.jsonl, line 12 |
-| R01318e99338d | Morgan Lead | Drew Analyst | drew.analyst@⁠corp.example | Enabled | Payroll App Users | group | member | Direct | entra.jsonl, line 13 |
-| R2a6be5aaf266 | Morgan Lead | Drew Analyst | drew.analyst@⁠corp.example | Enabled | Server Operators | group | member | Server Operators \> Ops Helpers | ad.jsonl, line 14 |
+| R443b3280ba40 | Casey Owner | Emery Contractor | emery.contractor@⁠corp.example | Enabled | Payroll App Users | group | member | Direct | entra.jsonl, line 14 |
+| R680526a4e83a | Casey Owner | Emery Contractor | emery.contractor@⁠corp.example | Enabled | Server Operators | group | member | Direct | ad.jsonl, line 18 |
+| R49a2752ed2a4 | Jordan Director | Morgan Lead | morgan.lead@⁠corp.example | Enabled | Global Administrator | role | whole directory | Direct | entra.jsonl, line 11 |
+| R9ef3b18c9723 | Jordan Director | Morgan Lead | morgan.lead@⁠corp.example | Enabled | Ledger | application | Approver | Direct | ledger.csv, row 3 |
+| R9a7456ddfe9c | Morgan Lead | Avery Example | avery.example@⁠corp.example | Enabled | Finance Admins | group | member | Direct | ad.jsonl, line 13 |
+| R07aa66e0c960 | Morgan Lead | Blake Sample | blake.sample@⁠corp.example | Disabled | Finance Admins | group | member | Direct | ad.jsonl, line 17 |
+| R87624d83ac88 | Morgan Lead | Avery Example | avery.example@⁠corp.example | Enabled | Ledger | application | Approver | Direct | ledger.csv, row 4 |
+| Rd60d89a91c37 | Morgan Lead | Blake Sample | blake.sample@⁠corp.example | Disabled | Ledger | application | Viewer | Direct | ledger.csv, row 6 |
+| R776d2e37f927 | Morgan Lead | Drew Analyst | drew.analyst@⁠corp.example | Enabled | Ledger | application | Viewer | Direct | ledger.csv, row 5 |
+| Rc739c1246ece | Morgan Lead | Drew Analyst | drew.analyst@⁠corp.example | Enabled | Ops Helpers | group | member | Direct | ad.jsonl, line 15 |
+| Rb6abd756a67e | Morgan Lead | Avery Example | avery.example@⁠corp.example | Enabled | Payroll App Users | group | member | Direct | entra.jsonl, line 12 |
+| R20a314c4d7b5 | Morgan Lead | Drew Analyst | drew.analyst@⁠corp.example | Enabled | Payroll App Users | group | member | Direct | entra.jsonl, line 13 |
+| R452dd559b7f8 | Morgan Lead | Drew Analyst | drew.analyst@⁠corp.example | Enabled | Server Operators | group | member | Server Operators \> Ops Helpers | ad.jsonl, line 14 |
 
 ## Not read (0 problems)
 
@@ -71,10 +71,10 @@ No problems were recorded while reading the inputs.
 
 | File | Kind | Bytes | SHA-256 |
 | --- | --- | --- | --- |
-| ad.jsonl | shaar-export | 4029 | f248f8e56d8926cf7baf6b489a600d0266df95b241b21f9b27df521dacb68733 |
-| entra.jsonl | shaar-export | 3485 | dfe2df70b884bcd6e3c5633ddf34601f073d2dd89cdec19691455798b547b0ff |
+| ad.jsonl | shaar-export | 4029 | d8eb004a3f5ca775810261e976401b7fef1acbdba35707cb476afff9683d5e1f |
+| entra.jsonl | shaar-export | 3485 | 4eefc1bf5d6a328849907ac57b4ac79c56845e8ed9668084d45a0d01bb47559c |
 | ledger.csv | csv | 478 | ee38eb63cd3d672d6b9a45ec978f40dc71037e9834c44be1e6ad44040b4fb115 |
 
 ---
 
-Generated by shaar example at 2026-11-02T09:00:00Z
+Generated by shaar 0.1.1 at 2026-11-02T09:00:00Z

@@ -24,6 +24,7 @@ import json
 import re
 from typing import TYPE_CHECKING, Any
 
+from faithful_shaar.collision import first_collision
 from faithful_shaar.outputs.columns import SECTION_COLUMNS
 from faithful_shaar.outputs.document import KINDS, Cell, Section, cell_text
 from faithful_shaar.outputs.files import OutputError, write_files
@@ -31,7 +32,7 @@ from faithful_shaar.outputs.safety import csv_cell, escape_markdown, visible
 from faithful_shaar.outputs.schema import MANIFEST_NAME, TIME_PATTERN, schema_id
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping, Sequence
+    from collections.abc import Callable, Iterable, Mapping, Sequence
     from pathlib import Path
 
     from faithful_shaar.model import InputFile
@@ -417,9 +418,13 @@ def build_manifest(
     generated_at: str,
     tool_version: str,
     inputs: Iterable[InputFile] = (),
+    limits: Mapping[str, int] | None = None,
 ) -> dict[str, Any]:
-    """The manifest (``manifest-v1``) for ``files``: name, size and SHA-256 of each."""
-    return {
+    """The manifest (``manifest-v1``) for ``files``: name, size and SHA-256 of each.
+
+    ``limits`` are the size limits the run used; they are listed when given.
+    """
+    manifest: dict[str, Any] = {
         "schema": schema_id(MANIFEST_NAME),
         "tool": {"name": "shaar", "version": tool_version},
         "generated_at": generated_at,
@@ -429,6 +434,9 @@ def build_manifest(
         ],
         "inputs": _inputs(inputs),
     }
+    if limits:
+        manifest["limits"] = dict(sorted(limits.items()))
+    return manifest
 
 
 def render_manifest(manifest: Mapping[str, Any]) -> bytes:
@@ -444,6 +452,9 @@ def write_outputs(  # noqa: PLR0913 - the documented API
     generated_at: str,
     tool_version: str,
     inputs: Iterable[InputFile] = (),
+    removable: Callable[[str], bool] | None = None,
+    limits: Mapping[str, int] | None = None,
+    protect: Iterable[Path] = (),
 ) -> dict[str, Any]:
     """Write ``files`` and then ``manifest.json``, all together or not at all.
 
@@ -451,14 +462,25 @@ def write_outputs(  # noqa: PLR0913 - the documented API
     true, and a symbolic link at a target is replaced, never followed. The manifest goes
     last, so a manifest means every other file is in place.
 
+    With ``force``, a file that an earlier run's manifest lists and this run does not write
+    is taken away only when ``removable(name)`` says the name is one this kind of run
+    writes. Without ``removable`` nothing is taken away. A manifest is not proof that a
+    name belongs to the command now running: an output folder reused for another command
+    lists that command's files too, and ``campaign.json`` cannot be written again.
+
+    ``protect`` lists the files this run read. If any of them is one of the files to be
+    written, or one that ``force`` would take away, nothing is written, whatever ``force``
+    says: a run never replaces its own input (the same path, a symbolic link either way, or
+    a hard link).
+
     Returns:
         The manifest as written.
 
     Raises:
         ValueError: A file name is not a plain name, is the manifest's name, or no file
             was given, or ``generated_at`` is not a UTC time.
-        OutputError: A target exists and ``force`` is false, or writing failed. Nothing
-            is left half written.
+        OutputError: A target exists and ``force`` is false, an input would be replaced or
+            taken away, or writing failed. Nothing is left half written.
     """
     if not files:
         msg = "no files to write"
@@ -471,15 +493,32 @@ def write_outputs(  # noqa: PLR0913 - the documented API
         msg = f"generated_at {generated_at!r} is not an RFC 3339 UTC time"
         raise ValueError(msg)
     manifest = build_manifest(
-        files, generated_at=generated_at, tool_version=tool_version, inputs=inputs
+        files, generated_at=generated_at, tool_version=tool_version, inputs=inputs, limits=limits
     )
+    stale = [n for n in _earlier_files(directory) if removable and removable(n)] if force else []
+    _refuse_inputs(protect, directory, [*files, MANIFEST_FILE, *stale])
     write_files(
         directory,
         {**files, MANIFEST_FILE: render_manifest(manifest)},
         force=force,
-        remove=_earlier_files(directory) if force else (),
+        remove=stale,
     )
     return manifest
+
+
+def _refuse_inputs(inputs: Iterable[Path], directory: Path, names: Iterable[str]) -> None:
+    try:
+        found = first_collision(inputs, [directory / name for name in names])
+    except OSError as exc:
+        msg = f"cannot compare the inputs with the output folder {directory}: {exc.strerror}"
+        raise OutputError(msg) from exc
+    if found:
+        source, target = found
+        msg = (
+            f"the input {source} would be replaced or removed by the output file {target}; "
+            "choose another output folder (even --force never replaces an input)"
+        )
+        raise OutputError(msg)
 
 
 def _earlier_files(directory: Path) -> list[str]:

@@ -7,7 +7,13 @@ treated as complete unless the map says ``complete = false``, a row had to be sk
 or the file could not be read to its end. Cells are text: nothing in them is evaluated,
 whatever it looks like (``=SUM(...)``, ``@x``, ``+1``).
 
-A blank (or unmapped) entitlement means ``member``.
+A blank entitlement cell means ``member``. A row that is shorter than the header is not
+padded: it is skipped as a problem (it may have been cut off), and so is a file whose last
+line is not ended by a line break. When the map has an entitlement column that the file
+lacks, the missing column is a problem if the map file lists it. Whenever no entitlement
+column was read (the map names none, or the file lacks it), the snapshot is marked
+entitlement-blind so ``verify`` never reads the absence of an entitlement other than
+``member`` as a removal.
 
 Row numbers are 1-based file line numbers, the header counting as row 1 (a row that
 spans several lines is cited by its first line).
@@ -22,7 +28,7 @@ import io
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from faithful_shaar import keys
+from faithful_shaar import keys, limits
 from faithful_shaar.errors import InputError
 from faithful_shaar.inputs.combine import (
     add_grant,
@@ -153,6 +159,7 @@ class _Reader:
     extra_cols: dict[str, dict[str, int]] = field(default_factory=dict)
     width: int = 0
     loss: bool = False
+    blind: bool = False
     incomplete: set[str] = field(default_factory=set)
     tallies: dict[tuple[str, str], _Tally] = field(default_factory=dict)
 
@@ -162,7 +169,7 @@ class _Reader:
         index: dict[str, int] = {}
         repeated: set[str] = set()
         for position, cell in enumerate(header):
-            key = cell.strip().casefold()
+            key = keys.fold(cell.strip())
             if key in index:
                 repeated.add(key)
             elif key:
@@ -180,13 +187,14 @@ class _Reader:
         ):
             self.extra_cols[group] = self.find({n: n for n in names}, index, repeated)
         self.check_columns(number)
+        self.check_mapped(number)
 
     def find(
         self, wanted: Mapping[str, str], index: dict[str, int], repeated: set[str]
     ) -> dict[str, int]:
         found: dict[str, int] = {}
         for label, header in wanted.items():
-            key = header.casefold()
+            key = keys.fold(header)
             if key in repeated:
                 msg = f"{self.name} has more than one column named {header!r}"
                 raise InputError(msg)
@@ -219,6 +227,24 @@ class _Reader:
         if not cmap.resource and "resource_id" not in cols:
             reason = "no resource id: the resource is matched by name, which is weaker"
             self.snapshot.problems.append(Problem(source, reason))
+
+    def check_mapped(self, number: int) -> None:
+        """Record every column the map file asked for that the file does not have."""
+        cmap = self.cmap
+        source = Source(self.name, f"row {number}")
+        covered = {"principal_id", "resource_id", "resource_name"}  # check_columns speaks to these
+        for label, header in cmap.columns.items():
+            if label in self.cols or label in covered or label not in cmap.explicit:
+                continue
+            reason = f"column {header!r} (mapped to {label}) is not in the file"
+            if label == "entitlement":
+                reason += "; every grant is read as 'member', so no resource is treated as complete"
+                self.loss = True
+            self.snapshot.problems.append(Problem(source, reason))
+        # Whether or not the map, a preset or the map file asked for it, grants read from a
+        # file with no entitlement column are all `member`: nothing there can show another
+        # entitlement was removed. A removal of `member` itself is judged as before.
+        self.blind = "entitlement" not in self.cols
 
     # -- rows -----------------------------------------------------------------------
 
@@ -263,14 +289,14 @@ class _Reader:
             self.snapshot.problems.append(Problem(item.source, reason + "; kept the first"))
 
     def split(self, cells: list[str]) -> _Row:
-        if len(cells) > self.width:
+        if len(cells) != self.width:
             msg = f"it has {len(cells)} cells but the header has {self.width}"
+            if len(cells) < self.width:
+                msg += "; it may have been cut off"
             raise _Skip(msg)
-        values = {f: cells[i].strip() if i < len(cells) else "" for f, i in self.cols.items()}
+        values = {f: cells[i].strip() for f, i in self.cols.items()}
         extras = {
-            group: {
-                n: cells[i].strip() for n, i in cols.items() if i < len(cells) and cells[i].strip()
-            }
+            group: {n: cells[i].strip() for n, i in cols.items() if cells[i].strip()}
             for group, cols in self.extra_cols.items()
         }
         return _Row(values, extras)
@@ -330,7 +356,7 @@ class _Reader:
         return self.ident(raw, raw, system, by_id="principal_id" in self.cols).key
 
     def kind(self, raw: str, source: Source) -> str:
-        text = raw.casefold()
+        text = keys.fold(raw)
         if not text:
             return "unknown"
         if text in self.cmap.principal_kinds:
@@ -341,7 +367,7 @@ class _Reader:
         return "unknown"
 
     def enabled(self, raw: str, source: Source) -> bool | None:
-        text = raw.casefold()
+        text = keys.fold(raw)
         if not text:
             return None
         if text in self.cmap.enabled_true:
@@ -390,7 +416,7 @@ class _Reader:
 
     def make_resource(self, row: _Row, ident: _Ident, system: str, source: Source) -> Resource:
         values = row.values
-        raw_kind = values.get("resource_kind", "").casefold()
+        raw_kind = keys.fold(values.get("resource_kind", ""))
         default = self.cmap.resource_kind or "other"
         if raw_kind in RESOURCE_KINDS:
             kind = raw_kind
@@ -448,13 +474,25 @@ class _Reader:
                     self.resolve(header, number)
             elif any(cell.strip() for cell in record):
                 data_rows += 1
-                if data_rows > MAX_ROWS:
-                    msg = f"{self.name} has more than {MAX_ROWS} rows"
+                if data_rows > limits.get("csv-rows"):
+                    msg = (
+                        f"{self.name} has more than {limits.get('csv-rows')} rows; "
+                        f"{limits.hint('csv-rows')}"
+                    )
                     raise InputError(msg)
                 self.row(number, record)
         if header is None:
             msg = f"{self.name} has no header row"
             raise InputError(msg)
+        if data_rows and not text.endswith(("\n", "\r")):
+            self.snapshot.problems.append(
+                Problem(
+                    Source(self.name, f"row {reader.line_num}"),
+                    "the file does not end with a line break, so its last row may have been "
+                    "cut off; add the line break once you know the export is whole",
+                )
+            )
+            self.loss = True
 
     def fail_row(self, number: int, error: csv.Error, *, in_header: bool) -> None:
         if in_header:
@@ -487,6 +525,8 @@ class _Reader:
                 )
             )
         snap.collected_at = self.cmap.collected_at
+        if self.blind:
+            snap.entitlement_blind = {r.system for r in snap.resources.values()}
         snap.systems.update(p.system for p in snap.principals.values())
         snap.systems.update(r.system for r in snap.resources.values())
         if self.cmap.complete and not self.loss and not unscoped:
@@ -500,9 +540,10 @@ def read_csv(stream: BinaryIO, name: str, cmap: CsvMap) -> tuple[Snapshot, Input
     mapped column, or is larger than :data:`MAX_CSV_BYTES` or :data:`MAX_ROWS`. A bad row
     becomes a problem and is skipped.
     """
-    raw = stream.read(MAX_CSV_BYTES + 1)
-    if len(raw) > MAX_CSV_BYTES:
-        msg = f"{name} is larger than the limit of {MAX_CSV_BYTES} bytes"
+    size = limits.get("csv-bytes")
+    raw = stream.read(size + 1)
+    if len(raw) > size:
+        msg = f"{name} is larger than the limit of {size} bytes; {limits.hint('csv-bytes')}"
         raise InputError(msg)
     text = decode(raw, cmap.encoding, name)
     delimiter = sniff(text, cmap.delimiter, name)
