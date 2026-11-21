@@ -94,8 +94,10 @@ shaar collect ad --host dc01.corp.example --privileged --auth ntlm \
 The command needs the `ad` extra (`pypsrp`):
 
 ```shell
-pipx install "faithful-shaar[ad]"
+pipx install --force "faithful-shaar[ad]"
 ```
+
+With pip, use `pip install "faithful-shaar[ad]"`. `--force` is needed because pipx refuses to install shaar a second time without it.
 
 ### Prerequisites
 

@@ -45,6 +45,7 @@ from faithful_shaar.collect.graph import (
     Pages,
     odata_string,
 )
+from faithful_shaar.collect.names import install_hint
 from faithful_shaar.collision import collection_collision, secret_file
 from faithful_shaar.console import say
 from faithful_shaar.errors import CollectionError, ShaarError, UsageError
@@ -72,7 +73,7 @@ _KINDS = {
     "device": "device",
     "orgContact": "other",
 }
-_INSTALL = "pip install 'faithful-shaar[entra]'"
+_INSTALL = install_hint("entra")
 
 
 # --- sign-in ------------------------------------------------------------------------
@@ -832,10 +833,10 @@ def _sign_in(args: argparse.Namespace) -> SignIn:
         raise CollectionError(msg)
     password = secret = None
     if args.certificate_password:
-        password = secrets.resolve(args.certificate_password)
+        password = secrets.resolve(args.certificate_password, keep=("entra",))
         secrets.remember(password)
     if args.client_secret:
-        secret = secrets.resolve(args.client_secret)
+        secret = secrets.resolve(args.client_secret, keep=("entra",))
         secrets.remember(secret)
     return SignIn(
         tenant=args.tenant,
