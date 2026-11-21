@@ -131,6 +131,19 @@ def test_missing_provider_package_names_the_extra(
     )
 
 
+@pytest.mark.parametrize("collector", ["ad", "entra"])
+def test_the_install_hint_keeps_the_collectors_own_extra(
+    monkeypatch: pytest.MonkeyPatch, collector: str
+) -> None:
+    # pipx install --force replaces the installed extras, so the hint must keep the
+    # collector's extra as well as naming the provider's.
+    hide(monkeypatch, "hvac")
+    with pytest.raises(CollectionError) as caught:
+        secrets.resolve("vault:secret/path#field", keep=(collector,))
+    assert f'pipx install --force "faithful-shaar[{collector},vault]"' in str(caught.value)
+    assert f'pip install "faithful-shaar[{collector},vault]"' in str(caught.value)
+
+
 def test_keyring_secret(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: list[tuple[str, str]] = []
 

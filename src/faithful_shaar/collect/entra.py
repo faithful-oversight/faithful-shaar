@@ -833,10 +833,10 @@ def _sign_in(args: argparse.Namespace) -> SignIn:
         raise CollectionError(msg)
     password = secret = None
     if args.certificate_password:
-        password = secrets.resolve(args.certificate_password)
+        password = secrets.resolve(args.certificate_password, keep=("entra",))
         secrets.remember(password)
     if args.client_secret:
-        secret = secrets.resolve(args.client_secret)
+        secret = secrets.resolve(args.client_secret, keep=("entra",))
         secrets.remember(secret)
     return SignIn(
         tenant=args.tenant,

@@ -635,7 +635,7 @@ def collect_args(out: Path, *extra: str) -> list[str]:
 def fetched(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     calls: list[str] = []
 
-    def resolve(reference: str) -> str:
+    def resolve(reference: str, *, keep: tuple[str, ...] = ()) -> str:  # noqa: ARG001
         calls.append(reference)
         return SECRET
 

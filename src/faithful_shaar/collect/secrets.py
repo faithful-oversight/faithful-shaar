@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote, quote_plus
@@ -32,12 +33,33 @@ from urllib.parse import quote, quote_plus
 from faithful_shaar.collect.names import install_hint
 from faithful_shaar.errors import CollectionError
 
+_KEEP: ContextVar[tuple[str, ...]] = ContextVar("keep_extras", default=())
+"""Extras the current caller already needs, kept in install hints."""
+
 PROVIDERS = ("env", "file", "keyring", "vault", "aws", "azure")
 REDACTED = "[redacted]"
 _resolved: set[str] = set()
 
 
-def resolve(reference: str) -> str:
+def resolve(reference: str, *, keep: tuple[str, ...] = ()) -> str:
+    """Return the secret a reference points to.
+
+    ``keep`` names the extras the caller already needs (``ad`` or ``entra``), so a
+    missing-provider message installs them too: ``pipx install --force`` replaces the
+    installed extras with the ones the command names.
+
+    Raises:
+        CollectionError: The reference is malformed, the provider's package is
+            not installed, or the secret cannot be read.
+    """
+    token = _KEEP.set(keep)
+    try:
+        return _resolve(reference)
+    finally:
+        _KEEP.reset(token)
+
+
+def _resolve(reference: str) -> str:
     """Return the secret a reference points to.
 
     Raises:
@@ -117,7 +139,8 @@ def _need(module: str, extra: str) -> Any:
     try:
         return importlib.import_module(module)
     except ImportError as exc:
-        msg = f"this secret provider needs {module}; install it with: {install_hint(extra)}"
+        hint = install_hint(*_KEEP.get(), extra)
+        msg = f"this secret provider needs {module}; install it with: {hint}"
         raise CollectionError(msg) from exc
 
 
