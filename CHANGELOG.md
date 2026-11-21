@@ -9,6 +9,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - CI now runs the PowerShell exporter's tests under Windows PowerShell 5.1 as well as PowerShell 7.
+- Shared code now comes from the `faithful-core` library, pinned to an exact version.
+- The refusal to replace a file the command reads has new wording: `a file that is read is never replaced, even with --force; choose another output location`. This also covers the CA file, the certificate and the `file:` secrets of `shaar collect`. When the file system cannot show whether an output is such a file, the command now refuses instead of going on.
+- A refusal because an output file exists now ends `use --force to replace it` (or `them`).
+- A workbook part that declares a `DOCTYPE` is refused with `it declares a DOCTYPE or an entity; those are refused`.
 - Install instructions and missing-extra messages now point to PyPI (`pipx install faithful-shaar`), with the GitHub install kept as a development-version fallback.
 
 ## [0.1.1] - 2026-11-14
