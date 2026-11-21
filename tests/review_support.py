@@ -5,11 +5,40 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import TYPE_CHECKING, Any
 
 from faithful_shaar import campaign as cmod
 from faithful_shaar import example
-from faithful_shaar.cli import main
+from faithful_shaar.cli import main as _cli_main
+
+REVIEW_EPOCH = "1794301200"
+"""2026-11-10T09:00:00Z: when these synthetic reviews run, between BEFORE_AT and AFTER_AT.
+
+Without a fixed clock the campaign is dated "now", and once the real date passed
+AFTER_AT every later export read as taken before the campaign began.
+"""
+
+
+def main(argv: list[str], *, epoch: str | None = REVIEW_EPOCH) -> int:
+    """Run the CLI at the synthetic review's fixed time.
+
+    The scenario clock always wins over an inherited ``SOURCE_DATE_EPOCH`` (a build or
+    CI may set one), so these tests do not depend on the environment. ``epoch=None``
+    leaves the environment's own setting in place, for the tests about that setting.
+    """
+    if epoch is None:
+        return _cli_main(argv)
+    saved = os.environ.get("SOURCE_DATE_EPOCH")
+    os.environ["SOURCE_DATE_EPOCH"] = epoch
+    try:
+        return _cli_main(argv)
+    finally:
+        if saved is None:
+            del os.environ["SOURCE_DATE_EPOCH"]
+        else:
+            os.environ["SOURCE_DATE_EPOCH"] = saved
+
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -152,7 +181,7 @@ def example_commands(root: Path) -> list[tuple[dict[str, str], list[str]]]:
 
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
-        assert main(["example", str(root)]) == 0
+        assert main(["example", str(root)], epoch=None) == 0
     commands: list[tuple[dict[str, str], list[str]]] = []
     env: dict[str, str] = {}
     for line in out.getvalue().splitlines():
@@ -187,7 +216,7 @@ def run_command(command: tuple[dict[str, str], list[str]]) -> int:
     saved = {name: os.environ.get(name) for name in env}
     os.environ.update(env)
     try:
-        return main(argv)
+        return main(argv, epoch=None)  # the printed command carries its own clock
     finally:
         for name, old in saved.items():
             if old is None:
