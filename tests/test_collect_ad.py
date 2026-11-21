@@ -541,8 +541,21 @@ def test_pypsrp_missing_says_how_to_install(monkeypatch: pytest.MonkeyPatch) -> 
         raise ImportError(name)
 
     monkeypatch.setattr(importlib, "import_module", refuse)
-    with pytest.raises(CollectionError, match=r"faithful-shaar\[ad\]"):
+    with pytest.raises(CollectionError) as caught:
         remote._client()  # noqa: SLF001
+    # pipx refuses a plain install over an installed shaar, so the pipx form has --force.
+    assert str(caught.value).endswith(
+        'pipx install --force "faithful-shaar[ad]" (or, with pip, pip install "faithful-shaar[ad]")'
+    )
+
+
+def test_the_install_hint_names_every_extra_and_points_to_pypi() -> None:
+    hint = names.install_hint("ad", "vault")
+    assert hint == (
+        'pipx install --force "faithful-shaar[ad,vault]" '
+        '(or, with pip, pip install "faithful-shaar[ad,vault]")'
+    )
+    assert "git+" not in hint
 
 
 def test_the_real_client_classes_load() -> None:

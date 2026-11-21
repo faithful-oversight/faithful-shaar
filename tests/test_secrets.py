@@ -126,7 +126,8 @@ def test_missing_provider_package_names_the_extra(
     module = modules[0]
     assert resolve_error(reference) == (
         f"this secret provider needs {module}; "
-        f'install it with: pip install "faithful-shaar[{extra}]"'
+        f'install it with: pipx install --force "faithful-shaar[{extra}]" '
+        f'(or, with pip, pip install "faithful-shaar[{extra}]")'
     )
 
 
