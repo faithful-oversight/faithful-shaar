@@ -28,10 +28,10 @@ classifiers = [
   "Topic :: System :: Systems Administration",
   "Typing :: Typed",
 ]
-dependencies = []
+dependencies = ["faithful-core==0.1.0"]
 
 [project.optional-dependencies]
-# Reading exports, CSV files and workbooks needs no dependencies. Each extra adds one
+# Reading exports, CSV files and workbooks needs only faithful-core. Each extra adds one
 # way to collect or to fetch a secret.
 # Running the Active Directory exporter remotely over PowerShell remoting (WinRM).
 ad = ["pypsrp>=0.8"]
