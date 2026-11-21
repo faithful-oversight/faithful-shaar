@@ -5,11 +5,31 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import TYPE_CHECKING, Any
 
 from faithful_shaar import campaign as cmod
 from faithful_shaar import example
-from faithful_shaar.cli import main
+from faithful_shaar.cli import main as _cli_main
+
+REVIEW_EPOCH = "1794301200"
+"""2026-11-10T09:00:00Z: when these synthetic reviews run, between BEFORE_AT and AFTER_AT.
+
+Without a fixed clock the campaign is dated "now", and once the real date passed
+AFTER_AT every later export read as taken before the campaign began.
+"""
+
+
+def main(argv: list[str]) -> int:
+    """Run the CLI with the synthetic review's clock unless the caller set one."""
+    if "SOURCE_DATE_EPOCH" in os.environ:
+        return _cli_main(argv)
+    os.environ["SOURCE_DATE_EPOCH"] = REVIEW_EPOCH
+    try:
+        return _cli_main(argv)
+    finally:
+        del os.environ["SOURCE_DATE_EPOCH"]
+
 
 if TYPE_CHECKING:
     from pathlib import Path
