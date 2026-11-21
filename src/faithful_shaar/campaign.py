@@ -20,13 +20,14 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from faithful_core.safety import visible
+
 from faithful_shaar import limits
 from faithful_shaar.assign import MapEntry, MapIndex, assign
 from faithful_shaar.errors import InputError
 from faithful_shaar.formats.xlsx import cell_text
 from faithful_shaar.keys import fold, identity
 from faithful_shaar.model import InputFile, Problem, Source
-from faithful_shaar.outputs.safety import visible
 
 if TYPE_CHECKING:
     from faithful_shaar.model import Grant, Principal, Snapshot

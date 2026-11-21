@@ -15,8 +15,9 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from faithful_core.exitcodes import ExitCode
+
 from faithful_shaar import example
-from faithful_shaar.cli import ExitCode
 from tests import review_support as rs
 
 if TYPE_CHECKING:

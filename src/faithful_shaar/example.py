@@ -28,12 +28,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from faithful_core.safety import command_line, terminal_line
+
 from faithful_shaar import campaign as cmod
 from faithful_shaar.formats.xlsx import Packet, PacketRow, write_packet
 from faithful_shaar.inputs import read_inputs
 from faithful_shaar.outputs.files import write_files
 from faithful_shaar.outputs.render import build_manifest, render_all, render_manifest
-from faithful_shaar.outputs.safety import command_line, terminal_line
 from faithful_shaar.reports import campaign_document, packets
 
 CREATED = "2026-11-02T09:00:00Z"

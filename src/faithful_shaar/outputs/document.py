@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from faithful_shaar.clock import date_and_time
+from faithful_core.clock import date_and_time
 
 if TYPE_CHECKING:
     from faithful_shaar.model import InputFile, Problem

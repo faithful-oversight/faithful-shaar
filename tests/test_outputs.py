@@ -18,6 +18,8 @@ from typing import TYPE_CHECKING, Any
 
 import jsonschema
 import pytest
+from faithful_core.render import CSP
+from faithful_core.safety import escape_markdown
 
 from faithful_shaar.errors import UsageError
 from faithful_shaar.model import InputFile, Problem, Source
@@ -33,7 +35,6 @@ from faithful_shaar.outputs.document import (
 )
 from faithful_shaar.outputs.files import OutputError
 from faithful_shaar.outputs.render import (
-    CSP,
     _md_block,
     build_manifest,
     render_all,
@@ -43,7 +44,6 @@ from faithful_shaar.outputs.render import (
     render_markdown,
     write_outputs,
 )
-from faithful_shaar.outputs.safety import escape_markdown
 from faithful_shaar.outputs.schema import SCHEMA_NAMES, generate_schema, schema_id
 from faithful_shaar.schema import SCHEMA_NAMES as SHIPPED_NAMES
 from faithful_shaar.schema import schema_text

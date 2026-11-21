@@ -32,8 +32,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from faithful_core.clock import date_and_time
+from faithful_core.console import say
+
 from faithful_shaar import __version__
-from faithful_shaar.clock import date_and_time
 from faithful_shaar.collect import secrets
 from faithful_shaar.collect.fileout import write_private
 from faithful_shaar.collect.graph import (
@@ -47,7 +49,6 @@ from faithful_shaar.collect.graph import (
 )
 from faithful_shaar.collect.names import install_hint
 from faithful_shaar.collision import collection_collision, secret_file
-from faithful_shaar.console import say
 from faithful_shaar.errors import CollectionError, ShaarError, UsageError
 
 if TYPE_CHECKING:

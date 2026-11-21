@@ -8,9 +8,10 @@ import json
 from pathlib import Path
 
 import pytest
+from faithful_core.exitcodes import ExitCode
 
 from faithful_shaar import limits
-from faithful_shaar.cli import ExitCode, main
+from faithful_shaar.cli import main
 from tests import review_support as rs
 
 DOCS = Path(__file__).resolve().parent.parent / "docs"

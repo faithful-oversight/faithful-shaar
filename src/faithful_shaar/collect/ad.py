@@ -17,11 +17,12 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from faithful_core.console import say
+from faithful_core.safety import terminal_line
+
 from faithful_shaar.collect import names, remote, script, secrets
 from faithful_shaar.collision import collection_collision, secret_file
-from faithful_shaar.console import say
 from faithful_shaar.errors import CollectionError, UsageError
-from faithful_shaar.outputs.safety import terminal_line
 
 if TYPE_CHECKING:
     from collections.abc import Callable

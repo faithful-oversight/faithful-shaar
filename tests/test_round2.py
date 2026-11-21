@@ -16,9 +16,10 @@ import sys
 from pathlib import Path
 
 import pytest
+from faithful_core.exitcodes import ExitCode
 
 from faithful_shaar import keys
-from faithful_shaar.cli import ExitCode, main
+from faithful_shaar.cli import main
 from faithful_shaar.inputs import csvmap, csvread
 from tests import review_support as rs
 from tests.test_review_fixes import ALICE_BOB, problems, removal_results
