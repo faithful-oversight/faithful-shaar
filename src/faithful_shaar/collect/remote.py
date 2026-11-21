@@ -37,6 +37,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from faithful_shaar.collect.names import install_hint
 from faithful_shaar.collect.secrets import redact, remember
 from faithful_shaar.errors import CollectionError
 
@@ -53,7 +54,7 @@ MAX_LINE = 1024 * 1024
 MAX_FILE = 512 * 1024 * 1024
 """The largest export shaar accepts, in bytes."""
 _RECORDS = ("principal", "resource", "grant", "gap")
-_INSTALL = 'remote collection needs pypsrp; install it with: pip install "faithful-shaar[ad]"'
+_INSTALL = f"remote collection needs pypsrp; install it with: {install_hint('ad')}"
 
 
 @dataclass(frozen=True)
