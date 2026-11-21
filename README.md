@@ -3,9 +3,10 @@
 **Access Review Kit.** Runs an offline access review: access data in, reviewer packets out, decisions back in, and a verification of what actually changed.
 
 [![CI](https://github.com/faithful-oversight/faithful-shaar/actions/workflows/ci.yml/badge.svg)](https://github.com/faithful-oversight/faithful-shaar/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/faithful-shaar)](https://pypi.org/project/faithful-shaar/)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-> **Status:** version 0.1.1, a first release for pilots. A whole review (campaign, decisions, verification) runs end to end and is tested on synthetic data. The Active Directory exporter, `shaar collect ad`, and `shaar collect entra` have not been run against a real domain, a real WinRM endpoint, or a real Entra tenant, and packets have been tested with LibreOffice and openpyxl, not with Excel or Google Sheets. Run a small pilot review first. See [Limitations](docs/limitations.md) and the [documentation](docs/index.md).
+> **Status:** version 0.1.1, a first release for pilots, available on PyPI. A whole review (campaign, decisions, verification) runs end to end and is tested on synthetic data. The Active Directory exporter, `shaar collect ad`, and `shaar collect entra` have not been run against a real domain, a real WinRM endpoint, or a real Entra tenant, and packets have been tested with LibreOffice and openpyxl, not with Excel or Google Sheets. Run a small pilot review first. See [Limitations](docs/limitations.md) and the [documentation site](https://faithful-oversight.github.io/faithful-shaar/) (also in the [docs folder](docs/index.md)).
 
 **How it differs from existing tools.** Reviews run by spreadsheet and email leave no check that the returned sheet is the one that was sent, and nothing that says afterwards whether a removal happened. Identity governance suites do both, with workflow, reminders, and a web interface, and they need a server and an account on the systems they manage. shaar is the small, offline middle: it works from exports you give it, binds each packet to the campaign it came from, and says unknown where it cannot tell. It makes no changes to any system, has no workflow, and does not certify that a review meets any standard.
 
@@ -84,13 +85,14 @@ See [Limitations](docs/limitations.md) and the [threat model](docs/threat-model.
 
 shaar needs Python 3.11 or newer. Reading files and writing packets needs no other package.
 
-PyPI publishing is being set up. Until a PyPI release exists, install from GitHub:
-
 ```shell
-pipx install git+https://github.com/faithful-oversight/faithful-shaar
+pipx install faithful-shaar
+pipx ensurepath
 ```
 
-For a fixed version, add the tag: `git+https://github.com/faithful-oversight/faithful-shaar@v0.1.1`. If `shaar` is not found afterwards, run `pipx ensurepath` once and open a new terminal.
+`pipx ensurepath` puts the `shaar` command on your PATH; run it once and open a new terminal. With pip, use `pip install faithful-shaar`. For a fixed version, use `faithful-shaar==0.1.1`.
+
+To try the development version from GitHub, run `pipx install git+https://github.com/faithful-oversight/faithful-shaar`.
 
 Collecting and secret providers are optional extras:
 
@@ -104,8 +106,10 @@ Collecting and secret providers are optional extras:
 | `azure` | `azure-identity`, `azure-keyvault-secrets` | `--secret azure:...` |
 
 ```shell
-pipx install "faithful-shaar[ad,entra] @ git+https://github.com/faithful-oversight/faithful-shaar"
+pipx install "faithful-shaar[ad,entra]"
 ```
+
+If shaar is already installed, add `--force` to add an extra: `pipx install --force "faithful-shaar[ad,entra]"`. With pip, use `pip install "faithful-shaar[ad,entra]"`.
 
 To work from source, see [CONTRIBUTING.md](CONTRIBUTING.md).
 

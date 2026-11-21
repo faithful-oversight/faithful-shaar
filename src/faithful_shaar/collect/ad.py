@@ -170,7 +170,9 @@ def run_collect_ad(args: argparse.Namespace) -> int:
         groups=args.group, search_base=args.search_base, privileged=args.privileged, server=host
     )
     if args.secret:
-        target = remote.Target(**{**vars(target), "secret": secrets.resolve(args.secret)})
+        target = remote.Target(
+            **{**vars(target), "secret": secrets.resolve(args.secret, keep=("ad",))}
+        )
     result = remote.collect(target, script.text(), values, args.output, force=args.force)
     say(terminal(f"Exported {result.records} records from {host} into {result.path}."))
     for name in result.incomplete:

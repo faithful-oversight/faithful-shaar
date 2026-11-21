@@ -655,7 +655,7 @@ def test_missing_extra_names_the_install_command(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setitem(sys.modules, "azure.identity", None)
     with pytest.raises(CollectionError) as caught:
         entra.build_credential(entra.SignIn(TENANT, CLIENT, CLOUDS["global"]))
-    assert "pip install 'faithful-shaar[entra]'" in str(caught.value)
+    assert 'pipx install --force "faithful-shaar[entra]"' in str(caught.value)
 
 
 # --- collection: groups -------------------------------------------------------------
@@ -1939,7 +1939,8 @@ def test_a_missing_extra_is_exit_3_before_any_secret_is_read(
     args = parse(*base(tmp_path, "--client-secret", "env:ENTRA_TEST_UNSET_VARIABLE", "--roles"))
     assert entra.run_collect_entra(args) == 3
     err = capsys.readouterr().err
-    assert "pip install 'faithful-shaar[entra]'" in err
+    assert 'pipx install --force "faithful-shaar[entra]"' in err
+    assert '(or, with pip, pip install "faithful-shaar[entra]")' in err
     assert "ENTRA_TEST_UNSET_VARIABLE" not in err
 
 

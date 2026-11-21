@@ -1,6 +1,6 @@
 # Quickstart
 
-This page runs a whole review on made-up data in about five minutes. Nothing in it touches a real system. Install shaar first (see the [README](https://github.com/faithful-oversight/faithful-shaar#install)): PyPI publishing is being set up, so until a PyPI release exists, install from GitHub with `pipx install git+https://github.com/faithful-oversight/faithful-shaar`, then run `pipx ensurepath` once if `shaar` is not found.
+This page runs a whole review on made-up data in about five minutes. Nothing in it touches a real system. Install shaar first (see the [README](https://github.com/faithful-oversight/faithful-shaar#install)): run `pipx install faithful-shaar` (or `pip install faithful-shaar`), then run `pipx ensurepath` once if `shaar` is not found.
 
 ## 1. Write the example
 
