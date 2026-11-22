@@ -357,6 +357,6 @@
   "title": "Access review decisions: Q4 2026 access review",
   "tool": {
     "name": "shaar",
-    "version": "0.1.1"
+    "version": "0.1.2"
   }
 }
