@@ -9,3 +9,4 @@ Each record explains one significant decision: its context, the decision, and it
 - [5. Collectors: a PowerShell exporter, WinRM, and Microsoft Graph](0005-collectors.md)
 - [6. Campaign integrity by hash binding](0006-campaign-integrity.md)
 - [7. Packet workbooks written by hand](0007-packet-workbooks.md)
+- [8. A shared core library, faithful-core](0008-shared-core-library.md)

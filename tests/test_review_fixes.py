@@ -21,11 +21,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from faithful_core.exitcodes import ExitCode
 
 from faithful_shaar import example, keys
 from faithful_shaar.assign import MapIndex
-from faithful_shaar.cli import ExitCode, main
-from faithful_shaar.formats import xlsx, xmlsafe
+from faithful_shaar.cli import main
+from faithful_shaar.formats import xlsx
 from tests import review_support as rs
 from tests.core_fixtures import people, resources, snapshot
 
@@ -564,28 +565,6 @@ def test_c06_packets_and_records_show_invisible_characters_as_escapes(tmp_path: 
 NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 
 # SHAAR-C07 ------------------------------------------------------------------------------
-
-
-def test_c07_a_hostile_worksheet_is_refused_without_building_a_tree() -> None:
-    cells = '<c s="1"/>' * 300_000
-    xml = (
-        f'<worksheet xmlns="{NS_MAIN}"><sheetData><row r="1">{cells}</row></sheetData></worksheet>'
-    ).encode()
-    with pytest.raises(xmlsafe.XmlError, match="more than"):
-        xmlsafe.parse(xml, max_elements=100_000)
-
-
-def test_c07_taken_elements_are_handed_over_and_dropped() -> None:
-    seen: list[str] = []
-    rows = "".join(f'<row r="{n}"><c><v>{n}</v></c></row>' for n in range(1, 2001))
-    xml = f"<worksheet><sheetData>{rows}</sheetData></worksheet>".encode()
-    root = xmlsafe.parse(
-        xml,
-        max_elements=50,  # far fewer than the document holds: only open elements count
-        take=(("*", "sheetData", "row"), lambda row: seen.append(row.get("r", ""))),
-    )
-    assert len(seen) == 2000
-    assert len(root[0]) == 0  # nothing kept
 
 
 def test_c07_a_packet_with_millions_of_empty_cells_is_refused_cheaply() -> None:

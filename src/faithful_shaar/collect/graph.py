@@ -33,8 +33,9 @@ from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING, Any, Protocol
 from urllib.parse import quote, urlencode, urlsplit
 
+from faithful_core.collect import secrets
+
 from faithful_shaar import __version__
-from faithful_shaar.collect import secrets
 from faithful_shaar.errors import CollectionError
 
 if TYPE_CHECKING:

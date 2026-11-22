@@ -15,14 +15,15 @@ import importlib
 import json
 import os
 import re
-import shutil
-from dataclasses import replace
+import sys
 from typing import TYPE_CHECKING, Any
 
 import pytest
+from faithful_core.collect import secrets, winrm
+from faithful_core.collect.winrm import Target
 
-from faithful_shaar.collect import ad, names, remote, script, secrets
-from faithful_shaar.collect.remote import Target, collect, parameters, settings
+from faithful_shaar.collect import ad, remote, script
+from faithful_shaar.collect.remote import collect, parameters
 from faithful_shaar.errors import CollectionError, ShaarError, UsageError
 
 if os.environ.get("SHAAR_REQUIRE_LIVE") == "1":  # pragma: no cover - set in CI
@@ -72,57 +73,6 @@ def as_file(lines: Sequence[str]) -> bytes:
 
 LINES = stream()
 GOOD = as_file(LINES)
-
-
-# --- names and settings -----------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    ("server", "problem"),
-    [("10.0.0.5", "IP address"), ("dc01", "fully qualified"), ("-bad.corp.example", "fully")],
-)
-def test_server_must_be_a_dns_name(server: str, problem: str) -> None:
-    with pytest.raises(CollectionError, match=problem):
-        names.server_name(server)
-
-
-def test_https_always_verifies_the_certificate(tmp_path: Path) -> None:
-    values = settings(TARGET)
-    assert values["ssl"] is True
-    assert values["port"] == 5986
-    assert values["cert_validation"] is True
-    assert values["encryption"] == "auto"
-    with_ca = settings(replace(TARGET, ca_file=tmp_path / "ca.pem", port=443))
-    assert with_ca["cert_validation"] == str(tmp_path / "ca.pem")
-    assert with_ca["port"] == 443
-    assert "verify" not in json.dumps(values, default=str).lower().replace("cert_validation", "")
-
-
-@pytest.mark.parametrize("auth", ["kerberos", "negotiate", "ntlm"])
-def test_http_is_used_only_with_message_encryption(auth: str) -> None:
-    values = settings(replace(TARGET, auth=auth, transport="http"))
-    assert values["ssl"] is False
-    assert values["port"] == 5985
-    assert values["encryption"] == "always"
-    assert values["auth"] == auth
-
-
-@pytest.mark.parametrize(
-    ("changes", "problem"),
-    [
-        ({"auth": "basic"}, "--auth must be one of"),
-        ({"auth": "credssp"}, "--auth must be one of"),
-        ({"transport": "ftp"}, "--auth must be one of"),
-        ({"transport": "http", "ca_file": "x.pem"}, "https only"),
-    ],
-)
-def test_insecure_combinations_are_refused(changes: dict[str, Any], problem: str) -> None:
-    with pytest.raises(CollectionError, match=problem):
-        settings(replace(TARGET, **changes))
-
-
-def test_the_secret_is_not_in_the_targets_repr() -> None:
-    assert SECRET not in repr(TARGET)
 
 
 def test_script_parameters() -> None:
@@ -201,7 +151,7 @@ class Remote:
                 pass
 
             def poll_invoke(self, timeout: int) -> None:
-                assert timeout == remote.POLL_SECONDS
+                assert timeout == winrm.POLL_SECONDS
                 if remote_side.batches:
                     self.output.extend(remote_side.batches.pop(0))
                 if not remote_side.batches:
@@ -219,7 +169,7 @@ class Remote:
 @pytest.fixture
 def fake(monkeypatch: pytest.MonkeyPatch) -> Remote:
     side = Remote([LINES[:2], [], LINES[2:]])
-    monkeypatch.setattr(remote, "_client", side.classes)
+    monkeypatch.setattr(winrm, "client", lambda _hint: side.classes())
     return side
 
 
@@ -459,7 +409,7 @@ def test_a_failed_copy_removes_the_partly_written_file(
     def full(*_: object, **__: object) -> None:
         raise OSError(errno.ENOSPC, "No space left on device")
 
-    monkeypatch.setattr(shutil, "copyfileobj", full)
+    monkeypatch.setattr(os, "fsync", full)  # the copy fails after the name exists
     with pytest.raises(CollectionError, match=r"cannot write .*e\.jsonl: No space left"):
         run(out)
     assert not out.exists()
@@ -536,40 +486,21 @@ def test_a_collection_without_a_secret_still_publishes(tmp_path: Path, fake: Rem
     assert out.read_bytes() == GOOD
 
 
-def test_pypsrp_missing_says_how_to_install(monkeypatch: pytest.MonkeyPatch) -> None:
-    def refuse(name: str) -> Any:
-        raise ImportError(name)
-
-    monkeypatch.setattr(importlib, "import_module", refuse)
+def test_pypsrp_missing_says_how_to_install_shaar(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setitem(sys.modules, "pypsrp.wsman", None)
+    out = tmp_path / "e.jsonl"
     with pytest.raises(CollectionError) as caught:
-        remote._client()  # noqa: SLF001
+        run(out)
     # pipx refuses a plain install over an installed shaar, so the pipx form has --force.
     assert str(caught.value).endswith(
         'pipx install --force "faithful-shaar[ad]" (or, with pip, pip install "faithful-shaar[ad]")'
     )
+    assert leftovers(tmp_path) == []
 
 
-def test_the_install_hint_names_every_extra_and_points_to_pypi() -> None:
-    hint = names.install_hint("ad", "vault")
-    assert hint == (
-        'pipx install --force "faithful-shaar[ad,vault]" '
-        '(or, with pip, pip install "faithful-shaar[ad,vault]")'
-    )
-    assert "git+" not in hint
-
-
-def test_the_real_client_classes_load() -> None:
-    pytest.importorskip("pypsrp")  # the `ad` extra; CI sets SHAAR_REQUIRE_LIVE=1 to require it
-    wsman, pool, shell, running = remote._client()  # noqa: SLF001
-    assert (wsman.__name__, pool.__name__, shell.__name__) == (
-        "WSMan",
-        "RunspacePool",
-        "PowerShell",
-    )
-    assert isinstance(running, int)
-
-
-# --- publish and write_private -----------------------------------------------------------
+# --- write_private -----------------------------------------------------------
 
 
 def test_write_private_creates_owner_only_and_refuses_to_overwrite(tmp_path: Path) -> None:
@@ -589,26 +520,6 @@ def test_write_private_creates_owner_only_and_refuses_to_overwrite(tmp_path: Pat
 def test_write_private_reports_a_missing_folder(tmp_path: Path) -> None:
     with pytest.raises(CollectionError, match="cannot write to"):
         remote.write_private(tmp_path / "missing" / "s.ps1", b"x", force=False)
-
-
-def test_publish_with_force_reports_a_failure(tmp_path: Path) -> None:
-    with pytest.raises(CollectionError, match="cannot write"):
-        remote.publish(tmp_path / "gone.part", tmp_path / "out", force=True)
-
-
-def test_publish_reports_a_failure_other_than_a_clash(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    temp = tmp_path / "t.part"
-    temp.write_bytes(b"x")
-
-    def refuse(*_: object, **__: object) -> None:
-        raise PermissionError(errno.EACCES, "Permission denied")
-
-    monkeypatch.setattr(os, "link", refuse)
-    monkeypatch.setattr(os, "open", refuse)
-    with pytest.raises(CollectionError, match=r"cannot write .*: Permission denied"):
-        remote.publish(temp, tmp_path / "out", force=False)
 
 
 # --- the commands -----------------------------------------------------------------------
@@ -635,7 +546,9 @@ def collect_args(out: Path, *extra: str) -> list[str]:
 def fetched(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     calls: list[str] = []
 
-    def resolve(reference: str, *, keep: tuple[str, ...] = ()) -> str:  # noqa: ARG001
+    def resolve(reference: str, *, hint: Any, keep: tuple[str, ...] = ()) -> str:
+        assert callable(hint)
+        assert keep == ("ad",)
         calls.append(reference)
         return SECRET
 
@@ -809,6 +722,20 @@ def test_collect_end_to_end_through_the_stand_in(
     assert out.read_bytes() == GOOD
     assert fake.parameters == {"ToPipeline": True, "Group": ["Tier0 Admins"], "Server": SERVER}
     assert "Exported 3 records" in capsys.readouterr().out
+
+
+def test_a_missing_secret_provider_package_says_how_to_install_shaar(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setitem(sys.modules, "keyring", None)
+    args = collect_args(
+        tmp_path / "e.jsonl", "--privileged", "--username", "CORP\\auditor",
+        "--secret", "keyring:svc/auditor",
+    )  # fmt: skip
+    with pytest.raises(CollectionError) as caught:
+        invoke(*args)
+    # The hint keeps the extra remote collection needs, or pipx --force would drop it.
+    assert 'pipx install --force "faithful-shaar[ad,keyring]"' in str(caught.value)
 
 
 def test_exporter_writes_the_script_into_the_directory(

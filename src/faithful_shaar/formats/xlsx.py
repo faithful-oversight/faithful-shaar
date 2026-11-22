@@ -9,7 +9,7 @@ date taken from the campaign's creation time.
 
 The reader accepts a workbook as saved by Excel, LibreOffice or Google Sheets. It treats
 the file as hostile. It refuses encrypted (CFB) files, zip bombs and files without the
-sheets it needs; it parses XML with :mod:`faithful_shaar.formats.xmlsafe`; and it reads
+sheets it needs; it parses XML with ``faithful_core.xmlsafe``; and it reads
 only the parts it finds through the package relationships.
 
 Sheet protection stops accidental edits only. It has no password, and the row digests
@@ -29,9 +29,10 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, NoReturn
 from xml.sax.saxutils import escape
 
+from faithful_core import xmlsafe
+
 from faithful_shaar import limits
 from faithful_shaar.errors import InputError
-from faithful_shaar.formats import xmlsafe
 
 if TYPE_CHECKING:
     from collections.abc import Callable

@@ -8,11 +8,12 @@ import runpy
 import sys
 
 import pytest
+from faithful_core.exitcodes import ExitCode
 from hypothesis import given
 from hypothesis import strategies as st
 
 from faithful_shaar import __version__
-from faithful_shaar.cli import ExitCode, main
+from faithful_shaar.cli import main
 
 
 def test_version_flag_prints_version(capsys: pytest.CaptureFixture[str]) -> None:
@@ -29,10 +30,6 @@ def test_no_arguments_prints_help(capsys: pytest.CaptureFixture[str]) -> None:
 def test_unknown_option_is_a_usage_error(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--no-such-option"]) == ExitCode.USAGE
     assert "unrecognized arguments" in capsys.readouterr().err
-
-
-def test_exit_codes_are_stable() -> None:
-    assert [int(code) for code in ExitCode] == [0, 1, 2, 3, 4]
 
 
 @given(st.lists(st.text().map(lambda s: "--x" + s), min_size=1))

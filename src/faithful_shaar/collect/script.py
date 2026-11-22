@@ -4,26 +4,12 @@
 
 from __future__ import annotations
 
-import re
-from importlib.resources import files
+from faithful_core.collect.script import ScriptResource
 
 NAME = "Export-ShaarAccess.ps1"
-_VERSION = re.compile(r"^\$CollectorVersion = '([0-9]+\.[0-9]+\.[0-9]+)'$", re.MULTILINE)
+_EXPORTER = ScriptResource("faithful_shaar", NAME, "exporter")
 
-
-def text() -> str:
-    """Return the exporter script.
-
-    It is pure ASCII, so Windows PowerShell 5.1, which reads a file without a byte
-    order mark in the system code page, reads it the same as PowerShell 7 does.
-    """
-    return files("faithful_shaar").joinpath(f"data/{NAME}").read_text(encoding="ascii")
-
-
-def version() -> str:
-    """Return the exporter's own version, as it writes it into each file."""
-    match = _VERSION.search(text())
-    if match is None:  # pragma: no cover - guarded by a test on the packaged script
-        msg = "the exporter script states no version"
-        raise ValueError(msg)
-    return match.group(1)
+text = _EXPORTER.text
+"""Return the exporter script. It is pure ASCII."""
+version = _EXPORTER.version
+"""Return the exporter's own version, as it writes it into each file."""

@@ -1,6 +1,6 @@
 # Architecture
 
-shaar is a command-line tool and a Python library with the same core. Reading exports and CSV files, writing packets and reports, and reading packets need no runtime dependency beyond the Python standard library. The collectors and secret providers use optional dependencies, installed as extras.
+shaar is a command-line tool and a Python library with the same core. Reading exports and CSV files, writing packets and reports, and reading packets need one runtime dependency beyond the Python standard library: [faithful-core](https://github.com/faithful-oversight/faithful-core), the shared foundation library of the Faithful Oversight tools, pinned to an exact version. The collectors and secret providers use optional dependencies, installed as extras.
 
 ```text
  domain-joined computer
@@ -42,8 +42,8 @@ shaar is a command-line tool and a Python library with the same core. Reading ex
 
 | Module | Responsibility |
 | --- | --- |
-| `cli` | Arguments, exit codes, and the commands `campaign`, `decisions`, `verify`, `schema`, and `example`. |
-| `errors` | `ShaarError` and its subclasses `InputError`, `CollectionError`, and `UsageError`. |
+| `cli` | Arguments and the commands `campaign`, `decisions`, `verify`, `schema`, and `example`. |
+| `errors` | `ShaarError`, which is faithful-core's `FaithfulError`, and the error classes shaar uses: `InputError`, `CollectionError`, `UsageError`, and `OutputError`. |
 | `model` | The plain data every reader produces: `Principal`, `Resource`, `Grant`, `Snapshot`, `Source`, and `Problem`. |
 | `keys` | The keys that identify principals, resources, and grants across inputs. |
 | `inputs` | `export` reads a shaar export, `csvread` and `csvmap` read a CSV with its map, `combine` and `merge` combine grants and snapshots. |
@@ -51,11 +51,10 @@ shaar is a command-line tool and a Python library with the same core. Reading ex
 | `campaign` | Rows, digests, `campaign.json`, and loading it back with its digest checked. |
 | `decide` | Reads returned packets into a decision record. |
 | `verify` | Checks a later snapshot against the accepted removals. |
-| `formats` | `xlsx` writes and reads packet workbooks, and `xmlsafe` is the XML parser they share. |
+| `formats` | `xlsx` writes and reads packet workbooks. |
 | `reports` | Builds the report documents and the packet files from a campaign, a decision record, or a verification. |
-| `outputs` | `document` is the report contract, `columns` the columns of every section, `render` the formats, `files` the safe writer, `safety` the escaping, and `schema` the JSON Schemas. |
-| `collect` | `ad` and `remote` for the exporter and WinRM, `entra` and `graph` for Microsoft Graph, `secrets`, `names`, `fileout`, and `script`. |
-| `clock` | Writes times as text the same way on every platform. |
+| `outputs` | `document` is the report contract, `columns` the columns of every section, `render` the formats, `files` the writer that names shaar's temporary files, and `schema` the JSON Schemas. |
+| `collect` | `ad` and `remote` for the exporter: the checks on each line, the script's parameters, and the result. `entra` and `graph` for Microsoft Graph, `fileout`, and `script`. |
 | `example` | The synthetic review for `shaar example` and tests. |
 | `data` | The PowerShell exporter `Export-ShaarAccess.ps1`. |
 | `schema` | The published JSON Schemas. |
@@ -63,6 +62,21 @@ shaar is a command-line tool and a Python library with the same core. Reading ex
 ## The model
 
 A **grant** is one principal's entitlement on one resource: the unit that is reviewed. A **key** identifies each of the three across inputs, and matching uses keys only. Every record keeps a `Source`, so every finding can cite a file and a place. Every snapshot keeps its list of `Problem` records, and the set of resources whose membership was read in full. Only for those resources is the absence of a grant evidence.
+
+## The shared library
+
+faithful-core holds the code that every Faithful Oversight tool needs to behave the same way. shaar uses it for:
+
+- the base error and the exit codes;
+- making untrusted text safe for the terminal, CSV, Markdown, and HTML;
+- the report time and the way times are written;
+- printing that never changes an exit code;
+- the XML parser that reads returned workbooks;
+- publishing a set of files all together, without replacing a file the tool reads;
+- the checks on `--host` and `--username`, the secret providers, and the redaction of every resolved secret;
+- the WinRM connection, its transport rules, and the loop that takes the controller's output.
+
+The library's own pages describe how each of these works. shaar's tests cover them through the commands, and the library's tests cover them directly. See [decision record 8](adr/0008-shared-core-library.md).
 
 ## Rules the design follows
 
@@ -77,7 +91,7 @@ A **grant** is one principal's entitlement on one resource: the unit that is rev
 
 ## Packaging
 
-- Python package on PyPI: `faithful-shaar`, with the command `shaar`. It needs Python 3.11 or newer and has no runtime dependencies.
+- Python package on PyPI: `faithful-shaar`, with the command `shaar`. It needs Python 3.11 or newer. Its one runtime dependency is `faithful-core`, pinned to an exact version.
 - Extras: `ad`, `entra`, `keyring`, `vault`, `aws`, and `azure`. See the README.
 - A standalone executable or a container image is added only when a decision record justifies it.
 

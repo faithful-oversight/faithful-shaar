@@ -6,12 +6,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from faithful_core.safety import visible
+
 from faithful_shaar import decide
 from faithful_shaar.formats.xlsx import Packet, PacketRow, write_packet
 from faithful_shaar.model import Problem, Source
 from faithful_shaar.outputs.columns import SECTION_COLUMNS
 from faithful_shaar.outputs.document import Document, Row, Section
-from faithful_shaar.outputs.safety import visible
 
 if TYPE_CHECKING:
     from faithful_shaar.campaign import Campaign

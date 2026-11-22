@@ -17,11 +17,13 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from faithful_shaar.collect import names, remote, script, secrets
-from faithful_shaar.collision import collection_collision, secret_file
-from faithful_shaar.console import say
+from faithful_core.collect import names, secrets, winrm
+from faithful_core.console import say
+from faithful_core.files import refuse_aliases
+from faithful_core.safety import terminal_line
+
+from faithful_shaar.collect import remote, script
 from faithful_shaar.errors import CollectionError, UsageError
-from faithful_shaar.outputs.safety import terminal_line
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -117,14 +119,14 @@ def add_collect_ad_arguments(collect_subparsers: Any) -> None:
         "--privileged", action="store_true",
         help="export the well-known privileged groups (Administrators, Domain Admins, ...)",
     )  # fmt: skip
-    ad.add_argument("--auth", choices=remote.AUTHS, default="kerberos")
+    ad.add_argument("--auth", choices=winrm.AUTHS, default="kerberos")
     ad.add_argument("--username", help="DOMAIN\\user or user@domain.example")
     ad.add_argument(
         "--secret", metavar="REF",
         help="where the password is: env:NAME, file:PATH, keyring:SERVICE/USER, "
         "vault:MOUNT/PATH#FIELD, aws:SECRET_ID[#FIELD], or azure:VAULT/NAME",
     )  # fmt: skip
-    ad.add_argument("--transport", choices=remote.TRANSPORTS, default="https")
+    ad.add_argument("--transport", choices=winrm.TRANSPORTS, default="https")
     ad.add_argument("--port", type=_port, help="default: 5986 for https, 5985 for http")
     ad.add_argument("--ca-file", type=Path, help="PEM certificate authorities for https")
     ad.add_argument(
@@ -138,7 +140,7 @@ def add_collect_ad_arguments(collect_subparsers: Any) -> None:
 
 def run_collect_ad(args: argparse.Namespace) -> int:
     """Collect over PowerShell remoting. Everything is checked before any secret is read."""
-    host = names.server_name(args.host)
+    host = names.server_name(args.host, flag="--host")
     username = names.account_name(args.username)
     if not (args.group or args.search_base or args.privileged):
         msg = "give at least one of --group, --search-base and --privileged"
@@ -152,10 +154,9 @@ def run_collect_ad(args: argparse.Namespace) -> int:
     if username and not args.secret:
         msg = "--username needs --secret; leave both out to use the current Kerberos ticket"
         raise UsageError(msg)
-    clash = collection_collision([args.ca_file, secret_file(args.secret)], args.output)
-    if clash:  # before any secret is read or any connection is made
-        raise CollectionError(clash)
-    target = remote.Target(
+    # The files this command reads are never the file it writes, even with --force.
+    refuse_aliases([args.output], _read_files(args))
+    target = winrm.Target(
         server=host,
         auth=args.auth,
         username=username,
@@ -165,14 +166,13 @@ def run_collect_ad(args: argparse.Namespace) -> int:
         ca_file=args.ca_file,
         idle_timeout=args.timeout,
     )
-    remote.settings(target)  # refuse a bad combination before the secret is read
+    winrm.settings(target)  # refuse a bad combination before the secret is read
     values = remote.parameters(
         groups=args.group, search_base=args.search_base, privileged=args.privileged, server=host
     )
     if args.secret:
-        target = remote.Target(
-            **{**vars(target), "secret": secrets.resolve(args.secret, keep=("ad",))}
-        )
+        secret = secrets.resolve(args.secret, hint=remote.install_hint, keep=("ad",))
+        target = winrm.Target(**{**vars(target), "secret": secret})
     result = remote.collect(target, script.text(), values, args.output, force=args.force)
     say(terminal(f"Exported {result.records} records from {host} into {result.path}."))
     for name in result.incomplete:
@@ -182,6 +182,16 @@ def run_collect_ad(args: argparse.Namespace) -> int:
     command = _quoted("shaar", "campaign", str(result.path), "-o", "review", "--name", "NAME")
     say(terminal(f"Start a review with: {command} --reviewers manager"))
     return 0
+
+
+def _read_files(args: argparse.Namespace) -> list[tuple[str, Path]]:
+    """The files ``collect ad`` reads, by role: the CA file and a ``file:`` secret."""
+    found: list[tuple[str, Path]] = []
+    if args.ca_file:
+        found.append(("CA file", args.ca_file))
+    if (path := remote.secret_file(args.secret)) is not None:
+        found.append(("secret file", path))
+    return found
 
 
 def run_exporter(args: argparse.Namespace) -> int:

@@ -5,18 +5,21 @@
 from __future__ import annotations
 
 import argparse
-import os
 import re
 import sys
 from datetime import UTC, datetime
-from enum import IntEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+from faithful_core.clock import now
+from faithful_core.collect.secrets import redact
+from faithful_core.console import finish, prepare, say
+from faithful_core.exitcodes import ExitCode
+from faithful_core.safety import command_line, terminal_line
 
 from faithful_shaar import (
     __version__,
     campaign,
-    console,
     decide,
     example,
     limits,
@@ -26,15 +29,11 @@ from faithful_shaar import (
 from faithful_shaar.assign import RULES, read_map
 from faithful_shaar.collect import ad as collect_ad
 from faithful_shaar.collect import entra as collect_entra
-from faithful_shaar.collect.secrets import redact
-from faithful_shaar.console import say
-from faithful_shaar.errors import InputError, ShaarError, UsageError
+from faithful_shaar.errors import InputError, OutputError, ShaarError, UsageError
 from faithful_shaar.formats.xlsx import read_packet
 from faithful_shaar.inputs import read_inputs
 from faithful_shaar.outputs.document import format_time
-from faithful_shaar.outputs.files import OutputError
 from faithful_shaar.outputs.render import render_all, write_outputs
-from faithful_shaar.outputs.safety import command_line, terminal_line
 from faithful_shaar.schema import schema_text
 
 if TYPE_CHECKING:
@@ -52,16 +51,6 @@ _DECISIONS_CSV = ("removals", "attention", "decisions")
 _VERIFY_CSV = ("removals", "kept_but_gone", "new_since_review")
 _RECORDS = {"campaign": CAMPAIGN_FILE, "decisions": DECISIONS_FILE}
 _PACKET_FILE = re.compile(r"packet-\d+-[A-Za-z0-9-]*\.xlsx")
-
-
-class ExitCode(IntEnum):
-    """Process exit codes. These values are part of the public interface."""
-
-    OK = 0
-    FINDINGS = 1
-    USAGE = 2
-    INPUT_ERROR = 3
-    INTERNAL_ERROR = 4
 
 
 def _date(text: str) -> str:
@@ -264,17 +253,6 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _now() -> datetime:
-    """The time: the clock, or ``SOURCE_DATE_EPOCH`` for repeatable output."""
-    fixed = os.environ.get("SOURCE_DATE_EPOCH", "")
-    if fixed.isascii() and fixed.isdigit():
-        try:
-            return datetime.fromtimestamp(int(fixed), UTC)
-        except (OverflowError, OSError, ValueError):
-            pass
-    return datetime.now(UTC).replace(microsecond=0)
-
-
 def _read(path: Path, limit: str, what: str) -> bytes:
     """Read a whole file, refusing one larger than the limit called ``limit``."""
     try:
@@ -371,7 +349,7 @@ def _campaign(args: argparse.Namespace) -> int:
     snapshot = read_inputs(
         args.inputs, label="campaign", csv_map=args.map, preset=args.preset, resource=args.resource
     )
-    when = format_time(_now())
+    when = format_time(now())
     built = campaign.build(
         snapshot,
         name=args.name,
@@ -416,7 +394,7 @@ def _decisions(args: argparse.Namespace) -> int:
         msg = f"two packets are named {repeated[0]}; rename one so each decision's source is clear"
         raise UsageError(msg)
     files = [(path.name, _read(path, "packet-bytes", "a packet")) for path in args.packets]
-    when = format_time(_now())
+    when = format_time(now())
     record = decide.read_decisions(
         built, files, read=read_packet, created_at=when, require_comment=args.require_comment
     )
@@ -447,7 +425,7 @@ def _verify(args: argparse.Namespace) -> int:
     later = read_inputs(
         args.inputs, label="later", csv_map=args.map, preset=args.preset, resource=args.resource
     )
-    when = format_time(_now())
+    when = format_time(now())
     outcome = verify.verify(built, record, later, as_of=args.as_of or "")
     document = reports.verify_document(
         built, outcome, later, generated_at=when, version=__version__
@@ -493,11 +471,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     The exit code is decided by the command before it prints its summary, and printing
     cannot change it: a closed pipe or an output that cannot encode a character never turns
-    a finished run into an internal error (see :mod:`faithful_shaar.console`).
+    a finished run into an internal error (see ``faithful_core.console``).
     """
-    console.prepare()
+    prepare()
     code = _run(argv)
-    console.finish()
+    finish()
     return code
 
 

@@ -12,9 +12,10 @@ from typing import Any
 
 import jsonschema
 import pytest
+from faithful_core.exitcodes import ExitCode
 
 from faithful_shaar import cli, example
-from faithful_shaar.cli import ExitCode, main
+from faithful_shaar.cli import main
 from faithful_shaar.formats.xlsx import read_packet
 from faithful_shaar.schema import schema_text
 from tests import review_support as rs
@@ -300,12 +301,6 @@ def test_schema_and_internal_errors(
     monkeypatch.setattr(cli, "_schema", boom)
     assert main(["schema", "manifest-v1"]) == ExitCode.INTERNAL_ERROR
     assert "This is a bug in shaar" in capsys.readouterr().err
-
-
-@pytest.mark.parametrize("epoch", ["", "x", "99999999999999999999"])
-def test_now_falls_back_to_the_clock(epoch: str, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("SOURCE_DATE_EPOCH", epoch)
-    assert cli._now().year >= 2026  # noqa: SLF001
 
 
 def test_as_of_is_normalized() -> None:

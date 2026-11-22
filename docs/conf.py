@@ -61,6 +61,7 @@ NAVIGATION = {
         "0005-collectors",
         "0006-campaign-integrity",
         "0007-packet-workbooks",
+        "0008-shared-core-library",
     ],
 }
 """Page order for the site navigation, keyed by the page that lists them."""
