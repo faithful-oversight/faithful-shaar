@@ -18,7 +18,7 @@ Options considered:
 ## Decision
 
 - shaar depends on [faithful-core](https://github.com/faithful-oversight/faithful-core) for the code listed in the [architecture page](../architecture.md#the-shared-library). The report documents and renderers, the manifest and schemas, the checks on the exporter's lines, the Entra collector, and the commands stay in shaar.
-- The pin is exact: `faithful-core==0.1.0` in `pyproject.toml`, with the version and file hashes in `uv.lock`. No version range is allowed. An update arrives as a pull request that runs shaar's own checks: its tests, the license and vulnerability checks, and the smoke test of the installed wheel.
+- The pin is exact: `faithful-core==0.1.1` in `pyproject.toml`, with the version and file hashes in `uv.lock`. No version range is allowed. An update arrives as a pull request that runs shaar's own checks: its tests, the license and vulnerability checks, and the smoke test of the installed wheel.
 - faithful-core uses only the standard library, so it adds no packages of its own. It is Apache-2.0, and it is released from `faithful-oversight/faithful-core` with trusted publishing and build provenance.
 - `pypsrp` stays an optional extra of shaar. faithful-core imports it only when remote collection runs.
 
