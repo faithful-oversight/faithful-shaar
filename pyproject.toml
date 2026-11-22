@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "faithful-shaar"
-version = "0.1.1"
+version = "0.1.2"
 description = "Access Review Kit: Runs an offline access review: access data in, reviewer packets out, decisions back in, and a verification of what actually changed."
 readme = "README.md"
 requires-python = ">=3.11"
