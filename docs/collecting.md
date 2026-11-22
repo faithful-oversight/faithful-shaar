@@ -8,7 +8,7 @@ shaar reads CSV files that you make yourself. See [Formats](formats.md). It also
 | `shaar collect ad` | The same, from a domain controller | Anywhere that can reach the controller over WinRM. Needs the `ad` extra. |
 | `shaar collect entra` | Entra ID groups, owners, managers, and directory roles | Anywhere that can reach Microsoft Graph. Needs the `entra` extra. |
 
-> **Status: untested on real systems.** None of the collectors has been run against a real domain, a real WinRM endpoint, or a real Entra tenant. The exporter is tested under PowerShell 7 with synthetic stand-ins for Active Directory, and the remote collector with a simulated WinRM client. The Entra collector is tested against a fake Graph server. Windows PowerShell 5.1 has not been run. Treat the first runs in your environment as a pilot, and check each export against a source you trust. See [Limitations](limitations.md).
+> **Status: untested on real systems.** None of the collectors has been run against a real domain, a real WinRM endpoint, or a real Entra tenant. The exporter is tested under both Windows PowerShell 5.1 and PowerShell 7 with synthetic stand-ins for Active Directory, and the remote collector with a simulated WinRM client. The Entra collector is tested against a fake Graph server. Treat the first runs in your environment as a pilot, and check each export against a source you trust. See [Limitations](limitations.md).
 
 All collectors only read.
 

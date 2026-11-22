@@ -14,7 +14,7 @@ The tool will not:
 
 ## How far this release has been tested
 
-- **No real system.** No collector has run against a real domain, a real WinRM endpoint, or a real Entra tenant. The exporter runs under PowerShell 7 against synthetic stand-ins, the remote collector against a simulated WinRM client, and the Entra collector against a fake Graph server. Windows PowerShell 5.1 has not been run. Treat the first runs as a pilot.
+- **No real system.** No collector has run against a real domain, a real WinRM endpoint, or a real Entra tenant. The exporter runs under both Windows PowerShell 5.1 and PowerShell 7 against synthetic stand-ins, the remote collector against a simulated WinRM client, and the Entra collector against a fake Graph server. Treat the first runs as a pilot.
 - **No Excel, no Google Sheets.** Packets are tested with LibreOffice and openpyxl round trips and with a hand-made file in the shared-string form that Excel writes. A packet has not been opened, edited, and saved in Microsoft Excel or Google Sheets. <!-- TODO(verify): confirm in Excel (desktop and web) and Google Sheets that the Decision list, the protection, and the hidden columns behave as described, and that the saved file reads back. -->
 - **No file from Windows.** No test reads a file that Windows wrote.
 - The example and its sample reports are synthetic.
